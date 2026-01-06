@@ -71,6 +71,7 @@ function isFormDirty(current: PostFormData, initial: PostFormData): boolean {
     current.excerpt !== initial.excerpt ||
     current.categoryId !== initial.categoryId ||
     current.coverImage !== initial.coverImage ||
+    current.publishedAt !== initial.publishedAt ||
     JSON.stringify(current.tagIds.sort()) !== JSON.stringify(initial.tagIds.sort())
   )
 }
@@ -83,6 +84,7 @@ interface PostFormData {
   tagIds: string[]
   status: 'DRAFT' | 'PUBLISHED'
   coverImage: string
+  publishedAt: string
 }
 
 const initialFormData: PostFormData = {
@@ -93,6 +95,7 @@ const initialFormData: PostFormData = {
   tagIds: [],
   status: 'DRAFT',
   coverImage: '',
+  publishedAt: '',
 }
 
 export default function AdminPostEditorPage() {
@@ -180,6 +183,12 @@ export default function AdminPostEditorPage() {
       setIsLoading(true)
       api.getPost(id)
         .then(({ post }) => {
+          // Format publishedAt for datetime-local input (YYYY-MM-DDTHH:mm)
+          let publishedAtValue = ''
+          if (post.publishedAt) {
+            const date = new Date(post.publishedAt)
+            publishedAtValue = date.toISOString().slice(0, 16)
+          }
           const loadedData: PostFormData = {
             title: post.title,
             content: post.content,
@@ -188,6 +197,7 @@ export default function AdminPostEditorPage() {
             tagIds: post.tags.map((t) => t.id),
             status: post.status,
             coverImage: post.coverImage || '',
+            publishedAt: publishedAtValue,
           }
           setFormData(loadedData)
           setSavedFormData(loadedData)
@@ -445,6 +455,23 @@ export default function AdminPostEditorPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Publish Date */}
+          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+              발행 일시
+            </label>
+            <input
+              type="datetime-local"
+              name="publishedAt"
+              value={formData.publishedAt}
+              onChange={handleInputChange}
+              className="w-full bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+            />
+            <p className="text-xs text-slate-500 mt-2">
+              비워두면 발행 시 현재 시간으로 설정됩니다.
+            </p>
           </div>
 
           {/* Cover Image */}

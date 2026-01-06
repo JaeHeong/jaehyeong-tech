@@ -400,6 +400,7 @@ export interface CreatePostData {
   tagIds?: string[]
   status?: 'DRAFT' | 'PUBLISHED'
   coverImage?: string
+  publishedAt?: string
 }
 
 export interface UpdatePostData extends Partial<CreatePostData> {}

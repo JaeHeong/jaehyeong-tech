@@ -135,6 +135,12 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
     const wordCount = content.split(/\s+/).length
     const readingTime = Math.ceil(wordCount / 200)
 
+    // Handle custom publishedAt or use current time
+    let postPublishedAt: Date | null = null
+    if (published) {
+      postPublishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : new Date()
+    }
+
     const post = await prisma.post.create({
       data: {
         slug,
@@ -145,7 +151,7 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
         readingTime,
         published: published || false,
         featured: featured || false,
-        publishedAt: published ? new Date() : null,
+        publishedAt: postPublishedAt,
         author: { connect: { id: req.user.id } },
         category: { connect: { id: categoryId } },
         tags: tagIds ? { connect: tagIds.map((id: string) => ({ id })) } : undefined,
@@ -197,7 +203,10 @@ export async function updatePost(req: AuthRequest, res: Response, next: NextFunc
     if (categoryId) updateData.category = { connect: { id: categoryId } }
     if (published !== undefined) {
       updateData.published = published
-      if (published && !existing.publishedAt) {
+      // Allow custom publishedAt or set to now if publishing for first time
+      if (req.body.publishedAt !== undefined) {
+        updateData.publishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : null
+      } else if (published && !existing.publishedAt) {
         updateData.publishedAt = new Date()
       }
     }
