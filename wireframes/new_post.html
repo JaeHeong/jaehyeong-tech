@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html class="" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>포스팅 작성</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {primary: "#3182f6", "background-light": "#f5f7f8", "background-dark": "#101722", "card-light": "#ffffff", "card-dark": "#1c232d", "secondary-dark": "#282f39"}, fontFamily: {display: "Space Grotesk"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}}}};</script>
+<style type="text/tailwindcss">
+    @layer utilities {
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    }
+</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen font-display text-slate-900 dark:text-white overflow-x-hidden selection:bg-primary selection:text-white">
+<header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex h-16 items-center justify-between gap-4">
+<div class="flex items-center gap-3 shrink-0">
+<div class="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
+<span class="material-symbols-outlined text-[24px]">terminal</span>
+</div>
+<a class="text-xl font-bold tracking-tight" href="#">jaehyeong<span class="text-primary"> tech</span></a>
+</div>
+<div class="hidden md:flex flex-1 items-center justify-end gap-6">
+<nav class="flex gap-6 mr-4">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">홈</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">소개</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">글 목록</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">카테고리</a>
+</nav>
+<div class="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-800">
+<div class="relative w-64 group">
+<div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">search</span>
+</div>
+<input class="block w-full py-1.5 pl-4 pr-10 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-primary/50 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="검색어를 입력하세요..." type="text"/>
+</div>
+<button class="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">dark_mode</span>
+</button>
+</div>
+</div>
+<div class="flex md:hidden items-center gap-4">
+<button class="p-2 text-slate-500">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+<button class="p-2 text-slate-500">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<form class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full" onsubmit="event.preventDefault();">
+<main class="lg:col-span-9 flex flex-col gap-6">
+<div class="group">
+<input autofocus="" class="w-full bg-transparent text-4xl font-bold tracking-tight text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-700 border-none focus:ring-0 focus:outline-none py-2 px-0 transition-all" placeholder="제목을 입력하세요" type="text"/>
+</div>
+<div class="flex flex-col flex-1 bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[600px] overflow-hidden">
+<div class="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 overflow-x-auto no-scrollbar">
+<div class="flex items-center gap-1 pr-2 border-r border-slate-200 dark:border-slate-700">
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Heading 1" type="button">
+<span class="font-bold text-lg leading-none">H1</span>
+</button>
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Heading 2" type="button">
+<span class="font-bold text-base leading-none">H2</span>
+</button>
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Heading 3" type="button">
+<span class="font-bold text-sm leading-none">H3</span>
+</button>
+</div>
+<div class="flex items-center gap-1 px-2 border-r border-slate-200 dark:border-slate-700">
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Bold" type="button">
+<span class="material-symbols-outlined text-[20px]">format_bold</span>
+</button>
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Italic" type="button">
+<span class="material-symbols-outlined text-[20px]">format_italic</span>
+</button>
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Strikethrough" type="button">
+<span class="material-symbols-outlined text-[20px]">format_strikethrough</span>
+</button>
+</div>
+<div class="flex items-center gap-1 px-2 border-r border-slate-200 dark:border-slate-700">
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Quote" type="button">
+<span class="material-symbols-outlined text-[20px]">format_quote</span>
+</button>
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Code Block" type="button">
+<span class="material-symbols-outlined text-[20px]">code_blocks</span>
+</button>
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Link" type="button">
+<span class="material-symbols-outlined text-[20px]">link</span>
+</button>
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Image" type="button">
+<span class="material-symbols-outlined text-[20px]">image</span>
+</button>
+</div>
+<div class="flex items-center gap-1 px-2">
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Bulleted List" type="button">
+<span class="material-symbols-outlined text-[20px]">format_list_bulleted</span>
+</button>
+<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors" title="Numbered List" type="button">
+<span class="material-symbols-outlined text-[20px]">format_list_numbered</span>
+</button>
+</div>
+</div>
+<textarea class="flex-1 w-full p-6 bg-transparent border-none resize-none focus:ring-0 text-slate-800 dark:text-slate-200 text-lg leading-relaxed placeholder-slate-400 dark:placeholder-slate-600" placeholder="여기에 내용을 작성하세요..."></textarea>
+</div>
+</main>
+<aside class="lg:col-span-3 space-y-6">
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm sticky top-24">
+<div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+<h3 class="font-bold text-slate-900 dark:text-white">발행 설정</h3>
+<span class="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">Draft</span>
+</div>
+<div class="space-y-6">
+<div class="space-y-2">
+<label class="block text-sm font-medium text-slate-700 dark:text-slate-300">카테고리</label>
+<div class="relative">
+<select class="w-full pl-3 pr-10 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer text-slate-700 dark:text-slate-300">
+<option disabled="" selected="" value="">카테고리 선택</option>
+<option value="devops">DevOps</option>
+<option value="mlops">MLOps</option>
+<option value="cloud">Cloud Native</option>
+<option value="ai">AI &amp; ML</option>
+<option value="iac">IaC</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+<span class="material-symbols-outlined text-[20px]">expand_more</span>
+</div>
+</div>
+</div>
+<div class="space-y-2">
+<label class="block text-sm font-medium text-slate-700 dark:text-slate-300">태그</label>
+<div class="flex flex-wrap gap-2 mb-2">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                                #docker
+                                <button class="hover:text-red-500 transition-colors" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                                #k8s
+                                <button class="hover:text-red-500 transition-colors" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</span>
+</div>
+<div class="relative">
+<input class="w-full pl-3 pr-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder-slate-400" placeholder="태그 입력 후 Enter" type="text"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="block text-sm font-medium text-slate-700 dark:text-slate-300">URL 슬러그</label>
+<input class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder-slate-400 text-slate-500" readonly="" type="text" value="untitled-post"/>
+</div>
+</div>
+<div class="flex flex-col gap-3 mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+<button class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white dark:bg-card-dark border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                        미리보기
+                    </button>
+<div class="flex gap-3">
+<button class="flex-1 py-2.5 px-4 bg-white dark:bg-card-dark border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" type="button">
+                            임시 저장
+                        </button>
+<button class="flex-1 py-2.5 px-4 bg-primary hover:bg-blue-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 transition-all" type="submit">
+                            발행하기
+                        </button>
+</div>
+</div>
+</div>
+</aside>
+</form>
+</div>
+<footer class="border-t border-slate-200 dark:border-slate-800 py-10 mt-12 bg-card-light dark:bg-card-dark">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-slate-500 dark:text-slate-400 text-sm">© 2023 jaehyeong tech. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="text-slate-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">rss_feed</span></a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">Twitter</a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">GitHub</a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">LinkedIn</a>
+</div>
+</div>
+</footer>
+
+</body></html>

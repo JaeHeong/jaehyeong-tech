@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html class="" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>게시물 검색 결과</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {primary: "#3182f6", "background-light": "#f5f7f8", "background-dark": "#101722", "card-light": "#ffffff", "card-dark": "#1c232d", "secondary-dark": "#282f39"}, fontFamily: {display: "Space Grotesk"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}}}};</script>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen font-display text-slate-900 dark:text-white overflow-x-hidden selection:bg-primary selection:text-white">
+<header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex h-16 items-center justify-between gap-4">
+<div class="flex items-center gap-3 shrink-0">
+<div class="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
+<span class="material-symbols-outlined text-[24px]">terminal</span>
+</div>
+<a class="text-xl font-bold tracking-tight" href="#">jaehyeong<span class="text-primary"> tech</span></a>
+</div>
+<div class="hidden md:flex flex-1 items-center justify-end gap-6">
+<nav class="flex gap-6 mr-4">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">홈</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">소개</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">글 목록</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">카테고리</a>
+</nav>
+<div class="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-800">
+<div class="relative w-64 group">
+<div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">search</span>
+</div>
+<input class="block w-full py-1.5 pl-4 pr-10 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-primary/50 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="검색어를 입력하세요..." type="text" value="DevOps"/>
+</div>
+<button class="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">dark_mode</span>
+</button>
+</div>
+</div>
+<div class="flex md:hidden items-center gap-4">
+<button class="p-2 text-slate-500">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+<button class="p-2 text-slate-500">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<main class="lg:col-span-8 flex flex-col gap-8">
+<div class="flex flex-col gap-6">
+<div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+<div>
+<h1 class="text-2xl font-bold tracking-tight">
+<span class="text-primary">"DevOps"</span> 검색 결과
+                        </h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm mt-1">총 4개의 게시물을 찾았습니다.</p>
+</div>
+<div class="flex items-center gap-2 text-sm">
+<button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined text-[18px]">sort</span> 최신순
+                        </button>
+<button class="px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">관련도순</button>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-6">
+<article class="group flex flex-col md:flex-row gap-6 items-start pb-8 border-b border-slate-200 dark:border-slate-800 last:border-0">
+<div class="w-full md:w-48 aspect-video md:aspect-[4/3] rounded-lg bg-blue-50 dark:bg-blue-900/10 flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-800/50 group-hover:border-primary/20 transition-colors">
+<span class="material-symbols-outlined text-4xl text-blue-500/80">rocket_launch</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col h-full">
+<div class="flex items-center gap-3 text-xs mb-2">
+<span class="font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded">DevOps</span>
+<span class="text-slate-400">2023. 10. 24</span>
+</div>
+<h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+<a href="#">DevOps 엔지니어 로드맵 2024: 기초부터 마스터까지</a>
+</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3">
+                                DevOps 엔지니어가 되기 위해 필요한 기술 스택과 학습 순서를 정리했습니다. Linux 기초부터 CI/CD 파이프라인 구축, 그리고 최신 Cloud Native 기술 트렌드까지 단계별로 상세히 알아봅니다.
+                            </p>
+<div class="flex items-center gap-4 mt-auto">
+<div class="flex items-center gap-1 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-[16px]">visibility</span> 2.4k
+                                </div>
+<div class="flex items-center gap-1 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-[16px]">schedule</span> 10 min
+                                </div>
+</div>
+</div>
+</article>
+<article class="group flex flex-col md:flex-row gap-6 items-start pb-8 border-b border-slate-200 dark:border-slate-800 last:border-0">
+<div class="w-full md:w-48 aspect-video md:aspect-[4/3] rounded-lg bg-indigo-50 dark:bg-indigo-900/10 flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-800/50 group-hover:border-primary/20 transition-colors">
+<span class="material-symbols-outlined text-4xl text-indigo-500/80">anchor</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col h-full">
+<div class="flex items-center gap-3 text-xs mb-2">
+<span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded">Kubernetes</span>
+<span class="text-slate-400">2023. 09. 15</span>
+</div>
+<h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+<a href="#">ArgoCD를 활용한 GitOps 기반 배포 자동화</a>
+</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3">
+                                쿠버네티스 환경에서 ArgoCD를 도입하여 GitOps 워크플로우를 구축하는 방법을 소개합니다. 애플리케이션 상태를 Git 리포지토리에서 선언적으로 관리하고 자동 동기화하는 과정을 실습합니다.
+                            </p>
+<div class="flex items-center gap-4 mt-auto">
+<div class="flex items-center gap-1 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-[16px]">visibility</span> 1.8k
+                                </div>
+<div class="flex items-center gap-1 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-[16px]">schedule</span> 15 min
+                                </div>
+</div>
+</div>
+</article>
+<article class="group flex flex-col md:flex-row gap-6 items-start pb-8 border-b border-slate-200 dark:border-slate-800 last:border-0">
+<div class="w-full md:w-48 aspect-video md:aspect-[4/3] rounded-lg bg-orange-50 dark:bg-orange-900/10 flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-800/50 group-hover:border-primary/20 transition-colors">
+<span class="material-symbols-outlined text-4xl text-orange-500/80">cloud_queue</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col h-full">
+<div class="flex items-center gap-3 text-xs mb-2">
+<span class="font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded">Cloud Native</span>
+<span class="text-slate-400">2023. 08. 02</span>
+</div>
+<h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+<a href="#">AWS EKS 클러스터 구축 모범 사례 가이드</a>
+</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3">
+                                안정적이고 확장 가능한 EKS 클러스터를 구축하기 위한 Terraform 코드 예제와 보안 그룹, IAM 역할 설정 등 프로덕션 환경에서의 모범 사례를 공유합니다.
+                            </p>
+<div class="flex items-center gap-4 mt-auto">
+<div class="flex items-center gap-1 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-[16px]">visibility</span> 1.5k
+                                </div>
+<div class="flex items-center gap-1 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-[16px]">schedule</span> 12 min
+                                </div>
+</div>
+</div>
+</article>
+<article class="group flex flex-col md:flex-row gap-6 items-start pb-8 border-b border-slate-200 dark:border-slate-800 last:border-0">
+<div class="w-full md:w-48 aspect-video md:aspect-[4/3] rounded-lg bg-pink-50 dark:bg-pink-900/10 flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-800/50 group-hover:border-primary/20 transition-colors">
+<span class="material-symbols-outlined text-4xl text-pink-500/80">code_blocks</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col h-full">
+<div class="flex items-center gap-3 text-xs mb-2">
+<span class="font-bold text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 px-2 py-0.5 rounded">IaC</span>
+<span class="text-slate-400">2023. 06. 10</span>
+</div>
+<h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+<a href="#">Terraform으로 관리하는 멀티 클라우드 인프라</a>
+</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3">
+                                단일 클라우드 종속성을 줄이기 위해 AWS와 GCP를 동시에 사용하는 전략. Terraform 모듈을 활용해 재사용 가능한 인프라 코드를 작성하는 방법을 다룹니다.
+                            </p>
+<div class="flex items-center gap-4 mt-auto">
+<div class="flex items-center gap-1 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-[16px]">visibility</span> 1.2k
+                                </div>
+<div class="flex items-center gap-1 text-slate-400 text-xs">
+<span class="material-symbols-outlined text-[16px]">schedule</span> 8 min
+                                </div>
+</div>
+</div>
+</article>
+</div>
+<div class="flex justify-center items-center gap-2 pt-8">
+<button class="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<button class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold shadow-md shadow-primary/20">1</button>
+<button class="px-4 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition-colors">2</button>
+<button class="px-4 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition-colors">3</button>
+<span class="text-slate-400 px-2">...</span>
+<button class="px-4 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition-colors">10</button>
+<button class="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</main>
+<aside class="lg:col-span-4 space-y-8">
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center gap-4 mb-4">
+<div class="size-16 rounded-full bg-slate-200 dark:bg-slate-700 bg-cover border border-slate-200 dark:border-slate-700" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB26LUVSk5qG1exc8OoxdcduPGvlAZHvPwPirqYpOnZyvDhShhJOuBJCxn-5rOS0rQRbatyliGW4whf_rydjQN5IDIWsvDl-4Sng9M1kSsaL7GcWvGB-VQnknRSDamzTJwJ7GS7GVuGYdIN2CY4o-begIAdooAEqlBCNbcOAU3s4Xuyds91FmpudD24kDE-dOJXK-xB6xbbU8aq07Tymxkz8B04zzPOQpOJkrSqhxOwnorM-E6b5hSd3ZQQvSvd41xbKmfD1wpZRczJ')"></div>
+<div>
+<h3 class="text-lg font-bold">Jaehyeong</h3>
+<p class="text-xs text-primary font-medium">DevOps Engineer</p>
+</div>
+</div>
+<p class="text-slate-600 dark:text-slate-400 text-sm mb-6 leading-relaxed">
+                        클라우드 인프라와 자동화, 그리고 MLOps 파이프라인 구축에 열정을 가진 엔지니어입니다. 배운 것을 기록하고 공유합니다.
+                    </p>
+<div class="flex gap-2">
+<button class="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors">Github</button>
+<button class="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors">Twitter</button>
+</div>
+</div>
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm sticky top-24">
+<div class="flex items-center gap-3 mb-5">
+<div class="p-2 bg-pink-500/10 rounded-lg text-pink-500">
+<span class="material-symbols-outlined">trending_up</span>
+</div>
+<h3 class="text-lg font-bold">인기 토픽</h3>
+</div>
+<div class="flex flex-col gap-4">
+<a class="group flex items-start gap-3 pb-4 border-b border-slate-100 dark:border-slate-800/50" href="#">
+<span class="text-2xl font-bold text-slate-300 dark:text-slate-700 group-hover:text-primary transition-colors">01</span>
+<div>
+<h4 class="font-bold text-sm leading-snug group-hover:text-primary transition-colors mb-1">Docker Compose V2 출시</h4>
+<span class="text-xs text-slate-500 dark:text-slate-500">DevOps • 2k 읽음</span>
+</div>
+</a>
+<a class="group flex items-start gap-3 pb-4 border-b border-slate-100 dark:border-slate-800/50" href="#">
+<span class="text-2xl font-bold text-slate-300 dark:text-slate-700 group-hover:text-primary transition-colors">02</span>
+<div>
+<h4 class="font-bold text-sm leading-snug group-hover:text-primary transition-colors mb-1">LLM 파인튜닝 이해하기</h4>
+<span class="text-xs text-slate-500 dark:text-slate-500">MLOps • 1.8k 읽음</span>
+</div>
+</a>
+<a class="group flex items-start gap-3 pb-4 border-b border-slate-100 dark:border-slate-800/50" href="#">
+<span class="text-2xl font-bold text-slate-300 dark:text-slate-700 group-hover:text-primary transition-colors">03</span>
+<div>
+<h4 class="font-bold text-sm leading-snug group-hover:text-primary transition-colors mb-1">ArgoCD를 활용한 GitOps</h4>
+<span class="text-xs text-slate-500 dark:text-slate-500">Cloud Native • 1.5k 읽음</span>
+</div>
+</a>
+<a class="group flex items-start gap-3" href="#">
+<span class="text-2xl font-bold text-slate-300 dark:text-slate-700 group-hover:text-primary transition-colors">04</span>
+<div>
+<h4 class="font-bold text-sm leading-snug group-hover:text-primary transition-colors mb-1">Python 3.12 성능 개선</h4>
+<span class="text-xs text-slate-500 dark:text-slate-500">Programming • 1.2k 읽음</span>
+</div>
+</a>
+</div>
+</div>
+</aside>
+</div>
+</div>
+<footer class="border-t border-slate-200 dark:border-slate-800 py-10 mt-12 bg-card-light dark:bg-card-dark">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-slate-500 dark:text-slate-400 text-sm">© 2023 jaehyeong tech. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="text-slate-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">rss_feed</span></a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">Twitter</a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">GitHub</a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">LinkedIn</a>
+</div>
+</div>
+</footer>
+
+</body></html>
