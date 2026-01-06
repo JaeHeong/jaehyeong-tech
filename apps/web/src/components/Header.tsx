@@ -37,6 +37,7 @@ export default function Header() {
 
   const navLinks = [
     { to: '/', label: '홈' },
+    { to: '/notices', label: '공지사항' },
     { to: '/introduce', label: '소개' },
     { to: '/posts', label: '글 목록' },
     { to: '/categories', label: '카테고리' },

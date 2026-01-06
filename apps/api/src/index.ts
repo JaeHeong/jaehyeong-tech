@@ -10,6 +10,9 @@ import { apiRouter } from './routes/index.js'
 const app = express()
 const PORT = process.env.PORT || 3000
 
+// Trust proxy (for Traefik reverse proxy)
+app.set('trust proxy', 1)
+
 // Security middleware
 app.use(helmet())
 app.use(cors({
@@ -17,12 +20,16 @@ app.use(cors({
   credentials: true,
 }))
 
-// Rate limiting
+// Rate limiting - more generous for SPA with multiple API calls per page
 app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 200, // limit each IP to 200 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === '/health'
+  },
 }))
 
 // Body parsing

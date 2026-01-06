@@ -125,7 +125,7 @@ export default function AdminPostEditorPage() {
   // Check if form has unsaved changes
   const isDirty = useMemo(() => isFormDirty(formData, savedFormData), [formData, savedFormData])
 
-  // Warn user before leaving with unsaved changes
+  // Warn user before browser refresh/close with unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {

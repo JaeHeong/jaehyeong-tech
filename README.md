@@ -48,10 +48,15 @@ jaehyeong-tech/
 │   │   │   │   ├── PostDetailPage.tsx      # 포스트 상세
 │   │   │   │   ├── CategoryPage.tsx        # 카테고리별 포스트
 │   │   │   │   ├── SearchPage.tsx          # 검색 결과
-│   │   │   │   ├── IntroducePage.tsx       # 소개 페이지
+│   │   │   │   ├── IntroducePage.tsx       # 소개 페이지 (DB 연동)
+│   │   │   │   ├── PrivacyPolicyPage.tsx   # 개인정보처리방침 (DB 연동)
+│   │   │   │   ├── NoticePage.tsx          # 공지사항 목록
+│   │   │   │   ├── NoticeDetailPage.tsx    # 공지사항 상세
 │   │   │   │   ├── AdminLoginPage.tsx      # 관리자 로그인
 │   │   │   │   ├── AdminDashboardPage.tsx  # 관리자 대시보드
-│   │   │   │   └── AdminPostEditorPage.tsx # 포스트 에디터
+│   │   │   │   ├── AdminPostEditorPage.tsx # 포스트 에디터
+│   │   │   │   ├── AdminPagesPage.tsx      # 페이지 관리
+│   │   │   │   └── AdminPageEditorPage.tsx # 정적 페이지 에디터
 │   │   │   ├── contexts/       # React Context
 │   │   │   ├── hooks/          # 커스텀 훅
 │   │   │   ├── services/       # API 클라이언트
@@ -67,6 +72,7 @@ jaehyeong-tech/
 │       │   │   ├── posts.ts        # 포스트 CRUD
 │       │   │   ├── categories.ts   # 카테고리 관리
 │       │   │   ├── tags.ts         # 태그 관리
+│       │   │   ├── pages.ts        # 페이지 관리 (공지사항/정적 페이지)
 │       │   │   ├── upload.ts       # 이미지 업로드
 │       │   │   └── metadata.ts     # URL 메타데이터 추출
 │       │   ├── routes/         # API 라우트
@@ -126,6 +132,8 @@ jaehyeong-tech/
 - [x] 미리보기 모달 (ESC로 닫기)
 - [x] 저장하지 않은 변경사항 경고
 - [x] 대시보드 통계
+- [x] 공지사항 관리 (작성/수정/삭제, 뱃지, 상단 고정)
+- [x] 정적 페이지 관리 (JSON 콘텐츠 편집, 라이브 프리뷰)
 
 ### 사용자 기능
 
@@ -137,6 +145,8 @@ jaehyeong-tech/
 - [x] 전체 검색
 - [x] 조회수 표시
 - [x] 예상 읽기 시간
+- [x] 공지사항 (뱃지, 고정 공지, 페이지네이션)
+- [x] 정적 페이지 (소개, 개인정보처리방침)
 
 ## 시작하기
 
@@ -228,6 +238,19 @@ docker compose logs -f tech-web tech-api
 | GET | `/api/tags` | 태그 목록 |
 | GET | `/api/tags/:slug/posts` | 태그별 포스트 |
 
+### 페이지 (공지사항 & 정적 페이지)
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| GET | `/api/pages` | 전체 페이지 목록 |
+| GET | `/api/pages/notices` | 공지사항 목록 |
+| GET | `/api/pages/slug/:slug` | 슬러그로 페이지 조회 |
+| GET | `/api/pages/admin` | 관리자용 페이지 목록 (인증) |
+| GET | `/api/pages/admin/stats` | 페이지 통계 (인증) |
+| GET | `/api/pages/admin/:id` | 페이지 상세 (인증) |
+| POST | `/api/pages` | 페이지 생성 (인증) |
+| PUT | `/api/pages/:id` | 페이지 수정 (인증) |
+| DELETE | `/api/pages/:id` | 페이지 삭제 (인증) |
+
 ### 기타
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
@@ -294,13 +317,38 @@ VITE_GOOGLE_CLIENT_ID=your-google-client-id
 │ bio         │     │ coverImage  │     └─────────────┘
 │ role        │     │ viewCount   │
 └─────────────┘     │ likeCount   │     ┌─────────────┐
-                    │ readingTime │     │    Tag      │
-                    │ published   │     ├─────────────┤
-                    │ featured    │>───<│ id          │
-                    │ publishedAt │     │ name        │
-                    └─────────────┘     │ slug        │
-                                        └─────────────┘
+       │            │ readingTime │     │    Tag      │
+       │            │ published   │     ├─────────────┤
+       │            │ featured    │>───<│ id          │
+       │            │ publishedAt │     │ name        │
+       │            └─────────────┘     │ slug        │
+       │                                └─────────────┘
+       │            ┌─────────────┐
+       │            │    Page     │
+       │            ├─────────────┤
+       └───────────<│ authorId    │
+                    │ slug        │
+                    │ title       │
+                    │ type        │  (STATIC/NOTICE)
+                    │ content     │  (JSON)
+                    │ template    │  (introduce/privacy)
+                    │ status      │
+                    │ badge       │
+                    │ isPinned    │
+                    └─────────────┘
 ```
+
+### 정적 페이지 시스템
+
+정적 페이지(소개, 개인정보처리방침)는 **하이브리드 방식**으로 관리됩니다:
+
+- **레이아웃**: React 컴포넌트로 코드에 정의 (`IntroducePage.tsx`, `PrivacyPolicyPage.tsx`)
+- **콘텐츠**: JSON 형식으로 DB에 저장, 관리자 페이지에서 편집 가능
+
+새로운 정적 페이지 추가 시:
+1. 템플릿 컴포넌트 생성 (`src/pages/새페이지Page.tsx`)
+2. `AdminPageEditorPage.tsx`에 프리뷰 컴포넌트 추가
+3. DB에 페이지 레코드 삽입 (type: STATIC, template: '새페이지')
 
 ## 라이선스
 

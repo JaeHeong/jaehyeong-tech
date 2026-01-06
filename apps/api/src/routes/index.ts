@@ -6,6 +6,7 @@ import { authRouter } from './auth.js'
 import { uploadRouter } from './upload.js'
 import { metadataRouter } from './metadata.js'
 import { authorRouter } from './author.js'
+import { pageRouter } from './pages.js'
 
 export const apiRouter: IRouter = Router()
 
@@ -16,6 +17,7 @@ apiRouter.use('/auth', authRouter)
 apiRouter.use('/upload', uploadRouter)
 apiRouter.use('/metadata', metadataRouter)
 apiRouter.use('/author', authorRouter)
+apiRouter.use('/pages', pageRouter)
 
 // API info
 apiRouter.get('/', (_req, res) => {
@@ -29,6 +31,7 @@ apiRouter.get('/', (_req, res) => {
       auth: '/api/auth',
       metadata: '/api/metadata',
       author: '/api/author',
+      pages: '/api/pages',
     },
   })
 })

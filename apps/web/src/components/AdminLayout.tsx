@@ -1,11 +1,13 @@
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import Header from './Header'
+import Footer from './Footer'
 
 const sidebarItems = [
   { path: '/admin', icon: 'dashboard', label: '대시보드 홈', exact: true },
   { path: '/admin/posts', icon: 'article', label: '게시물 관리' },
   { path: '/admin/categories', icon: 'category', label: '카테고리 관리' },
+  { path: '/admin/pages', icon: 'description', label: '페이지 관리' },
   { path: '/admin/drafts', icon: 'edit_note', label: '임시 저장 글', badge: '3' },
   { path: '/admin/comments', icon: 'chat', label: '댓글 관리', badgeType: 'new' },
   { path: '/admin/settings', icon: 'settings', label: '설정' },
@@ -108,28 +110,7 @@ export default function AdminLayout() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 py-10 mt-12 bg-card-light dark:bg-card-dark">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
-            &copy; {new Date().getFullYear()} jaehyeong tech. All rights reserved.
-          </p>
-          <div className="flex gap-6">
-            <a className="text-slate-400 hover:text-primary transition-colors" href="#">
-              <span className="material-symbols-outlined">rss_feed</span>
-            </a>
-            <a className="text-slate-400 hover:text-primary transition-colors" href="#">
-              Twitter
-            </a>
-            <a className="text-slate-400 hover:text-primary transition-colors" href="#">
-              GitHub
-            </a>
-            <a className="text-slate-400 hover:text-primary transition-colors" href="#">
-              LinkedIn
-            </a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

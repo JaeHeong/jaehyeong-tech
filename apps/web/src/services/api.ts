@@ -224,6 +224,78 @@ class ApiClient {
       body: { url },
     })
   }
+
+  // Pages endpoints
+  async getPages(params?: PagesQueryParams) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.type) searchParams.set('type', params.type)
+
+    const query = searchParams.toString()
+    const response = await this.request<{ data: Page[]; meta: PagesResponse['meta'] }>(`/pages${query ? `?${query}` : ''}`)
+    return { pages: response.data, meta: response.meta }
+  }
+
+  async getNotices(params?: { page?: number; limit?: number }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+
+    const query = searchParams.toString()
+    const response = await this.request<{ data: Page[]; meta: PagesResponse['meta'] }>(`/pages/notices${query ? `?${query}` : ''}`)
+    return { notices: response.data, meta: response.meta }
+  }
+
+  async getPageBySlug(slug: string) {
+    const response = await this.request<{ data: Page }>(`/pages/slug/${slug}`)
+    return { page: response.data }
+  }
+
+  // Admin pages endpoints
+  async getAdminPages(params?: AdminPagesQueryParams) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.type) searchParams.set('type', params.type)
+    if (params?.status) searchParams.set('status', params.status)
+
+    const query = searchParams.toString()
+    const response = await this.request<{ data: Page[]; meta: PagesResponse['meta'] }>(`/pages/admin${query ? `?${query}` : ''}`)
+    return { pages: response.data, meta: response.meta }
+  }
+
+  async getPageStats() {
+    const response = await this.request<{ data: PageStats }>('/pages/admin/stats')
+    return response.data
+  }
+
+  async getPageById(id: string) {
+    const response = await this.request<{ data: Page }>(`/pages/admin/${id}`)
+    return { page: response.data }
+  }
+
+  async createPage(data: CreatePageData) {
+    const response = await this.request<{ data: Page }>('/pages', {
+      method: 'POST',
+      body: data,
+    })
+    return { page: response.data }
+  }
+
+  async updatePage(id: string, data: UpdatePageData) {
+    const response = await this.request<{ data: Page }>(`/pages/${id}`, {
+      method: 'PUT',
+      body: data,
+    })
+    return { page: response.data }
+  }
+
+  async deletePage(id: string) {
+    return this.request<void>(`/pages/${id}`, {
+      method: 'DELETE',
+    })
+  }
 }
 
 // Types
@@ -349,6 +421,68 @@ export interface UrlMetadata {
   favicon: string | null
   siteName: string | null
 }
+
+// Page types
+export interface Page {
+  id: string
+  slug: string
+  title: string
+  type: 'STATIC' | 'NOTICE'
+  content: string
+  excerpt?: string
+  status: 'DRAFT' | 'PUBLISHED'
+  badge?: string
+  badgeColor?: string
+  isPinned: boolean
+  template?: string
+  viewCount: number
+  author: AuthUser
+  createdAt: string
+  updatedAt: string
+  publishedAt?: string
+}
+
+export interface PagesResponse {
+  pages: Page[]
+  meta: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface PagesQueryParams {
+  page?: number
+  limit?: number
+  type?: 'STATIC' | 'NOTICE'
+}
+
+export interface AdminPagesQueryParams extends PagesQueryParams {
+  status?: 'DRAFT' | 'PUBLISHED'
+}
+
+export interface PageStats {
+  total: number
+  published: number
+  drafts: number
+  notices: number
+  staticPages: number
+}
+
+export interface CreatePageData {
+  title: string
+  content: string
+  excerpt?: string
+  type?: 'STATIC' | 'NOTICE'
+  status?: 'DRAFT' | 'PUBLISHED'
+  badge?: string
+  badgeColor?: string
+  isPinned?: boolean
+  template?: string
+}
+
+export interface UpdatePageData extends Partial<CreatePageData> {}
 
 export const api = new ApiClient(API_BASE_URL)
 export default api

@@ -1,7 +1,34 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import api from '../services/api'
+
+interface Author {
+  github?: string
+  linkedin?: string
+  twitter?: string // Used for "구 블로그"
+}
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
+  const [author, setAuthor] = useState<Author | null>(null)
+
+  useEffect(() => {
+    const fetchAuthor = async () => {
+      try {
+        const { data } = await api.getAuthorInfo()
+        setAuthor(data)
+      } catch {
+        // Use defaults if API fails
+        setAuthor(null)
+      }
+    }
+    fetchAuthor()
+  }, [])
+
+  // Default links if author data not available
+  const github = author?.github || 'https://github.com/JaeHeong'
+  const linkedin = author?.linkedin || 'https://www.linkedin.com/in/kjh-qha970301'
+  const oldBlog = author?.twitter || 'https://jaehyeong.tistory.com/'
 
   return (
     <footer className="border-t border-slate-200 dark:border-slate-800 py-10 mt-12 bg-card-light dark:bg-card-dark">
@@ -25,15 +52,15 @@ export default function Footer() {
             <span className="material-symbols-outlined">rss_feed</span>
           </Link>
           <a
-            href="https://twitter.com"
+            href={oldBlog}
             target="_blank"
             rel="noopener noreferrer"
             className="text-slate-400 hover:text-primary transition-colors"
           >
-            Twitter
+            구 블로그
           </a>
           <a
-            href="https://github.com/JaeHeong"
+            href={github}
             target="_blank"
             rel="noopener noreferrer"
             className="text-slate-400 hover:text-primary transition-colors"
@@ -41,7 +68,7 @@ export default function Footer() {
             GitHub
           </a>
           <a
-            href="https://linkedin.com"
+            href={linkedin}
             target="_blank"
             rel="noopener noreferrer"
             className="text-slate-400 hover:text-primary transition-colors"

@@ -8,7 +8,7 @@ interface Author {
   bio?: string
   avatar?: string
   github?: string
-  twitter?: string
+  linkedin?: string
 }
 
 interface PopularPost {
@@ -104,20 +104,20 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true }:
                 rel="noopener noreferrer"
                 className="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors text-center"
               >
-                Github
+                GitHub
               </a>
             )}
-            {author.twitter && (
+            {author.linkedin && (
               <a
-                href={author.twitter}
+                href={author.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors text-center"
               >
-                Twitter
+                LinkedIn
               </a>
             )}
-            {!author.github && !author.twitter && (
+            {!author.github && !author.linkedin && (
               <>
                 <a
                   href="https://github.com/JaeHeong"
@@ -125,13 +125,15 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true }:
                   rel="noopener noreferrer"
                   className="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors text-center"
                 >
-                  Github
+                  GitHub
                 </a>
                 <a
-                  href="#"
+                  href="https://www.linkedin.com/in/kjh-qha970301"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors text-center"
                 >
-                  Twitter
+                  LinkedIn
                 </a>
               </>
             )}

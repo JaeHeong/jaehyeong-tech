@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html class="" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>공지사항</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {primary: "#3182f6", "background-light": "#f5f7f8", "background-dark": "#101722", "card-light": "#ffffff", "card-dark": "#1c232d", "secondary-dark": "#282f39"}, fontFamily: {display: "Space Grotesk"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}}}};</script>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen font-display text-slate-900 dark:text-white overflow-x-hidden selection:bg-primary selection:text-white">
+<header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex h-16 items-center justify-between gap-4">
+<div class="flex items-center gap-3 shrink-0">
+<div class="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
+<span class="material-symbols-outlined text-[24px]">terminal</span>
+</div>
+<a class="text-xl font-bold tracking-tight" href="#">jaehyeong<span class="text-primary"> tech</span></a>
+</div>
+<div class="hidden md:flex flex-1 items-center justify-end gap-6">
+<nav class="flex gap-6 mr-4">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">홈</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">소개</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">글 목록</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">카테고리</a>
+</nav>
+<div class="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-800">
+<div class="relative w-64 group">
+<div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">search</span>
+</div>
+<input class="block w-full py-1.5 pl-4 pr-10 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-primary/50 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="검색어를 입력하세요..." type="text"/>
+</div>
+<button class="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">dark_mode</span>
+</button>
+</div>
+</div>
+<div class="flex md:hidden items-center gap-4">
+<button class="p-2 text-slate-500">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+<button class="p-2 text-slate-500">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<main class="lg:col-span-8">
+<div class="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 md:p-10 min-h-[600px]">
+<div class="border-b border-slate-200 dark:border-slate-800 pb-8 mb-8">
+<div class="flex items-center gap-3 mb-4">
+<div class="p-2.5 bg-primary/10 rounded-xl text-primary">
+<span class="material-symbols-outlined text-2xl">campaign</span>
+</div>
+<h1 class="text-3xl font-bold text-slate-900 dark:text-white">공지사항</h1>
+</div>
+<p class="text-slate-500 dark:text-slate-400 leading-relaxed">
+                            jaehyeong tech 블로그의 주요 소식과 업데이트, 그리고 서비스 관련 안내사항을 확인하실 수 있습니다.
+                        </p>
+</div>
+<div class="space-y-6">
+<div class="p-6 rounded-xl bg-primary/5 border border-primary/10 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl text-primary">bookmark_star</span>
+</div>
+<div class="relative z-10">
+<div class="flex flex-wrap items-center gap-3 mb-3">
+<span class="px-2.5 py-0.5 rounded-full bg-primary text-white text-xs font-bold shadow-sm shadow-primary/30">필독</span>
+<span class="text-sm font-medium text-slate-500 dark:text-slate-400">2023.10.20</span>
+</div>
+<h2 class="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-primary transition-colors cursor-pointer">
+                                    블로그 리뉴얼 및 서버 점검 안내
+                                </h2>
+<p class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed mb-4">
+                                    안녕하세요, jaehyeong tech입니다. 더 나은 사용자 경험을 제공하기 위해 블로그 디자인 리뉴얼과 서버 인프라 업그레이드를 진행했습니다. 이번 업데이트를 통해 페이지 로딩 속도가 30% 향상되었으며, 다크 모드 가독성이 대폭 개선되었습니다. 이용 중 불편한 점이 있다면 언제든 피드백 부탁드립니다.
+                                </p>
+</div>
+</div>
+<div class="group block border-b border-slate-100 dark:border-slate-800 pb-8 last:border-0 last:pb-0">
+<div class="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-3">
+<div class="flex items-center gap-3">
+<span class="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold border border-slate-200 dark:border-slate-700">안내</span>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors cursor-pointer">
+                                    개인정보 처리방침 개정 안내
+                                </h3>
+</div>
+<span class="text-sm text-slate-400 shrink-0">2023.10.05</span>
+</div>
+<p class="text-slate-600 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed">
+                                2023년 10월 5일자로 개인정보 처리방침이 일부 개정되었습니다. 주요 변경 사항은 쿠키 수집 정책의 구체화 및 제3자 제공 관련 조항 삭제입니다. 변경된 내용은 하단 링크를 통해 상세히 확인하실 수 있으며, 이의가 있으신 경우 문의주시기 바랍니다.
+                            </p>
+</div>
+<div class="group block border-b border-slate-100 dark:border-slate-800 pb-8 last:border-0 last:pb-0">
+<div class="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-3">
+<div class="flex items-center gap-3">
+<span class="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold border border-slate-200 dark:border-slate-700">업데이트</span>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors cursor-pointer">
+                                    MLOps 카테고리 신설 및 콘텐츠 로드맵
+                                </h3>
+</div>
+<span class="text-sm text-slate-400 shrink-0">2023.09.15</span>
+</div>
+<p class="text-slate-600 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed">
+                                최근 업계의 관심이 높아지고 있는 MLOps 분야에 대한 심도 있는 글을 다루기 위해 전용 카테고리를 신설했습니다. 앞으로 Kubeflow, MLflow, Serving 전략 등 다양한 실무 사례를 바탕으로 한 튜토리얼과 아키텍처 분석 글을 매주 공유할 예정입니다.
+                            </p>
+</div>
+<div class="group block border-b border-slate-100 dark:border-slate-800 pb-8 last:border-0 last:pb-0">
+<div class="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-3">
+<div class="flex items-center gap-3">
+<span class="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold border border-slate-200 dark:border-slate-700">안내</span>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors cursor-pointer">
+                                    댓글 시스템 유지보수 작업 완료
+                                </h3>
+</div>
+<span class="text-sm text-slate-400 shrink-0">2023.08.30</span>
+</div>
+<p class="text-slate-600 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed">
+                                간헐적으로 발생하던 댓글 작성 오류를 수정했습니다. 이제 GitHub 계정 연동 없이도 게스트 댓글 작성이 가능하며, 스팸 방지 필터가 강화되었습니다. 더욱 쾌적한 소통 환경을 위해 지속적으로 모니터링하겠습니다.
+                            </p>
+</div>
+</div>
+<div class="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-center">
+<nav class="flex items-center gap-2">
+<button class="size-9 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed" disabled="">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="size-9 flex items-center justify-center rounded-lg bg-primary text-white text-sm font-bold shadow-sm shadow-primary/30">1</button>
+<button class="size-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium transition-colors">2</button>
+<button class="size-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium transition-colors">3</button>
+<button class="size-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</nav>
+</div>
+</div>
+</main>
+<aside class="lg:col-span-4 space-y-8">
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center gap-4 mb-4">
+<div class="size-16 rounded-full bg-slate-200 dark:bg-slate-700 bg-cover border border-slate-200 dark:border-slate-700" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB26LUVSk5qG1exc8OoxdcduPGvlAZHvPwPirqYpOnZyvDhShhJOuBJCxn-5rOS0rQRbatyliGW4whf_rydjQN5IDIWsvDl-4Sng9M1kSsaL7GcWvGB-VQnknRSDamzTJwJ7GS7GVuGYdIN2CY4o-begIAdooAEqlBCNbcOAU3s4Xuyds91FmpudD24kDE-dOJXK-xB6xbbU8aq07Tymxkz8B04zzPOQpOJkrSqhxOwnorM-E6b5hSd3ZQQvSvd41xbKmfD1wpZRczJ')"></div>
+<div>
+<h3 class="text-lg font-bold">Alex Chen</h3>
+<p class="text-xs text-primary font-medium">DevOps Engineer</p>
+</div>
+</div>
+<p class="text-slate-600 dark:text-slate-400 text-sm mb-6 leading-relaxed">
+                        클라우드 인프라와 자동화, 그리고 MLOps 파이프라인 구축에 열정을 가진 엔지니어입니다. 배운 것을 기록하고 공유합니다.
+                    </p>
+<div class="flex gap-2">
+<button class="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors">Github</button>
+<button class="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors">Twitter</button>
+</div>
+</div>
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm sticky top-24">
+<div class="flex items-center gap-3 mb-5">
+<div class="p-2 bg-pink-500/10 rounded-lg text-pink-500">
+<span class="material-symbols-outlined">trending_up</span>
+</div>
+<h3 class="text-lg font-bold">인기 토픽</h3>
+</div>
+<div class="flex flex-col gap-4">
+<a class="group flex items-start gap-3 pb-4 border-b border-slate-100 dark:border-slate-800/50" href="#">
+<span class="text-2xl font-bold text-slate-300 dark:text-slate-700 group-hover:text-primary transition-colors">01</span>
+<div>
+<h4 class="font-bold text-sm leading-snug group-hover:text-primary transition-colors mb-1">Docker Compose V2 출시</h4>
+<span class="text-xs text-slate-500 dark:text-slate-500">DevOps • 2k 읽음</span>
+</div>
+</a>
+<a class="group flex items-start gap-3 pb-4 border-b border-slate-100 dark:border-slate-800/50" href="#">
+<span class="text-2xl font-bold text-slate-300 dark:text-slate-700 group-hover:text-primary transition-colors">02</span>
+<div>
+<h4 class="font-bold text-sm leading-snug group-hover:text-primary transition-colors mb-1">LLM 파인튜닝 이해하기</h4>
+<span class="text-xs text-slate-500 dark:text-slate-500">MLOps • 1.8k 읽음</span>
+</div>
+</a>
+<a class="group flex items-start gap-3 pb-4 border-b border-slate-100 dark:border-slate-800/50" href="#">
+<span class="text-2xl font-bold text-slate-300 dark:text-slate-700 group-hover:text-primary transition-colors">03</span>
+<div>
+<h4 class="font-bold text-sm leading-snug group-hover:text-primary transition-colors mb-1">ArgoCD를 활용한 GitOps</h4>
+<span class="text-xs text-slate-500 dark:text-slate-500">Cloud Native • 1.5k 읽음</span>
+</div>
+</a>
+<a class="group flex items-start gap-3" href="#">
+<span class="text-2xl font-bold text-slate-300 dark:text-slate-700 group-hover:text-primary transition-colors">04</span>
+<div>
+<h4 class="font-bold text-sm leading-snug group-hover:text-primary transition-colors mb-1">Python 3.12 성능 개선</h4>
+<span class="text-xs text-slate-500 dark:text-slate-500">Programming • 1.2k 읽음</span>
+</div>
+</a>
+</div>
+</div>
+</aside>
+</div>
+</div>
+<footer class="border-t border-slate-200 dark:border-slate-800 py-10 mt-12 bg-card-light dark:bg-card-dark">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-slate-500 dark:text-slate-400 text-sm">© 2023 jaehyeong tech. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="text-slate-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">rss_feed</span></a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">Twitter</a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">GitHub</a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">LinkedIn</a>
+</div>
+</div>
+</footer>
+
+</body></html>
