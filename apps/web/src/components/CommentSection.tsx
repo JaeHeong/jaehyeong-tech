@@ -407,13 +407,16 @@ function CommentItem({
         {/* Actions */}
         {!showEditForm && (
           <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={() => setShowReplyForm(!showReplyForm)}
-              className="px-3 py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
-            >
-              <span className="material-symbols-outlined text-[16px]">reply</span>
-              답글
-            </button>
+            {/* Only show reply button for top-level comments (not nested replies) */}
+            {!comment.parentId && (
+              <button
+                onClick={() => setShowReplyForm(!showReplyForm)}
+                className="px-3 py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[16px]">reply</span>
+                답글
+              </button>
+            )}
             {canEdit && (
               <button
                 onClick={() => setShowEditForm(true)}
