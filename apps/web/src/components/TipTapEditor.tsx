@@ -75,6 +75,27 @@ const SlashCommands = Extension.create({
           chain().deleteRange(range).setHorizontalRule().run()
         },
       }),
+      // /callout + space → Callout block
+      new InputRule({
+        find: /^\/callout\s$/,
+        handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
+          chain().deleteRange(range).insertContent({
+            type: 'callout',
+            attrs: { type: 'info', icon: '💡' },
+            content: [{ type: 'paragraph' }],
+          }).run()
+        },
+      }),
+      // /pullquote + space → PullQuote block
+      new InputRule({
+        find: /^\/pullquote\s$/,
+        handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
+          chain().deleteRange(range).insertContent({
+            type: 'pullQuote',
+            content: [{ type: 'paragraph' }],
+          }).run()
+        },
+      }),
     ]
   },
 })
@@ -201,6 +222,186 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
         return false
       },
     }
+  },
+})
+
+// Callout types configuration
+const CALLOUT_TYPES = [
+  { type: 'info', icon: '💡', label: '정보', bgLight: '#eff6ff', bgDark: '#1e3a5f', borderColor: '#3b82f6' },
+  { type: 'warning', icon: '⚠️', label: '주의', bgLight: '#fffbeb', bgDark: '#422006', borderColor: '#f59e0b' },
+  { type: 'error', icon: '🚨', label: '오류', bgLight: '#fef2f2', bgDark: '#450a0a', borderColor: '#ef4444' },
+  { type: 'success', icon: '✅', label: '성공', bgLight: '#f0fdf4', bgDark: '#052e16', borderColor: '#22c55e' },
+  { type: 'note', icon: '📝', label: '노트', bgLight: '#f8fafc', bgDark: '#1e293b', borderColor: '#64748b' },
+  { type: 'tip', icon: '🔥', label: '팁', bgLight: '#fff7ed', bgDark: '#431407', borderColor: '#f97316' },
+]
+
+// Callout Component (Notion-style)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const DEFAULT_CALLOUT = { type: 'info', icon: '💡', label: '정보', bgLight: '#eff6ff', bgDark: '#1e3a5f', borderColor: '#3b82f6' }
+
+function CalloutComponent({ node, updateAttributes, deleteNode }: any) {
+  const { type, icon } = node.attrs
+  const [showIconPicker, setShowIconPicker] = useState(false)
+  const calloutConfig = CALLOUT_TYPES.find(c => c.type === type) ?? DEFAULT_CALLOUT
+
+  const commonEmojis = ['💡', '⚠️', '🚨', '✅', '📝', '🔥', '❓', '📌', '🎯', '⭐', '🚀', '💪', '👀', '🤔', '📢', '🔔']
+
+  return (
+    <NodeViewWrapper
+      className="callout-wrapper"
+      data-callout-type={type}
+      style={{
+        '--callout-bg-light': calloutConfig.bgLight,
+        '--callout-bg-dark': calloutConfig.bgDark,
+        '--callout-border': calloutConfig.borderColor,
+      } as React.CSSProperties}
+    >
+      <div className="callout-icon-wrapper">
+        <button
+          type="button"
+          className="callout-icon"
+          onClick={() => setShowIconPicker(!showIconPicker)}
+          title="아이콘 변경"
+        >
+          {icon}
+        </button>
+        {showIconPicker && (
+          <div className="callout-icon-picker">
+            {commonEmojis.map(emoji => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => {
+                  updateAttributes({ icon: emoji })
+                  setShowIconPicker(false)
+                }}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <NodeViewContent className="callout-content" />
+      <div className="callout-actions">
+        <select
+          className="callout-type-select"
+          value={type}
+          onChange={(e) => {
+            const newType = e.target.value
+            const newConfig = CALLOUT_TYPES.find(c => c.type === newType)
+            updateAttributes({ type: newType, icon: newConfig?.icon || icon })
+          }}
+        >
+          {CALLOUT_TYPES.map(c => (
+            <option key={c.type} value={c.type}>{c.label}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="callout-delete"
+          onClick={deleteNode}
+          title="삭제"
+        >
+          <span className="material-symbols-outlined text-[16px]">close</span>
+        </button>
+      </div>
+    </NodeViewWrapper>
+  )
+}
+
+// Callout Node Extension
+const Callout = Node.create({
+  name: 'callout',
+  group: 'block',
+  content: 'block+',
+
+  addAttributes() {
+    return {
+      type: { default: 'info' },
+      icon: { default: '💡' },
+    }
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'div[data-callout]',
+        getAttrs: (dom) => {
+          const element = dom as HTMLElement
+          return {
+            type: element.getAttribute('data-callout-type') || 'info',
+            icon: element.getAttribute('data-callout-icon') || '💡',
+          }
+        },
+      },
+    ]
+  },
+
+  renderHTML({ node }) {
+    const { type, icon } = node.attrs
+    const config = CALLOUT_TYPES.find(c => c.type === type) ?? DEFAULT_CALLOUT
+    return [
+      'div',
+      {
+        'data-callout': '',
+        'data-callout-type': type,
+        'data-callout-icon': icon,
+        class: 'callout-static',
+        style: `--callout-bg-light: ${config.bgLight}; --callout-bg-dark: ${config.bgDark}; --callout-border: ${config.borderColor};`,
+      },
+      ['span', { class: 'callout-static-icon' }, icon],
+      ['div', { class: 'callout-static-content' }, 0],
+    ]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(CalloutComponent)
+  },
+})
+
+// PullQuote Component (Large stylized quote)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function PullQuoteComponent({ deleteNode }: any) {
+  return (
+    <NodeViewWrapper className="pullquote-wrapper">
+      <div className="pullquote-mark pullquote-mark-open">"</div>
+      <NodeViewContent className="pullquote-content" />
+      <div className="pullquote-mark pullquote-mark-close">"</div>
+      <button
+        type="button"
+        className="pullquote-delete"
+        onClick={deleteNode}
+        title="삭제"
+      >
+        <span className="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </NodeViewWrapper>
+  )
+}
+
+// PullQuote Node Extension
+const PullQuote = Node.create({
+  name: 'pullQuote',
+  group: 'block',
+  content: 'block+',
+
+  parseHTML() {
+    return [{ tag: 'div[data-pullquote]' }]
+  },
+
+  renderHTML() {
+    return [
+      'div',
+      { 'data-pullquote': '', class: 'pullquote-static' },
+      ['span', { class: 'pullquote-static-mark-open' }, '"'],
+      ['div', { class: 'pullquote-static-content' }, 0],
+      ['span', { class: 'pullquote-static-mark-close' }, '"'],
+    ]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(PullQuoteComponent)
   },
 })
 
@@ -414,6 +615,8 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
       }),
       SlashCommands,
       Bookmark,
+      Callout,
+      PullQuote,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -616,6 +819,27 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
             title="Quote"
           >
             <span className="material-symbols-outlined text-[20px]">format_quote</span>
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().insertContent({
+              type: 'callout',
+              attrs: { type: 'info', icon: '💡' },
+              content: [{ type: 'paragraph' }],
+            }).run()}
+            isActive={editor.isActive('callout')}
+            title="Callout (/callout)"
+          >
+            <span className="material-symbols-outlined text-[20px]">lightbulb</span>
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().insertContent({
+              type: 'pullQuote',
+              content: [{ type: 'paragraph' }],
+            }).run()}
+            isActive={editor.isActive('pullQuote')}
+            title="Pull Quote (/pullquote)"
+          >
+            <span className="material-symbols-outlined text-[20px]">format_ink_highlighter</span>
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
@@ -1119,7 +1343,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
         }
         .bookmark-card {
           display: flex;
-          text-decoration: none;
+          text-decoration: none !important;
           border: 1px solid #e2e8f0;
           border-radius: 0.75rem;
           overflow: hidden;
@@ -1129,6 +1353,9 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
         .bookmark-card:hover {
           border-color: #cbd5e1;
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        .bookmark-card * {
+          text-decoration: none !important;
         }
         .dark .bookmark-card {
           border-color: #334155;
@@ -1197,6 +1424,8 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           width: 140px;
           flex-shrink: 0;
           background: #f1f5f9;
+          display: flex;
+          align-items: center;
         }
         .dark .bookmark-image {
           background: #0f172a;
@@ -1205,6 +1434,8 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           width: 100%;
           height: 100%;
           object-fit: cover;
+          margin: 0 !important;
+          border-radius: 0 !important;
         }
         .bookmark-delete {
           position: absolute;
@@ -1237,6 +1468,213 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           color: #94a3b8;
         }
         .dark .bookmark-delete:hover {
+          background: rgba(127, 29, 29, 0.5);
+          border-color: #7f1d1d;
+          color: #f87171;
+        }
+        /* Callout Block */
+        .callout-wrapper {
+          position: relative;
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          margin: 1rem 0;
+          padding: 1rem;
+          border-radius: 0.75rem;
+          border-left: 4px solid var(--callout-border);
+          background: var(--callout-bg-light);
+        }
+        .dark .callout-wrapper {
+          background: var(--callout-bg-dark);
+        }
+        .callout-icon-wrapper {
+          position: relative;
+          flex-shrink: 0;
+        }
+        .callout-icon {
+          font-size: 1.25rem;
+          line-height: 1;
+          cursor: pointer;
+          background: none;
+          border: none;
+          padding: 0.25rem;
+          border-radius: 0.375rem;
+          transition: background 0.15s;
+        }
+        .callout-icon:hover {
+          background: rgba(0, 0, 0, 0.1);
+        }
+        .dark .callout-icon:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+        .callout-icon-picker {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          z-index: 20;
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 0.25rem;
+          padding: 0.5rem;
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.5rem;
+          box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+        .dark .callout-icon-picker {
+          background: #1e293b;
+          border-color: #334155;
+        }
+        .callout-icon-picker button {
+          padding: 0.375rem;
+          font-size: 1.125rem;
+          border: none;
+          background: none;
+          border-radius: 0.25rem;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .callout-icon-picker button:hover {
+          background: #f1f5f9;
+        }
+        .dark .callout-icon-picker button:hover {
+          background: #334155;
+        }
+        .callout-content {
+          flex: 1;
+          min-width: 0;
+        }
+        .callout-content p {
+          margin: 0 !important;
+        }
+        .callout-actions {
+          position: absolute;
+          top: 0.5rem;
+          right: 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+        .callout-wrapper:hover .callout-actions {
+          opacity: 1;
+        }
+        .callout-type-select {
+          font-size: 0.75rem;
+          padding: 0.25rem 0.5rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.375rem;
+          background: white;
+          cursor: pointer;
+          outline: none;
+        }
+        .callout-type-select:focus {
+          border-color: #3182f6;
+        }
+        .dark .callout-type-select {
+          background: #1e293b;
+          border-color: #334155;
+          color: #e2e8f0;
+        }
+        .callout-delete {
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 50%;
+          cursor: pointer;
+          color: #64748b;
+          transition: all 0.15s;
+        }
+        .callout-delete:hover {
+          background: #fee2e2;
+          border-color: #fecaca;
+          color: #dc2626;
+        }
+        .dark .callout-delete {
+          background: #1e293b;
+          border-color: #334155;
+          color: #94a3b8;
+        }
+        .dark .callout-delete:hover {
+          background: rgba(127, 29, 29, 0.5);
+          border-color: #7f1d1d;
+          color: #f87171;
+        }
+        /* PullQuote Block */
+        .pullquote-wrapper {
+          position: relative;
+          margin: 2rem 0;
+          padding: 2rem 3rem;
+          text-align: center;
+        }
+        .pullquote-mark {
+          position: absolute;
+          font-family: Georgia, 'Times New Roman', serif;
+          font-size: 5rem;
+          line-height: 1;
+          color: #3182f6;
+          opacity: 0.3;
+          user-select: none;
+        }
+        .pullquote-mark-open {
+          top: 0;
+          left: 0;
+        }
+        .pullquote-mark-close {
+          bottom: -0.5rem;
+          right: 0;
+        }
+        .pullquote-content {
+          position: relative;
+          z-index: 1;
+        }
+        .pullquote-content p {
+          margin: 0 !important;
+          font-size: 1.5rem;
+          font-weight: 500;
+          font-style: italic;
+          line-height: 1.6;
+          color: #334155;
+        }
+        .dark .pullquote-content p {
+          color: #e2e8f0;
+        }
+        .pullquote-delete {
+          position: absolute;
+          top: 0.5rem;
+          right: 0.5rem;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 50%;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.2s;
+          color: #64748b;
+        }
+        .pullquote-wrapper:hover .pullquote-delete {
+          opacity: 1;
+        }
+        .pullquote-delete:hover {
+          background: #fee2e2;
+          border-color: #fecaca;
+          color: #dc2626;
+        }
+        .dark .pullquote-delete {
+          background: #1e293b;
+          border-color: #334155;
+          color: #94a3b8;
+        }
+        .dark .pullquote-delete:hover {
           background: rgba(127, 29, 29, 0.5);
           border-color: #7f1d1d;
           color: #f87171;

@@ -303,6 +303,8 @@ export default function PostDetailPage() {
           width: 140px;
           flex-shrink: 0;
           background: #f1f5f9;
+          display: flex;
+          align-items: center;
         }
         .dark .post-content .bookmark-image {
           background: #0f172a;
@@ -311,6 +313,74 @@ export default function PostDetailPage() {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          margin: 0;
+          border-radius: 0;
+          box-shadow: none;
+        }
+        /* Callout Block */
+        .post-content .callout-static {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          margin: 1.5rem 0;
+          padding: 1rem;
+          border-radius: 0.75rem;
+          border-left: 4px solid var(--callout-border);
+          background: var(--callout-bg-light);
+        }
+        .dark .post-content .callout-static {
+          background: var(--callout-bg-dark);
+        }
+        .post-content .callout-static-icon {
+          font-size: 1.25rem;
+          line-height: 1.5;
+          flex-shrink: 0;
+        }
+        .post-content .callout-static-content {
+          flex: 1;
+          min-width: 0;
+        }
+        .post-content .callout-static-content p {
+          margin: 0;
+        }
+        /* PullQuote Block */
+        .post-content .pullquote-static {
+          position: relative;
+          margin: 2rem 0;
+          padding: 2rem 3rem;
+          text-align: center;
+        }
+        .post-content .pullquote-static-mark-open,
+        .post-content .pullquote-static-mark-close {
+          position: absolute;
+          font-family: Georgia, 'Times New Roman', serif;
+          font-size: 5rem;
+          line-height: 1;
+          color: #3182f6;
+          opacity: 0.3;
+        }
+        .post-content .pullquote-static-mark-open {
+          top: 0;
+          left: 0;
+        }
+        .post-content .pullquote-static-mark-close {
+          bottom: -0.5rem;
+          right: 0;
+        }
+        .post-content .pullquote-static-content {
+          position: relative;
+          z-index: 1;
+        }
+        .post-content .pullquote-static-content p {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 500;
+          font-style: italic;
+          line-height: 1.6;
+          color: #334155;
+        }
+        .dark .post-content .pullquote-static-content p {
+          color: #e2e8f0;
         }
       `}</style>
 
