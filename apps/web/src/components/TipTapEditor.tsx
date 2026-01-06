@@ -5,7 +5,7 @@ import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import Youtube from '@tiptap/extension-youtube'
-import { Extension } from '@tiptap/core'
+import { Extension, Node } from '@tiptap/core'
 import { InputRule } from '@tiptap/core'
 import { common, createLowlight } from 'lowlight'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -204,6 +204,138 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
   },
 })
 
+// Bookmark Component for link previews
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function BookmarkComponent({ node, deleteNode }: any) {
+  const { url, title, description, image, favicon, siteName } = node.attrs
+
+  return (
+    <NodeViewWrapper className="bookmark-wrapper" contentEditable={false}>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="bookmark-card"
+      >
+        <div className="bookmark-content">
+          <div className="bookmark-title">{title || url}</div>
+          {description && (
+            <div className="bookmark-description">{description}</div>
+          )}
+          <div className="bookmark-meta">
+            {favicon && (
+              <img src={favicon} alt="" className="bookmark-favicon" />
+            )}
+            <span className="bookmark-site">{siteName || new URL(url).hostname}</span>
+          </div>
+        </div>
+        {image && (
+          <div className="bookmark-image">
+            <img src={image} alt="" />
+          </div>
+        )}
+      </a>
+      <button
+        type="button"
+        className="bookmark-delete"
+        onClick={deleteNode}
+        title="북마크 삭제"
+      >
+        <span className="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </NodeViewWrapper>
+  )
+}
+
+// Bookmark Node Extension
+const Bookmark = Node.create({
+  name: 'bookmark',
+  group: 'block',
+  atom: true,
+
+  addAttributes() {
+    return {
+      url: { default: null },
+      title: { default: null },
+      description: { default: null },
+      image: { default: null },
+      favicon: { default: null },
+      siteName: { default: null },
+    }
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'div[data-bookmark]',
+        getAttrs: (dom) => {
+          const element = dom as HTMLElement
+          return {
+            url: element.getAttribute('data-url'),
+            title: element.getAttribute('data-title'),
+            description: element.getAttribute('data-description'),
+            image: element.getAttribute('data-image'),
+            favicon: element.getAttribute('data-favicon'),
+            siteName: element.getAttribute('data-sitename'),
+          }
+        },
+      },
+    ]
+  },
+
+  renderHTML({ node }) {
+    const { url, title, description, image, favicon, siteName } = node.attrs
+    const domain = url ? new URL(url).hostname.replace(/^www\./, '') : ''
+
+    // Create bookmark card HTML structure for storage/preview
+    return [
+      'div',
+      {
+        'data-bookmark': '',
+        'data-url': url,
+        'data-title': title,
+        'data-description': description,
+        'data-image': image,
+        'data-favicon': favicon,
+        'data-sitename': siteName,
+        class: 'bookmark-card-static',
+      },
+      [
+        'a',
+        {
+          href: url,
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          class: 'bookmark-link',
+        },
+        [
+          'div',
+          { class: 'bookmark-content' },
+          ['div', { class: 'bookmark-title' }, title || url],
+          description ? ['div', { class: 'bookmark-description' }, description] : '',
+          [
+            'div',
+            { class: 'bookmark-meta' },
+            favicon ? ['img', { src: favicon, alt: '', class: 'bookmark-favicon' }] : '',
+            ['span', { class: 'bookmark-site' }, siteName || domain],
+          ],
+        ],
+        image
+          ? [
+              'div',
+              { class: 'bookmark-image' },
+              ['img', { src: image, alt: '' }],
+            ]
+          : '',
+      ],
+    ]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(BookmarkComponent)
+  },
+})
+
 interface TipTapEditorProps {
   content: string
   onChange: (content: string) => void
@@ -247,6 +379,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
   const [isUploading, setIsUploading] = useState(false)
   const [showLinkModal, setShowLinkModal] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
+  const [isLoadingBookmark, setIsLoadingBookmark] = useState(false)
   const [showYoutubeModal, setShowYoutubeModal] = useState(false)
   const [youtubeUrl, setYoutubeUrl] = useState('')
 
@@ -280,6 +413,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
         },
       }),
       SlashCommands,
+      Bookmark,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -356,6 +490,37 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
     editor.chain().focus().extendMarkRange('link').unsetLink().run()
     closeLinkModal()
   }, [editor, closeLinkModal])
+
+  // Insert link as bookmark card
+  const insertBookmark = useCallback(async () => {
+    if (!editor || !linkUrl) return
+
+    setIsLoadingBookmark(true)
+    try {
+      const metadata = await api.fetchUrlMetadata(linkUrl)
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: 'bookmark',
+          attrs: {
+            url: metadata.url,
+            title: metadata.title,
+            description: metadata.description,
+            image: metadata.image,
+            favicon: metadata.favicon,
+            siteName: metadata.siteName,
+          },
+        })
+        .run()
+      closeLinkModal()
+    } catch (error) {
+      console.error('Failed to fetch bookmark metadata:', error)
+      alert('북마크 정보를 가져오는데 실패했습니다.')
+    } finally {
+      setIsLoadingBookmark(false)
+    }
+  }, [editor, linkUrl, closeLinkModal])
 
   // YouTube modal handlers
   const openYoutubeModal = useCallback(() => {
@@ -572,7 +737,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
                 />
               </div>
               <div className="flex items-center justify-between gap-3">
-                <div>
+                <div className="flex items-center gap-2">
                   {editor?.isActive('link') && (
                     <button
                       type="button"
@@ -593,10 +758,25 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
                   </button>
                   <button
                     type="button"
-                    onClick={applyLink}
-                    className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+                    onClick={insertBookmark}
+                    disabled={!linkUrl || isLoadingBookmark}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                    title="북마크 카드로 삽입"
                   >
-                    적용
+                    {isLoadingBookmark ? (
+                      <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                    ) : (
+                      <span className="material-symbols-outlined text-[16px]">bookmark</span>
+                    )}
+                    북마크
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyLink}
+                    disabled={!linkUrl}
+                    className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    링크
                   </button>
                 </div>
               </div>
@@ -931,6 +1111,135 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
         .dark .ProseMirror .youtube-video,
         .dark .ProseMirror div[data-youtube-video] {
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+        }
+        /* Bookmark Card */
+        .bookmark-wrapper {
+          position: relative;
+          margin: 1rem 0;
+        }
+        .bookmark-card {
+          display: flex;
+          text-decoration: none;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.75rem;
+          overflow: hidden;
+          background: #fff;
+          transition: all 0.2s;
+        }
+        .bookmark-card:hover {
+          border-color: #cbd5e1;
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        .dark .bookmark-card {
+          border-color: #334155;
+          background: #1e293b;
+        }
+        .dark .bookmark-card:hover {
+          border-color: #475569;
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+        }
+        .bookmark-content {
+          flex: 1;
+          padding: 1rem;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 0.375rem;
+        }
+        .bookmark-title {
+          font-weight: 600;
+          font-size: 0.9375rem;
+          color: #0f172a;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          line-height: 1.4;
+        }
+        .dark .bookmark-title {
+          color: #f1f5f9;
+        }
+        .bookmark-description {
+          font-size: 0.8125rem;
+          color: #64748b;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          line-height: 1.5;
+        }
+        .dark .bookmark-description {
+          color: #94a3b8;
+        }
+        .bookmark-meta {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-top: auto;
+          padding-top: 0.25rem;
+        }
+        .bookmark-favicon {
+          width: 16px;
+          height: 16px;
+          border-radius: 2px;
+          flex-shrink: 0;
+        }
+        .bookmark-site {
+          font-size: 0.75rem;
+          color: #94a3b8;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .bookmark-image {
+          width: 140px;
+          flex-shrink: 0;
+          background: #f1f5f9;
+        }
+        .dark .bookmark-image {
+          background: #0f172a;
+        }
+        .bookmark-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .bookmark-delete {
+          position: absolute;
+          top: 0.5rem;
+          right: 0.5rem;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255, 255, 255, 0.9);
+          border: 1px solid #e2e8f0;
+          border-radius: 50%;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.2s;
+          color: #64748b;
+        }
+        .bookmark-wrapper:hover .bookmark-delete {
+          opacity: 1;
+        }
+        .bookmark-delete:hover {
+          background: #fee2e2;
+          border-color: #fecaca;
+          color: #dc2626;
+        }
+        .dark .bookmark-delete {
+          background: rgba(30, 41, 59, 0.9);
+          border-color: #334155;
+          color: #94a3b8;
+        }
+        .dark .bookmark-delete:hover {
+          background: rgba(127, 29, 29, 0.5);
+          border-color: #7f1d1d;
+          color: #f87171;
         }
       `}</style>
     </div>

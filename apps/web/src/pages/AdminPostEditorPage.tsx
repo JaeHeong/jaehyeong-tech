@@ -742,6 +742,99 @@ export default function AdminPostEditorPage() {
               text-decoration: line-through;
               color: #94a3b8;
             }
+            /* Bookmark Card */
+            .preview-content .bookmark-card-static {
+              margin: 1.5rem 0;
+            }
+            .preview-content .bookmark-link {
+              display: flex;
+              text-decoration: none;
+              border: 1px solid #e2e8f0;
+              border-radius: 0.75rem;
+              overflow: hidden;
+              background: #fff;
+              transition: all 0.2s;
+            }
+            .preview-content .bookmark-link:hover {
+              border-color: #cbd5e1;
+              box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            }
+            .dark .preview-content .bookmark-link {
+              border-color: #334155;
+              background: #1e293b;
+            }
+            .dark .preview-content .bookmark-link:hover {
+              border-color: #475569;
+              box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+            }
+            .preview-content .bookmark-content {
+              flex: 1;
+              padding: 1rem;
+              min-width: 0;
+              display: flex;
+              flex-direction: column;
+              gap: 0.375rem;
+            }
+            .preview-content .bookmark-title {
+              font-weight: 600;
+              font-size: 0.9375rem;
+              color: #0f172a;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              line-height: 1.4;
+            }
+            .dark .preview-content .bookmark-title {
+              color: #f1f5f9;
+            }
+            .preview-content .bookmark-description {
+              font-size: 0.8125rem;
+              color: #64748b;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              line-height: 1.5;
+            }
+            .dark .preview-content .bookmark-description {
+              color: #94a3b8;
+            }
+            .preview-content .bookmark-meta {
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              margin-top: auto;
+              padding-top: 0.25rem;
+            }
+            .preview-content .bookmark-favicon {
+              width: 16px;
+              height: 16px;
+              border-radius: 2px;
+              flex-shrink: 0;
+            }
+            .preview-content .bookmark-site {
+              font-size: 0.75rem;
+              color: #94a3b8;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+            .preview-content .bookmark-image {
+              width: 140px;
+              flex-shrink: 0;
+              background: #f1f5f9;
+            }
+            .dark .preview-content .bookmark-image {
+              background: #0f172a;
+            }
+            .preview-content .bookmark-image img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+            }
           `}</style>
           {/* Backdrop */}
           <div

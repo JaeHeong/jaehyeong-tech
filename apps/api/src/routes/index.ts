@@ -4,6 +4,7 @@ import { categoryRouter } from './categories.js'
 import { tagRouter } from './tags.js'
 import { authRouter } from './auth.js'
 import { uploadRouter } from './upload.js'
+import { metadataRouter } from './metadata.js'
 
 export const apiRouter: IRouter = Router()
 
@@ -12,6 +13,7 @@ apiRouter.use('/categories', categoryRouter)
 apiRouter.use('/tags', tagRouter)
 apiRouter.use('/auth', authRouter)
 apiRouter.use('/upload', uploadRouter)
+apiRouter.use('/metadata', metadataRouter)
 
 // API info
 apiRouter.get('/', (_req, res) => {
@@ -23,6 +25,7 @@ apiRouter.get('/', (_req, res) => {
       categories: '/api/categories',
       tags: '/api/tags',
       auth: '/api/auth',
+      metadata: '/api/metadata',
     },
   })
 })

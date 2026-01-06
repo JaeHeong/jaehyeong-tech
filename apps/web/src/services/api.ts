@@ -198,6 +198,14 @@ class ApiClient {
     const result = await response.json()
     return { url: result.data.url }
   }
+
+  // Fetch URL metadata for link bookmarks
+  async fetchUrlMetadata(url: string): Promise<UrlMetadata> {
+    return this.request<UrlMetadata>('/metadata', {
+      method: 'POST',
+      body: { url },
+    })
+  }
 }
 
 // Types
@@ -284,6 +292,15 @@ export interface AdminStats {
   totalPosts: number
   totalCategories: number
   pendingComments: number
+}
+
+export interface UrlMetadata {
+  url: string
+  title: string
+  description: string
+  image: string | null
+  favicon: string | null
+  siteName: string | null
 }
 
 export const api = new ApiClient(API_BASE_URL)
