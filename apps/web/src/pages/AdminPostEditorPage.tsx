@@ -111,6 +111,17 @@ export default function AdminPostEditorPage() {
   const [showPreview, setShowPreview] = useState(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
 
+  // Close preview modal on ESC key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showPreview) {
+        setShowPreview(false)
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [showPreview])
+
   // Check if form has unsaved changes
   const isDirty = useMemo(() => isFormDirty(formData, savedFormData), [formData, savedFormData])
 

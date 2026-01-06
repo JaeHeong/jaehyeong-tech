@@ -1119,11 +1119,20 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
         }
         .ProseMirror blockquote {
           border-left: 4px solid #3182f6;
-          padding-left: 1rem;
-          margin-left: 0;
-          margin-right: 0;
+          padding: 1rem 1rem 1rem 1.5rem;
+          margin: 1.5rem 0;
           font-style: italic;
           color: #64748b;
+          background: #f8fafc;
+          border-radius: 0 0.5rem 0.5rem 0;
+        }
+        .dark .ProseMirror blockquote {
+          background: #1e293b;
+          color: #94a3b8;
+          border-left-color: #60a5fa;
+        }
+        .ProseMirror blockquote p {
+          margin-bottom: 0 !important;
         }
         /* Terminal-style code block wrapper */
         .code-block-wrapper {
