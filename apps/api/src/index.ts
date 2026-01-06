@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit'
 import path from 'path'
 import { errorHandler } from './middleware/errorHandler.js'
 import { apiRouter } from './routes/index.js'
+import { seoRouter } from './routes/seo.js'
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -43,6 +44,9 @@ app.get('/health', (_req, res) => {
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
+
+// SEO routes (served at root level)
+app.use(seoRouter)
 
 // API routes
 app.use('/api', apiRouter)

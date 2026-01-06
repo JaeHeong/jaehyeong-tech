@@ -1,84 +1,54 @@
-import { useState } from 'react'
-
-interface Comment {
-  id: string
-  author: string
-  email: string
-  content: string
-  postTitle: string
-  postSlug: string
-  status: 'pending' | 'approved' | 'spam'
-  createdAt: string
-}
-
-// Mock data - will be replaced with API
-const mockComments: Comment[] = [
-  {
-    id: '1',
-    author: 'John Doe',
-    email: 'john@example.com',
-    content: 'Terraform 상태 관리 글 정말 도움이 많이 되었습니다. 혹시 S3 백엔드 설정 관련해서 더 자세한 내용을 다뤄주실 수 있나요?',
-    postTitle: 'Terraform 상태 관리 Best Practice',
-    postSlug: 'terraform-state-management',
-    status: 'pending',
-    createdAt: '2024-01-06T12:00:00Z',
-  },
-  {
-    id: '2',
-    author: 'Alice Lee',
-    email: 'alice@example.com',
-    content: 'MLOps 파이프라인 구축 글 기대됩니다! 작성 완료되면 알림 받고 싶네요.',
-    postTitle: 'MLOps 파이프라인 구축을 위한 오픈소스 도구 비교',
-    postSlug: 'mlops-pipeline-tools',
-    status: 'approved',
-    createdAt: '2024-01-05T10:00:00Z',
-  },
-  {
-    id: '3',
-    author: 'Minsoo Kim',
-    email: 'minsoo@example.com',
-    content: 'Docker Compose V2 관련해서 호환성 문제가 조금 있던데 이 부분도 다뤄주실 수 있나요?',
-    postTitle: 'Docker Compose V2 마이그레이션 가이드',
-    postSlug: 'docker-compose-v2-migration',
-    status: 'approved',
-    createdAt: '2024-01-04T08:00:00Z',
-  },
-  {
-    id: '4',
-    author: 'Spammer',
-    email: 'spam@spam.com',
-    content: 'Click here to win $1000!!!',
-    postTitle: 'Kubernetes 서비스 메쉬 Istio 도입기',
-    postSlug: 'kubernetes-istio-introduction',
-    status: 'spam',
-    createdAt: '2024-01-03T06:00:00Z',
-  },
-]
+import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { api, type AdminComment } from '../services/api'
 
 export default function AdminCommentsPage() {
-  const [comments, setComments] = useState<Comment[]>(mockComments)
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'spam'>('all')
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; comment: Comment | null }>({
+  const [comments, setComments] = useState<AdminComment[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [includeDeleted, setIncludeDeleted] = useState(false)
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; comment: AdminComment | null }>({
     isOpen: false,
     comment: null,
   })
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  const filteredComments = filter === 'all'
-    ? comments
-    : comments.filter((c) => c.status === filter)
+  const fetchComments = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await api.getAdminComments({ page, limit: 20, includeDeleted })
+      setComments(response.data)
+      setTotalPages(response.meta.totalPages)
+      setTotal(response.meta.total)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '댓글을 불러오는데 실패했습니다.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [page, includeDeleted])
 
-  const handleStatusChange = (commentId: string, newStatus: Comment['status']) => {
-    setComments(
-      comments.map((c) =>
-        c.id === commentId ? { ...c, status: newStatus } : c
-      )
-    )
-  }
+  useEffect(() => {
+    fetchComments()
+  }, [fetchComments])
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteModal.comment) return
-    setComments(comments.filter((c) => c.id !== deleteModal.comment?.id))
-    setDeleteModal({ isOpen: false, comment: null })
+
+    setIsDeleting(true)
+    try {
+      await api.adminDeleteComment(deleteModal.comment.id)
+      setComments(comments.filter((c) => c.id !== deleteModal.comment?.id))
+      setTotal(total - 1)
+      setDeleteModal({ isOpen: false, comment: null })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '댓글 삭제에 실패했습니다.')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -104,11 +74,8 @@ export default function AdminCommentsPage() {
       .slice(0, 2)
   }
 
-  const statusCounts = {
-    all: comments.length,
-    pending: comments.filter((c) => c.status === 'pending').length,
-    approved: comments.filter((c) => c.status === 'approved').length,
-    spam: comments.filter((c) => c.status === 'spam').length,
+  const getAuthorName = (comment: AdminComment) => {
+    return comment.author?.name || comment.guestName || '익명'
   }
 
   return (
@@ -118,131 +85,171 @@ export default function AdminCommentsPage() {
         <div>
           <h1 className="text-2xl font-bold">댓글 관리</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-            블로그 댓글을 관리합니다.
+            블로그 댓글을 관리합니다. 총 {total}개의 댓글
           </p>
         </div>
+        <label className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={includeDeleted}
+            onChange={(e) => {
+              setIncludeDeleted(e.target.checked)
+              setPage(1)
+            }}
+            className="rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary/20"
+          />
+          삭제된 댓글 포함
+        </label>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {[
-          { key: 'all', label: '전체', icon: 'chat' },
-          { key: 'pending', label: '대기중', icon: 'pending' },
-          { key: 'approved', label: '승인됨', icon: 'check_circle' },
-          { key: 'spam', label: '스팸', icon: 'report' },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key as typeof filter)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-              filter === tab.key
-                ? 'bg-primary text-white shadow-md shadow-primary/20'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
-            {tab.label}
-            <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-              filter === tab.key
-                ? 'bg-white/20'
-                : 'bg-slate-200 dark:bg-slate-700'
-            }`}>
-              {statusCounts[tab.key as keyof typeof statusCounts]}
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+            <span className="material-symbols-outlined text-[20px]">error</span>
+            <span className="text-sm font-medium">{error}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-8">
+          <div className="flex justify-center items-center">
+            <span className="material-symbols-outlined animate-spin text-3xl text-primary">
+              progress_activity
             </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Comments List */}
-      <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        {filteredComments.length > 0 ? (
-          <div className="divide-y divide-slate-200 dark:divide-slate-800">
-            {filteredComments.map((comment) => (
-              <div
-                key={comment.id}
-                className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
-              >
-                <div className="flex gap-4">
-                  {/* Avatar */}
-                  <div className="shrink-0">
-                    <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                      {getInitials(comment.author)}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <span className="font-bold text-slate-900 dark:text-white">
-                        {comment.author}
-                      </span>
-                      <span className="text-xs text-slate-500">{comment.email}</span>
-                      <span className="text-xs text-slate-400">•</span>
-                      <span className="text-xs text-slate-500">{formatDate(comment.createdAt)}</span>
-                      {comment.status === 'pending' && (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-                          대기중
-                        </span>
-                      )}
-                      {comment.status === 'spam' && (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                          스팸
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-slate-600 dark:text-slate-300 mb-3 text-sm leading-relaxed">
-                      {comment.content}
-                    </p>
-
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <a
-                        href={`/posts/${comment.postSlug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline flex items-center gap-1"
-                      >
-                        <span className="material-symbols-outlined text-[14px]">article</span>
-                        {comment.postTitle}
-                      </a>
-
-                      <div className="flex gap-2">
-                        {comment.status !== 'approved' && (
-                          <button
-                            onClick={() => handleStatusChange(comment.id, 'approved')}
-                            className="px-3 py-1 text-xs font-medium text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                          >
-                            승인
-                          </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Comments List */}
+          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            {comments.length > 0 ? (
+              <div className="divide-y divide-slate-200 dark:divide-slate-800">
+                {comments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    className={`p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${
+                      comment.isDeleted ? 'opacity-50' : ''
+                    }`}
+                  >
+                    <div className="flex gap-4">
+                      {/* Avatar */}
+                      <div className="shrink-0">
+                        {comment.author?.avatar ? (
+                          <img
+                            src={comment.author.avatar}
+                            alt={getAuthorName(comment)}
+                            className="size-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                            {getInitials(getAuthorName(comment))}
+                          </div>
                         )}
-                        {comment.status !== 'spam' && (
-                          <button
-                            onClick={() => handleStatusChange(comment.id, 'spam')}
-                            className="px-3 py-1 text-xs font-medium text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="font-bold text-slate-900 dark:text-white">
+                            {getAuthorName(comment)}
+                          </span>
+                          {!comment.author && comment.guestName && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                              익명
+                            </span>
+                          )}
+                          <span className="text-xs text-slate-400">•</span>
+                          <span className="text-xs text-slate-500">{formatDate(comment.createdAt)}</span>
+                          {comment.isPrivate && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[12px]">lock</span>
+                              비공개
+                            </span>
+                          )}
+                          {comment.isDeleted && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                              삭제됨
+                            </span>
+                          )}
+                          {comment.parentId && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[12px]">reply</span>
+                              답글
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-slate-600 dark:text-slate-300 mb-3 text-sm leading-relaxed">
+                          {comment.isDeleted ? (
+                            <span className="italic text-slate-400">삭제된 댓글입니다.</span>
+                          ) : (
+                            comment.content
+                          )}
+                        </p>
+
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                          <Link
+                            to={`/posts/${comment.post.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
                           >
-                            스팸
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setDeleteModal({ isOpen: true, comment })}
-                          className="px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                        >
-                          삭제
-                        </button>
+                            <span className="material-symbols-outlined text-[14px]">article</span>
+                            {comment.post.title}
+                          </Link>
+
+                          <div className="flex gap-2">
+                            {!comment.isDeleted && (
+                              <button
+                                onClick={() => setDeleteModal({ isOpen: true, comment })}
+                                className="px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-1"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                                삭제
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="text-center py-20 text-slate-500">
+                <span className="material-symbols-outlined text-[48px] mb-4 block">chat</span>
+                <p>댓글이 없습니다.</p>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <button
+                  onClick={() => setPage(page - 1)}
+                  disabled={page <= 1}
+                  className="px-3 py-1.5 text-sm text-slate-500 hover:text-primary disabled:opacity-50 transition-colors"
+                >
+                  이전
+                </button>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  페이지 {page} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(page + 1)}
+                  disabled={page >= totalPages}
+                  className="px-3 py-1.5 text-sm text-slate-500 hover:text-primary disabled:opacity-50 transition-colors"
+                >
+                  다음
+                </button>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="text-center py-20 text-slate-500">
-            <span className="material-symbols-outlined text-[48px] mb-4 block">chat</span>
-            <p>댓글이 없습니다.</p>
-          </div>
-        )}
-      </div>
+        </>
+      )}
 
       {/* Delete Modal */}
       {deleteModal.isOpen && (
@@ -259,8 +266,10 @@ export default function AdminCommentsPage() {
               <h3 className="text-lg font-bold">댓글 삭제</h3>
             </div>
             <p className="text-slate-600 dark:text-slate-400 mb-6">
-              <strong className="text-slate-900 dark:text-white">{deleteModal.comment?.author}</strong>
-              님의 댓글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              <strong className="text-slate-900 dark:text-white">
+                {deleteModal.comment && getAuthorName(deleteModal.comment)}
+              </strong>
+              님의 댓글을 완전히 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -271,9 +280,10 @@ export default function AdminCommentsPage() {
               </button>
               <button
                 onClick={handleDelete}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors"
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors disabled:opacity-50"
               >
-                삭제
+                {isDeleting ? '삭제 중...' : '삭제'}
               </button>
             </div>
           </div>

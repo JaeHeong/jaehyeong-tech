@@ -10,6 +10,7 @@ const sidebarItems = [
   { path: '/admin/pages', icon: 'description', label: '페이지 관리' },
   { path: '/admin/drafts', icon: 'edit_note', label: '임시 저장 글', badge: '3' },
   { path: '/admin/comments', icon: 'chat', label: '댓글 관리', badgeType: 'new' },
+  { path: '/admin/management', icon: 'storage', label: '시스템 관리' },
   { path: '/admin/settings', icon: 'settings', label: '설정' },
 ]
 

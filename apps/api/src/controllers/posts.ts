@@ -3,9 +3,54 @@ import { prisma } from '../services/prisma.js'
 import { AppError } from '../middleware/errorHandler.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import slugifyLib from 'slugify'
+import { deleteFromOCI, isOCIConfigured } from '../services/oci.js'
 
 type SlugifyFn = (str: string, opts?: { lower?: boolean; strict?: boolean }) => string
 const slugify: SlugifyFn = (slugifyLib as unknown as { default?: SlugifyFn }).default || (slugifyLib as unknown as SlugifyFn)
+
+// Helper function to extract image URLs from post content
+function extractImageUrls(content: string, coverImage?: string | null): string[] {
+  const urls: string[] = []
+
+  // Extract from HTML img tags
+  const imgRegex = /<img[^>]+src="([^"]+)"[^>]*>/gi
+  let match
+  while ((match = imgRegex.exec(content)) !== null) {
+    if (match[1]) urls.push(match[1])
+  }
+
+  // Also check for markdown-style images
+  const mdRegex = /!\[[^\]]*\]\(([^)]+)\)/gi
+  while ((match = mdRegex.exec(content)) !== null) {
+    if (match[1]) urls.push(match[1])
+  }
+
+  // Add cover image if exists
+  if (coverImage) urls.push(coverImage)
+
+  return [...new Set(urls)] // Remove duplicates
+}
+
+// Link images to a post
+async function linkImagesToPost(postId: string, content: string, coverImage?: string | null) {
+  const imageUrls = extractImageUrls(content, coverImage)
+
+  if (imageUrls.length === 0) return
+
+  // First, unlink all images from this post (for update scenarios)
+  await prisma.image.updateMany({
+    where: { postId },
+    data: { postId: null },
+  })
+
+  // Link images that match the URLs in the content
+  for (const url of imageUrls) {
+    await prisma.image.updateMany({
+      where: { url },
+      data: { postId },
+    })
+  }
+}
 
 export async function getPosts(req: Request, res: Response, next: NextFunction) {
   try {
@@ -163,6 +208,9 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
       },
     })
 
+    // Link images to the post
+    await linkImagesToPost(post.id, content, coverImage)
+
     res.status(201).json({ data: post })
   } catch (error) {
     next(error)
@@ -225,6 +273,11 @@ export async function updatePost(req: AuthRequest, res: Response, next: NextFunc
       },
     })
 
+    // Re-link images to the post based on current content
+    const finalContent = content !== undefined ? content : existing.content
+    const finalCoverImage = coverImage !== undefined ? coverImage : existing.coverImage
+    await linkImagesToPost(post.id, finalContent, finalCoverImage)
+
     res.json({ data: post })
   } catch (error) {
     next(error)
@@ -248,6 +301,26 @@ export async function deletePost(req: AuthRequest, res: Response, next: NextFunc
       throw new AppError('삭제 권한이 없습니다.', 403)
     }
 
+    // Get all images linked to this post
+    const images = await prisma.image.findMany({
+      where: { postId: id },
+    })
+
+    // Delete images from OCI
+    if (isOCIConfigured() && images.length > 0) {
+      for (const image of images) {
+        try {
+          await deleteFromOCI(image.objectName)
+        } catch (error) {
+          console.error(`Failed to delete image from OCI: ${image.objectName}`, error)
+        }
+      }
+    }
+
+    // Delete image records from database
+    await prisma.image.deleteMany({ where: { postId: id } })
+
+    // Delete the post
     await prisma.post.delete({ where: { id } })
 
     res.status(204).send()
@@ -256,18 +329,3 @@ export async function deletePost(req: AuthRequest, res: Response, next: NextFunc
   }
 }
 
-export async function likePost(req: Request, res: Response, next: NextFunction) {
-  try {
-    const { id } = req.params
-
-    const post = await prisma.post.update({
-      where: { id },
-      data: { likeCount: { increment: 1 } },
-      select: { likeCount: true },
-    })
-
-    res.json({ data: { likeCount: post.likeCount } })
-  } catch (error) {
-    next(error)
-  }
-}

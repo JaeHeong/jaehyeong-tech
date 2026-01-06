@@ -5,24 +5,28 @@ import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
+import { uploadToOCI, isOCIConfigured } from '../services/oci.js'
+import { prisma } from '../services/prisma.js'
 
-// Ensure upload directory exists
+// Ensure upload directory exists (fallback for local storage)
 const uploadDir = path.join(process.cwd(), 'uploads')
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true })
 }
 
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, uploadDir)
-  },
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = crypto.randomBytes(8).toString('hex')
-    const ext = path.extname(file.originalname)
-    cb(null, `${Date.now()}-${uniqueSuffix}${ext}`)
-  },
-})
+// Use memory storage for OCI upload, disk storage as fallback
+const storage = isOCIConfigured()
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (_req, _file, cb) => {
+        cb(null, uploadDir)
+      },
+      filename: (_req, file, cb) => {
+        const uniqueSuffix = crypto.randomBytes(8).toString('hex')
+        const ext = path.extname(file.originalname)
+        cb(null, `${Date.now()}-${uniqueSuffix}${ext}`)
+      },
+    })
 
 // File filter for images only
 const fileFilter = (
@@ -58,14 +62,53 @@ export async function uploadImage(req: AuthRequest, res: Response, next: NextFun
       throw new AppError('파일이 업로드되지 않았습니다.', 400)
     }
 
-    // Generate URL for the uploaded file
-    const baseUrl = process.env.API_BASE_URL || ''
-    const imageUrl = `${baseUrl}/uploads/${req.file.filename}`
+    let imageUrl: string
+    const uniqueSuffix = crypto.randomBytes(8).toString('hex')
+    const ext = path.extname(req.file.originalname)
+    const fileName = `${Date.now()}-${uniqueSuffix}${ext}`
+
+    const folder = req.query.type === 'avatar' ? 'avatars' : 'posts'
+    let objectName: string
+
+    if (isOCIConfigured() && req.file.buffer) {
+      // Upload to OCI Object Storage
+      objectName = `${folder}/${fileName}`
+      imageUrl = await uploadToOCI(fileName, req.file.buffer, req.file.mimetype, folder)
+    } else {
+      // Fallback to local storage
+      const baseUrl = process.env.API_BASE_URL || ''
+      objectName = `local/${folder}/${fileName}`
+      imageUrl = `${baseUrl}/uploads/${req.file.filename || fileName}`
+
+      // If using memory storage but OCI not configured, save to disk
+      if (req.file.buffer && !req.file.filename) {
+        const filePath = path.join(uploadDir, fileName)
+        fs.writeFileSync(filePath, req.file.buffer)
+        imageUrl = `${baseUrl}/uploads/${fileName}`
+      }
+    }
+
+    // Save image metadata to database (only for posts, not avatars)
+    let imageId: string | null = null
+    if (folder === 'posts') {
+      const image = await prisma.image.create({
+        data: {
+          url: imageUrl,
+          objectName,
+          filename: req.file.originalname,
+          size: req.file.size,
+          mimetype: req.file.mimetype,
+          folder,
+        },
+      })
+      imageId = image.id
+    }
 
     res.json({
       data: {
+        id: imageId,
         url: imageUrl,
-        filename: req.file.filename,
+        filename: fileName,
         originalName: req.file.originalname,
         size: req.file.size,
         mimetype: req.file.mimetype,

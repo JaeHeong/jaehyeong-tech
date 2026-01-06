@@ -2,12 +2,25 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api, type Post } from '../services/api'
 import Sidebar from '../components/Sidebar'
+import CommentSection from '../components/CommentSection'
+import { useSEO } from '../hooks/useSEO'
 
 export default function PostDetailPage() {
   const { slug } = useParams<{ slug: string }>()
   const [post, setPost] = useState<Post | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // SEO meta tags
+  useSEO({
+    title: post?.title,
+    description: post?.excerpt || undefined,
+    url: post ? `/posts/${post.slug}` : undefined,
+    image: post?.coverImage || undefined,
+    type: 'article',
+    publishedTime: post?.publishedAt || undefined,
+    author: post?.author?.name,
+  })
 
   useEffect(() => {
     if (!slug) return
@@ -525,6 +538,9 @@ export default function PostDetailPage() {
             </Link>
             <div className="hidden md:block" />
           </div>
+
+          {/* Comments Section */}
+          <CommentSection postId={post.id} />
         </main>
 
         {/* Sidebar */}

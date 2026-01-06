@@ -1,0 +1,444 @@
+import { useState } from 'react'
+import { api, type BackupInfo } from '../services/api'
+
+interface OrphanImage {
+  id: string
+  url: string
+  objectName: string
+  filename: string
+  size: number
+  createdAt: string
+}
+
+interface ImageStats {
+  total: number
+  linked: number
+  orphaned: number
+  totalSize: number
+}
+
+export default function AdminManagementPage() {
+  // Backup state
+  const [backups, setBackups] = useState<BackupInfo[]>([])
+  const [isLoadingBackups, setIsLoadingBackups] = useState(false)
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false)
+  const [isRestoringBackup, setIsRestoringBackup] = useState<string | null>(null)
+  const [backupMessage, setBackupMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Image cleanup state
+  const [orphanImages, setOrphanImages] = useState<OrphanImage[]>([])
+  const [imageStats, setImageStats] = useState<ImageStats | null>(null)
+  const [isLoadingImages, setIsLoadingImages] = useState(false)
+  const [isDeletingOrphans, setIsDeletingOrphans] = useState(false)
+  const [imageMessage, setImageMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Backup functions
+  const fetchBackups = async () => {
+    setIsLoadingBackups(true)
+    try {
+      const data = await api.listBackups()
+      setBackups(data)
+    } catch {
+      setBackupMessage({ type: 'error', text: '백업 목록을 불러오는데 실패했습니다.' })
+    } finally {
+      setIsLoadingBackups(false)
+    }
+  }
+
+  const handleCreateBackup = async () => {
+    setIsCreatingBackup(true)
+    setBackupMessage(null)
+    try {
+      const result = await api.createBackup()
+      setBackupMessage({
+        type: 'success',
+        text: `백업이 생성되었습니다. (게시물: ${result.data.stats.posts}, 페이지: ${result.data.stats.pages})`,
+      })
+      fetchBackups()
+    } catch {
+      setBackupMessage({ type: 'error', text: '백업 생성에 실패했습니다.' })
+    } finally {
+      setIsCreatingBackup(false)
+    }
+  }
+
+  const handleDownloadBackup = async (fileName: string) => {
+    try {
+      await api.downloadBackup(fileName)
+    } catch {
+      setBackupMessage({ type: 'error', text: '백업 다운로드에 실패했습니다.' })
+    }
+  }
+
+  const handleRestoreBackup = async (fileName: string) => {
+    if (!confirm('정말 이 백업으로 복원하시겠습니까? 현재 데이터가 모두 삭제됩니다.')) {
+      return
+    }
+
+    setIsRestoringBackup(fileName)
+    setBackupMessage(null)
+    try {
+      const result = await api.restoreBackup(fileName)
+      setBackupMessage({
+        type: 'success',
+        text: `백업이 복원되었습니다. (게시물: ${result.data.stats.posts}, 페이지: ${result.data.stats.pages})`,
+      })
+    } catch {
+      setBackupMessage({ type: 'error', text: '백업 복원에 실패했습니다.' })
+    } finally {
+      setIsRestoringBackup(null)
+    }
+  }
+
+  const handleDeleteBackup = async (fileName: string) => {
+    if (!confirm('이 백업을 삭제하시겠습니까?')) {
+      return
+    }
+
+    try {
+      await api.deleteBackup(fileName)
+      setBackupMessage({ type: 'success', text: '백업이 삭제되었습니다.' })
+      fetchBackups()
+    } catch {
+      setBackupMessage({ type: 'error', text: '백업 삭제에 실패했습니다.' })
+    }
+  }
+
+  // Image cleanup functions
+  const fetchOrphanImages = async () => {
+    setIsLoadingImages(true)
+    setImageMessage(null)
+    try {
+      const response = await api.getOrphanImages()
+      setOrphanImages(response.orphans)
+      setImageStats(response.stats)
+    } catch {
+      setImageMessage({ type: 'error', text: '이미지 정보를 불러오는데 실패했습니다.' })
+    } finally {
+      setIsLoadingImages(false)
+    }
+  }
+
+  const handleDeleteOrphans = async () => {
+    if (orphanImages.length === 0) return
+
+    if (!confirm(`${orphanImages.length}개의 고아 이미지를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+      return
+    }
+
+    setIsDeletingOrphans(true)
+    setImageMessage(null)
+    try {
+      const result = await api.deleteOrphanImages()
+      setImageMessage({
+        type: 'success',
+        text: `${result.deleted}개의 고아 이미지가 삭제되었습니다. (${formatBytes(result.freedSpace)} 확보)`,
+      })
+      fetchOrphanImages()
+    } catch {
+      setImageMessage({ type: 'error', text: '이미지 삭제에 실패했습니다.' })
+    } finally {
+      setIsDeletingOrphans(false)
+    }
+  }
+
+  const formatBackupDate = (dateString: string | null) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="flex flex-col gap-8">
+        {/* Header */}
+        <div className="flex flex-col gap-2 pb-4 border-b border-slate-200 dark:border-slate-800">
+          <h1 className="text-3xl font-bold tracking-tight">시스템 관리</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-lg">
+            데이터 백업 및 스토리지 관리
+          </p>
+        </div>
+
+        {/* Data Backup Section */}
+        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 md:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">backup</span>
+                데이터 백업
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                게시물, 카테고리, 태그, 페이지 데이터를 백업하고 복원합니다.
+              </p>
+            </div>
+            <button
+              onClick={handleCreateBackup}
+              disabled={isCreatingBackup}
+              className="px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {isCreatingBackup ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                  백업 중...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+                  즉시 백업
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Backup Message */}
+          {backupMessage && (
+            <div
+              className={`p-4 rounded-lg mb-4 ${
+                backupMessage.type === 'success'
+                  ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800'
+                  : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px]">
+                  {backupMessage.type === 'success' ? 'check_circle' : 'error'}
+                </span>
+                {backupMessage.text}
+              </div>
+            </div>
+          )}
+
+          {/* Backup List */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">백업 목록</h3>
+              <button
+                onClick={fetchBackups}
+                disabled={isLoadingBackups}
+                className="text-sm text-primary hover:underline flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[16px]">refresh</span>
+                새로고침
+              </button>
+            </div>
+
+            {isLoadingBackups ? (
+              <div className="flex items-center justify-center py-8">
+                <span className="material-symbols-outlined animate-spin text-2xl text-primary">progress_activity</span>
+              </div>
+            ) : backups.length === 0 ? (
+              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                <span className="material-symbols-outlined text-[48px] mb-2 block opacity-50">cloud_off</span>
+                <p className="text-sm">백업이 없습니다.</p>
+                <button onClick={fetchBackups} className="mt-2 text-primary text-sm hover:underline">
+                  목록 불러오기
+                </button>
+              </div>
+            ) : (
+              <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">파일명</th>
+                      <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">생성일시</th>
+                      <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-400">작업</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                    {backups.map((backup) => (
+                      <tr key={backup.fullPath} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                        <td className="px-4 py-3 font-mono text-xs">{backup.name}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                          {formatBackupDate(backup.createdAt)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => backup.name && handleDownloadBackup(backup.name)}
+                              className="p-1.5 text-slate-400 hover:text-blue-500 transition-colors rounded"
+                              title="다운로드"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">download</span>
+                            </button>
+                            <button
+                              onClick={() => backup.name && handleRestoreBackup(backup.name)}
+                              disabled={isRestoringBackup === backup.name}
+                              className="p-1.5 text-slate-400 hover:text-green-500 transition-colors rounded disabled:opacity-50"
+                              title="복원"
+                            >
+                              <span className={`material-symbols-outlined text-[18px] ${isRestoringBackup === backup.name ? 'animate-spin' : ''}`}>
+                                {isRestoringBackup === backup.name ? 'progress_activity' : 'restore'}
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => backup.name && handleDeleteBackup(backup.name)}
+                              className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded"
+                              title="삭제"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Image Cleanup Section */}
+        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 md:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">auto_delete</span>
+                이미지 정리
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                어떤 게시물에도 연결되지 않은 고아 이미지를 정리합니다.
+              </p>
+            </div>
+            <button
+              onClick={fetchOrphanImages}
+              disabled={isLoadingImages}
+              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {isLoadingImages ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                  분석 중...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">search</span>
+                  고아 이미지 검색
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Image Message */}
+          {imageMessage && (
+            <div
+              className={`p-4 rounded-lg mb-4 ${
+                imageMessage.type === 'success'
+                  ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800'
+                  : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px]">
+                  {imageMessage.type === 'success' ? 'check_circle' : 'error'}
+                </span>
+                {imageMessage.text}
+              </div>
+            </div>
+          )}
+
+          {/* Image Stats */}
+          {imageStats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <p className="text-sm text-slate-500 dark:text-slate-400">전체 이미지</p>
+                <p className="text-2xl font-bold">{imageStats.total}</p>
+              </div>
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <p className="text-sm text-green-600 dark:text-green-400">연결됨</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{imageStats.linked}</p>
+              </div>
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <p className="text-sm text-red-600 dark:text-red-400">고아 이미지</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{imageStats.orphaned}</p>
+              </div>
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <p className="text-sm text-slate-500 dark:text-slate-400">총 용량</p>
+                <p className="text-2xl font-bold">{formatBytes(imageStats.totalSize)}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Orphan Images List */}
+          {orphanImages.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  고아 이미지 목록 ({orphanImages.length}개)
+                </h3>
+                <button
+                  onClick={handleDeleteOrphans}
+                  disabled={isDeletingOrphans}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isDeletingOrphans ? (
+                    <>
+                      <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                      삭제 중...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px]">delete_forever</span>
+                      모두 삭제
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden max-h-80 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">미리보기</th>
+                      <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">파일명</th>
+                      <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">크기</th>
+                      <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">업로드일</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                    {orphanImages.map((image) => (
+                      <tr key={image.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                        <td className="px-4 py-2">
+                          <img
+                            src={image.url}
+                            alt={image.filename}
+                            className="w-12 h-12 object-cover rounded"
+                          />
+                        </td>
+                        <td className="px-4 py-2 font-mono text-xs truncate max-w-[200px]">{image.filename}</td>
+                        <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{formatBytes(image.size)}</td>
+                        <td className="px-4 py-2 text-slate-600 dark:text-slate-400">
+                          {formatBackupDate(image.createdAt)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {!imageStats && !isLoadingImages && (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+              <span className="material-symbols-outlined text-[48px] mb-2 block opacity-50">image_search</span>
+              <p className="text-sm">"고아 이미지 검색" 버튼을 눌러 분석을 시작하세요.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

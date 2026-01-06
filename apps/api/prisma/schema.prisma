@@ -8,23 +8,24 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String?  // Optional for OAuth users
-  googleId  String?  @unique // Google OAuth ID
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String?   // Optional for OAuth users
+  googleId  String?   @unique // Google OAuth ID
   name      String
   avatar    String?
   bio       String?
-  title     String?  // Job title
+  title     String?   // Job title
   github    String?
   twitter   String?
   linkedin  String?
   website   String?
-  role      Role     @default(USER)
+  role      Role      @default(USER)
   posts     Post[]
   pages     Page[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  comments  Comment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("users")
 }
@@ -46,6 +47,9 @@ model Post {
   category    Category  @relation(fields: [categoryId], references: [id])
   categoryId  String
   tags        Tag[]
+  images      Image[]
+  likes       Like[]
+  comments    Comment[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   publishedAt DateTime?
@@ -55,6 +59,23 @@ model Post {
   @@index([authorId])
   @@index([published, createdAt])
   @@map("posts")
+}
+
+model Image {
+  id         String   @id @default(cuid())
+  url        String   // Full OCI URL
+  objectName String   // OCI object path (e.g., "posts/xxx.jpg")
+  filename   String   // Original filename
+  size       Int      // File size in bytes
+  mimetype   String   // MIME type
+  folder     String   @default("posts") // Storage folder (posts, avatars)
+  post       Post?    @relation(fields: [postId], references: [id], onDelete: SetNull)
+  postId     String?
+  createdAt  DateTime @default(now())
+
+  @@index([postId])
+  @@index([postId, createdAt])
+  @@map("images")
 }
 
 model Category {
@@ -116,4 +137,45 @@ model Page {
   @@index([slug])
   @@index([isPinned, publishedAt])
   @@map("pages")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  ipHash    String   // Hashed IP for anonymous like tracking
+  createdAt DateTime @default(now())
+
+  @@unique([postId, ipHash])
+  @@index([postId])
+  @@map("likes")
+}
+
+model Comment {
+  id            String    @id @default(cuid())
+  content       String
+  post          Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId        String
+  // Logged-in user (optional)
+  author        User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId      String?
+  // Anonymous user info
+  guestName     String?
+  guestPassword String?   // Hashed password for edit/delete
+  // Reply support
+  parent        Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId      String?
+  replies       Comment[] @relation("CommentReplies")
+  // Visibility
+  isPrivate     Boolean   @default(false) // Only visible to admin and comment author
+  isDeleted     Boolean   @default(false) // Soft delete
+  // Metadata
+  ipHash        String?   // For spam prevention
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([postId, createdAt])
+  @@index([parentId])
+  @@index([authorId])
+  @@map("comments")
 }

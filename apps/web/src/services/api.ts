@@ -296,6 +296,111 @@ class ApiClient {
       method: 'DELETE',
     })
   }
+
+  // Backup endpoints
+  async createBackup() {
+    return this.request<{ data: BackupResult }>('/backups', {
+      method: 'POST',
+    })
+  }
+
+  async listBackups() {
+    const response = await this.request<{ data: BackupInfo[] }>('/backups')
+    return response.data
+  }
+
+  async downloadBackup(fileName: string) {
+    const response = await fetch(`${this.baseUrl}/backups/${fileName}`, {
+      headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
+    })
+
+    if (!response.ok) {
+      throw new Error('백업 다운로드에 실패했습니다.')
+    }
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  }
+
+  async restoreBackup(fileName: string) {
+    return this.request<{ data: RestoreResult }>(`/backups/${fileName}/restore`, {
+      method: 'POST',
+    })
+  }
+
+  async deleteBackup(fileName: string) {
+    return this.request<{ data: { success: boolean } }>(`/backups/${fileName}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Image management endpoints
+  async getOrphanImages() {
+    const response = await this.request<{ data: OrphanImagesResponse }>('/images/orphans')
+    return response.data
+  }
+
+  async deleteOrphanImages() {
+    const response = await this.request<{ data: DeleteOrphanResult }>('/images/orphans', {
+      method: 'DELETE',
+    })
+    return response.data
+  }
+
+  // Comment endpoints
+  async getComments(postId: string) {
+    const response = await this.request<{ data: CommentsResponse }>(`/comments/post/${postId}`)
+    return response.data
+  }
+
+  async createComment(postId: string, data: CreateCommentData) {
+    const response = await this.request<{ data: Comment }>(`/comments/post/${postId}`, {
+      method: 'POST',
+      body: data,
+    })
+    return response.data
+  }
+
+  async updateComment(commentId: string, data: UpdateCommentData) {
+    const response = await this.request<{ data: Comment }>(`/comments/${commentId}`, {
+      method: 'PUT',
+      body: data,
+    })
+    return response.data
+  }
+
+  async deleteComment(commentId: string, guestPassword?: string) {
+    const response = await this.request<{ data: { success: boolean; message: string } }>(`/comments/${commentId}`, {
+      method: 'DELETE',
+      body: guestPassword ? { guestPassword } : undefined,
+    })
+    return response.data
+  }
+
+  // Admin comment endpoints
+  async getAdminComments(params?: { page?: number; limit?: number; includeDeleted?: boolean }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.includeDeleted) searchParams.set('includeDeleted', 'true')
+
+    const query = searchParams.toString()
+    return this.request<AdminCommentsResponse>(`/comments/admin${query ? `?${query}` : ''}`)
+  }
+
+  async adminDeleteComment(commentId: string) {
+    const response = await this.request<{ data: { success: boolean; message: string } }>(`/comments/admin/${commentId}`, {
+      method: 'DELETE',
+    })
+    return response.data
+  }
 }
 
 // Types
@@ -484,6 +589,136 @@ export interface CreatePageData {
 }
 
 export interface UpdatePageData extends Partial<CreatePageData> {}
+
+// Backup types
+export interface BackupInfo {
+  name: string
+  fullPath: string
+  createdAt: string | null
+}
+
+export interface BackupResult {
+  success: boolean
+  fileName: string
+  url: string
+  createdAt: string
+  stats: {
+    users: number
+    categories: number
+    tags: number
+    posts: number
+    pages: number
+  }
+}
+
+export interface RestoreResult {
+  success: boolean
+  message: string
+  restoredAt: string
+  stats: {
+    categories: number
+    tags: number
+    posts: number
+    pages: number
+  }
+}
+
+// Image types
+export interface OrphanImage {
+  id: string
+  url: string
+  objectName: string
+  filename: string
+  size: number
+  createdAt: string
+}
+
+export interface ImageStats {
+  total: number
+  linked: number
+  orphaned: number
+  totalSize: number
+}
+
+export interface OrphanImagesResponse {
+  orphans: OrphanImage[]
+  stats: ImageStats
+}
+
+export interface DeleteOrphanResult {
+  deleted: number
+  freedSpace: number
+}
+
+// Comment types
+export interface Comment {
+  id: string
+  content: string
+  postId: string
+  parentId: string | null
+  isPrivate: boolean
+  isDeleted: boolean
+  author: {
+    id: string
+    name: string
+    avatar: string | null
+  } | null
+  guestName: string | null
+  isOwner: boolean
+  createdAt: string
+  updatedAt?: string
+  replyCount: number
+  replies?: Comment[]
+}
+
+export interface CommentsResponse {
+  comments: Comment[]
+  totalCount: number
+}
+
+export interface CreateCommentData {
+  content: string
+  guestName?: string
+  guestPassword?: string
+  parentId?: string
+  isPrivate?: boolean
+}
+
+export interface UpdateCommentData {
+  content: string
+  guestPassword?: string
+  isPrivate?: boolean
+}
+
+export interface AdminComment {
+  id: string
+  content: string
+  isPrivate: boolean
+  isDeleted: boolean
+  author: {
+    id: string
+    name: string
+    avatar: string | null
+  } | null
+  guestName: string | null
+  post: {
+    id: string
+    title: string
+    slug: string
+  }
+  parentId: string | null
+  createdAt: string
+}
+
+export interface AdminCommentsResponse {
+  data: AdminComment[]
+  meta: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
 
 export const api = new ApiClient(API_BASE_URL)
 export default api

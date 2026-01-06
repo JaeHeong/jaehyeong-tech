@@ -20,6 +20,7 @@ import AdminCommentsPage from './pages/AdminCommentsPage'
 import AdminDraftsPage from './pages/AdminDraftsPage'
 import AdminPagesPage from './pages/AdminPagesPage'
 import AdminPageEditorPage from './pages/AdminPageEditorPage'
+import AdminManagementPage from './pages/AdminManagementPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import NotFoundPage from './pages/NotFoundPage'
 
@@ -65,6 +66,7 @@ export const router = createBrowserRouter([
       { path: 'comments', element: <AdminCommentsPage /> },
       { path: 'pages', element: <AdminPagesPage /> },
       { path: 'pages/:id/edit', element: <AdminPageEditorPage /> },
+      { path: 'management', element: <AdminManagementPage /> },
       { path: 'settings', element: <AdminSettingsPage /> },
     ],
   },
