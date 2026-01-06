@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useNavigate, useParams, Link } from 'react-router-dom'
+import { useNavigate, useParams, Link, useBlocker } from 'react-router-dom'
 import { api, type Category, type Tag } from '../services/api'
 import TipTapEditor from '../components/TipTapEditor'
 import { common, createLowlight } from 'lowlight'
@@ -124,6 +124,24 @@ export default function AdminPostEditorPage() {
 
   // Check if form has unsaved changes
   const isDirty = useMemo(() => isFormDirty(formData, savedFormData), [formData, savedFormData])
+
+  // Block navigation when there are unsaved changes
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty && currentLocation.pathname !== nextLocation.pathname
+  )
+
+  // Show confirmation dialog when navigation is blocked
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      const confirmed = window.confirm('저장하지 않은 변경사항이 있습니다. 페이지를 떠나시겠습니까?')
+      if (confirmed) {
+        blocker.proceed()
+      } else {
+        blocker.reset()
+      }
+    }
+  }, [blocker])
 
   // Warn user before browser refresh/close with unsaved changes
   useEffect(() => {
@@ -262,6 +280,8 @@ export default function AdminPostEditorPage() {
         await api.createPost(data)
       }
 
+      // Mark as saved to prevent navigation warning
+      setSavedFormData(formData)
       navigate('/admin')
     } catch (err) {
       const message = err instanceof Error ? err.message : '저장에 실패했습니다.'
