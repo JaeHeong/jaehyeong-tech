@@ -28,7 +28,7 @@ export default function AdminPostsPage() {
             page: currentPage,
             limit: 20,
             category: currentCategory || undefined,
-            status: currentStatus as 'DRAFT' | 'PUBLISHED' | undefined,
+            status: (currentStatus || 'PUBLISHED') as 'DRAFT' | 'PUBLISHED' | 'PRIVATE' | 'ALL',
             search: searchQuery || undefined,
           }),
         ])
@@ -153,9 +153,9 @@ export default function AdminPostsPage() {
             onChange={(e) => handleFilterChange('status', e.target.value)}
             className="px-4 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
           >
-            <option value="">전체 상태</option>
-            <option value="PUBLISHED">공개됨</option>
-            <option value="DRAFT">임시저장</option>
+            <option value="PUBLISHED">발행됨 (전체)</option>
+            <option value="PUBLIC">공개</option>
+            <option value="PRIVATE">비공개</option>
           </select>
         </div>
       </div>
@@ -216,10 +216,15 @@ export default function AdminPostsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      {post.status === 'PUBLISHED' ? (
+                      {post.status === 'PUBLIC' ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                           <span className="size-1.5 rounded-full bg-green-500" />
-                          공개됨
+                          공개
+                        </span>
+                      ) : post.status === 'PRIVATE' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                          <span className="size-1.5 rounded-full bg-slate-500" />
+                          비공개
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">

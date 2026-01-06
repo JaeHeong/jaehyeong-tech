@@ -30,14 +30,14 @@ export async function toggleLike(req: Request, res: Response, next: NextFunction
     // Find the post
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: { id: true, published: true },
+      select: { id: true, status: true },
     })
 
     if (!post) {
       throw new AppError('게시글을 찾을 수 없습니다.', 404)
     }
 
-    if (!post.published) {
+    if (post.status !== 'PUBLIC') {
       throw new AppError('비공개 게시글입니다.', 403)
     }
 

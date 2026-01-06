@@ -16,29 +16,36 @@ export const googleAuthSchema = z.object({
   credential: z.string().min(1, 'Google 인증 정보가 필요합니다.'),
 })
 
+// datetime-local format: YYYY-MM-DDTHH:mm (without seconds/timezone)
+const datetimeLocalSchema = z.string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Invalid datetime')
+  .nullable()
+  .optional()
+  .or(z.literal(''))
+
 // Post schemas
 export const createPostSchema = z.object({
   title: z.string().min(1, '제목을 입력해주세요.').max(200, '제목은 200자를 초과할 수 없습니다.'),
   excerpt: z.string().min(1, '요약을 입력해주세요.').max(500, '요약은 500자를 초과할 수 없습니다.'),
   content: z.string().min(1, '내용을 입력해주세요.'),
-  coverImage: z.string().url('유효한 URL을 입력해주세요.').nullable().optional(),
+  coverImage: z.string().url('유효한 URL을 입력해주세요.').nullable().optional().or(z.literal('')),
   categoryId: z.string().cuid('유효한 카테고리 ID가 아닙니다.'),
   tagIds: z.array(z.string().cuid('유효한 태그 ID가 아닙니다.')).optional(),
-  published: z.boolean().optional(),
+  status: z.enum(['DRAFT', 'PUBLIC', 'PRIVATE']).optional(),
   featured: z.boolean().optional(),
-  publishedAt: z.string().datetime().nullable().optional(),
+  publishedAt: datetimeLocalSchema,
 })
 
 export const updatePostSchema = z.object({
   title: z.string().min(1, '제목을 입력해주세요.').max(200, '제목은 200자를 초과할 수 없습니다.').optional(),
   excerpt: z.string().min(1, '요약을 입력해주세요.').max(500, '요약은 500자를 초과할 수 없습니다.').optional(),
   content: z.string().min(1, '내용을 입력해주세요.').optional(),
-  coverImage: z.string().url('유효한 URL을 입력해주세요.').nullable().optional(),
+  coverImage: z.string().url('유효한 URL을 입력해주세요.').nullable().optional().or(z.literal('')),
   categoryId: z.string().cuid('유효한 카테고리 ID가 아닙니다.').optional(),
   tagIds: z.array(z.string().cuid('유효한 태그 ID가 아닙니다.')).optional(),
-  published: z.boolean().optional(),
+  status: z.enum(['DRAFT', 'PUBLIC', 'PRIVATE']).optional(),
   featured: z.boolean().optional(),
-  publishedAt: z.string().datetime().nullable().optional(),
+  publishedAt: datetimeLocalSchema,
 })
 
 // Category schemas

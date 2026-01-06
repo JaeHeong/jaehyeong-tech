@@ -8,7 +8,7 @@ export async function getSitemap(_req: Request, res: Response, next: NextFunctio
   try {
     const [posts, categories, tags, pages] = await Promise.all([
       prisma.post.findMany({
-        where: { published: true },
+        where: { status: 'PUBLIC' },
         select: { slug: true, updatedAt: true },
         orderBy: { publishedAt: 'desc' },
       }),
@@ -94,7 +94,7 @@ export async function getSitemap(_req: Request, res: Response, next: NextFunctio
 export async function getRssFeed(_req: Request, res: Response, next: NextFunction) {
   try {
     const posts = await prisma.post.findMany({
-      where: { published: true },
+      where: { status: 'PUBLIC' },
       include: {
         author: { select: { name: true } },
         category: { select: { name: true } },

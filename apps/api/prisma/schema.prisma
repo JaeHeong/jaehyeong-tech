@@ -31,33 +31,33 @@ model User {
 }
 
 model Post {
-  id          String    @id @default(cuid())
-  slug        String    @unique
+  id          String     @id @default(cuid())
+  slug        String     @unique
   title       String
   excerpt     String
   content     String
   coverImage  String?
-  viewCount   Int       @default(0)
-  likeCount   Int       @default(0)
-  readingTime Int       @default(0)
-  published   Boolean   @default(false)
-  featured    Boolean   @default(false)
-  author      User      @relation(fields: [authorId], references: [id])
+  viewCount   Int        @default(0)
+  likeCount   Int        @default(0)
+  readingTime Int        @default(0)
+  status      PostStatus @default(DRAFT)
+  featured    Boolean    @default(false)
+  author      User       @relation(fields: [authorId], references: [id])
   authorId    String
-  category    Category  @relation(fields: [categoryId], references: [id])
+  category    Category   @relation(fields: [categoryId], references: [id])
   categoryId  String
   tags        Tag[]
   images      Image[]
   likes       Like[]
   comments    Comment[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   publishedAt DateTime?
 
   @@index([slug])
   @@index([categoryId])
   @@index([authorId])
-  @@index([published, createdAt])
+  @@index([status, createdAt])
   @@map("posts")
 }
 
@@ -112,6 +112,12 @@ enum PageType {
 enum PageStatus {
   DRAFT
   PUBLISHED
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLIC
+  PRIVATE
 }
 
 model Page {

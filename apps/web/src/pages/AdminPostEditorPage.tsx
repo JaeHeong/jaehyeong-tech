@@ -72,6 +72,7 @@ function isFormDirty(current: PostFormData, initial: PostFormData): boolean {
     current.categoryId !== initial.categoryId ||
     current.coverImage !== initial.coverImage ||
     current.publishedAt !== initial.publishedAt ||
+    current.status !== initial.status ||
     JSON.stringify(current.tagIds.sort()) !== JSON.stringify(initial.tagIds.sort())
   )
 }
@@ -82,7 +83,7 @@ interface PostFormData {
   excerpt: string
   categoryId: string
   tagIds: string[]
-  status: 'DRAFT' | 'PUBLISHED'
+  status: 'DRAFT' | 'PUBLIC' | 'PRIVATE'
   coverImage: string
   publishedAt: string
 }
@@ -112,6 +113,8 @@ export default function AdminPostEditorPage() {
   const [error, setError] = useState<string | null>(null)
   const [isUploadingCover, setIsUploadingCover] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [successToast, setSuccessToast] = useState<string | null>(null)
+  const [originalStatus, setOriginalStatus] = useState<'DRAFT' | 'PUBLIC' | 'PRIVATE'>('DRAFT')
   const coverInputRef = useRef<HTMLInputElement>(null)
 
   // Close preview modal on ESC key
@@ -181,8 +184,8 @@ export default function AdminPostEditorPage() {
   useEffect(() => {
     if (isEditing && id) {
       setIsLoading(true)
-      api.getPost(id)
-        .then(({ post }) => {
+      api.getPostById(id)
+        .then(({ data: post }) => {
           // Format publishedAt for datetime-local input (YYYY-MM-DDTHH:mm)
           let publishedAtValue = ''
           if (post.publishedAt) {
@@ -201,6 +204,7 @@ export default function AdminPostEditorPage() {
           }
           setFormData(loadedData)
           setSavedFormData(loadedData)
+          setOriginalStatus(post.status)
         })
         .catch((err) => {
           setError('게시물을 불러오는데 실패했습니다.')
@@ -255,7 +259,7 @@ export default function AdminPostEditorPage() {
     setFormData((prev) => ({ ...prev, coverImage: '' }))
   }, [])
 
-  const handleSubmit = async (status: 'DRAFT' | 'PUBLISHED') => {
+  const handleSubmit = async (status: 'DRAFT' | 'PUBLIC' | 'PRIVATE') => {
     if (!formData.title.trim()) {
       setError('제목을 입력해주세요.')
       return
@@ -290,9 +294,26 @@ export default function AdminPostEditorPage() {
         await api.createPost(data)
       }
 
-      // Mark as saved to prevent navigation warning
-      setSavedFormData(formData)
-      navigate('/admin')
+      // Update form state to prevent navigation warning
+      const updatedFormData = { ...formData, status }
+      setFormData(updatedFormData)
+      setSavedFormData(updatedFormData)
+      setOriginalStatus(status)
+
+      // Show success toast
+      const message = status === 'DRAFT'
+        ? '임시저장되었습니다.'
+        : isEditing && originalStatus !== 'DRAFT'
+          ? '수정되었습니다.'
+          : '발행되었습니다.'
+      setSuccessToast(message)
+      setTimeout(() => setSuccessToast(null), 3000)
+
+      // Navigate based on action
+      if (status !== 'DRAFT' && originalStatus === 'DRAFT') {
+        // Draft was published - go to posts list
+        navigate('/admin/posts')
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : '저장에 실패했습니다.'
       setError(message)
@@ -334,34 +355,62 @@ export default function AdminPostEditorPage() {
             <span className="material-symbols-outlined text-[18px]">visibility</span>
             미리보기
           </button>
-          <button
-            onClick={() => handleSubmit('DRAFT')}
-            disabled={isSaving}
-            className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[18px]">save</span>
-            임시저장
-            {isDirty && <span className="w-2 h-2 rounded-full bg-orange-500" title="저장하지 않은 변경사항" />}
-          </button>
-          <button
-            onClick={() => handleSubmit('PUBLISHED')}
-            disabled={isSaving}
-            className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
-          >
-            {isSaving ? (
-              <>
-                <span className="material-symbols-outlined animate-spin text-[18px]">
-                  progress_activity
-                </span>
-                저장 중...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-[18px]">publish</span>
-                {isEditing ? '수정하기' : '발행하기'}
-              </>
-            )}
-          </button>
+          {/* Draft or new post: show 임시저장 + 발행하기 */}
+          {(!isEditing || originalStatus === 'DRAFT') && (
+            <>
+              <button
+                onClick={() => handleSubmit('DRAFT')}
+                disabled={isSaving}
+                className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[18px]">save</span>
+                임시저장
+                {isDirty && <span className="w-2 h-2 rounded-full bg-orange-500" title="저장하지 않은 변경사항" />}
+              </button>
+              <button
+                onClick={() => handleSubmit('PUBLIC')}
+                disabled={isSaving}
+                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSaving ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-[18px]">
+                      progress_activity
+                    </span>
+                    저장 중...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[18px]">publish</span>
+                    발행하기
+                  </>
+                )}
+              </button>
+            </>
+          )}
+          {/* Published post: show 수정하기 only */}
+          {isEditing && originalStatus !== 'DRAFT' && (
+            <button
+              onClick={() => handleSubmit(formData.status)}
+              disabled={isSaving}
+              className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              {isSaving ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-[18px]">
+                    progress_activity
+                  </span>
+                  저장 중...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">edit</span>
+                  수정하기
+                  {isDirty && <span className="w-2 h-2 rounded-full bg-orange-500 ml-1" title="저장하지 않은 변경사항" />}
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -370,6 +419,18 @@ export default function AdminPostEditorPage() {
           <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
             <span className="material-symbols-outlined text-[20px]">error</span>
             <span className="text-sm font-medium">{error}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {successToast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 duration-300">
+          <div className="px-4 py-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 shadow-lg">
+            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+              <span className="material-symbols-outlined text-[20px]">check_circle</span>
+              <span className="text-sm font-medium">{successToast}</span>
+            </div>
           </div>
         </div>
       )}
@@ -457,18 +518,123 @@ export default function AdminPostEditorPage() {
             </div>
           </div>
 
+          {/* Visibility (only for published posts) */}
+          {isEditing && originalStatus !== 'DRAFT' && (
+            <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                공개 설정
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, status: 'PUBLIC' }))}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                    formData.status === 'PUBLIC'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 ring-2 ring-green-500'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">public</span>
+                  공개
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, status: 'PRIVATE' }))}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                    formData.status === 'PRIVATE'
+                      ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 ring-2 ring-slate-500'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">lock</span>
+                  비공개
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                {formData.status === 'PUBLIC' ? '모든 방문자에게 공개됩니다.' : '관리자만 볼 수 있습니다.'}
+              </p>
+            </div>
+          )}
+
           {/* Publish Date */}
           <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
               발행 일시
             </label>
-            <input
-              type="datetime-local"
-              name="publishedAt"
-              value={formData.publishedAt}
-              onChange={handleInputChange}
-              className="w-full bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
-            />
+            <div className="flex gap-2 items-center">
+              {/* Year */}
+              <input
+                type="number"
+                min="2020"
+                max="2100"
+                placeholder="년"
+                value={formData.publishedAt ? formData.publishedAt.split('T')[0]?.split('-')[0] || '' : ''}
+                onChange={(e) => {
+                  const year = e.target.value.slice(0, 4)
+                  const [, month = '01', day = '01'] = (formData.publishedAt?.split('T')[0] || '').split('-')
+                  const time = formData.publishedAt?.split('T')[1] || '09:00'
+                  if (year.length === 4) {
+                    setFormData((prev) => ({ ...prev, publishedAt: `${year}-${month}-${day}T${time}` }))
+                  }
+                }}
+                className="w-20 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm text-center"
+              />
+              <span className="text-slate-400">-</span>
+              {/* Month */}
+              <select
+                value={formData.publishedAt ? formData.publishedAt.split('T')[0]?.split('-')[1] || '' : ''}
+                onChange={(e) => {
+                  const month = e.target.value
+                  const [year = new Date().getFullYear().toString(), , day = '01'] = (formData.publishedAt?.split('T')[0] || '').split('-')
+                  const time = formData.publishedAt?.split('T')[1] || '09:00'
+                  setFormData((prev) => ({ ...prev, publishedAt: `${year}-${month}-${day}T${time}` }))
+                }}
+                className="w-16 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm text-center appearance-none cursor-pointer"
+              >
+                <option value="">월</option>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}월</option>
+                ))}
+              </select>
+              <span className="text-slate-400">-</span>
+              {/* Day */}
+              <select
+                value={formData.publishedAt ? formData.publishedAt.split('T')[0]?.split('-')[2] || '' : ''}
+                onChange={(e) => {
+                  const day = e.target.value
+                  const [year = new Date().getFullYear().toString(), month = '01'] = (formData.publishedAt?.split('T')[0] || '').split('-')
+                  const time = formData.publishedAt?.split('T')[1] || '09:00'
+                  setFormData((prev) => ({ ...prev, publishedAt: `${year}-${month}-${day}T${time}` }))
+                }}
+                className="w-16 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm text-center appearance-none cursor-pointer"
+              >
+                <option value="">일</option>
+                {Array.from({ length: 31 }, (_, i) => (
+                  <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}일</option>
+                ))}
+              </select>
+              {/* Time */}
+              <input
+                type="time"
+                value={formData.publishedAt ? formData.publishedAt.split('T')[1] || '' : ''}
+                onChange={(e) => {
+                  const time = e.target.value
+                  const date = formData.publishedAt?.split('T')[0] || `${new Date().getFullYear()}-01-01`
+                  setFormData((prev) => ({ ...prev, publishedAt: `${date}T${time}` }))
+                }}
+                className="w-24 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+              />
+              {formData.publishedAt && (
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, publishedAt: '' }))}
+                  className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  title="초기화"
+                >
+                  <span className="material-symbols-outlined text-slate-500 text-[18px]">close</span>
+                </button>
+              )}
+            </div>
             <p className="text-xs text-slate-500 mt-2">
               비워두면 발행 시 현재 시간으로 설정됩니다.
             </p>
@@ -1022,8 +1188,12 @@ export default function AdminPostEditorPage() {
                           <div className="size-6 rounded-full bg-primary border-2 border-white dark:border-slate-800" />
                           <div className="size-6 rounded-full bg-indigo-500 border-2 border-white dark:border-slate-800" />
                         </div>
-                        <div className="px-2 py-0.5 bg-green-500/10 text-green-600 rounded text-xs font-bold">
-                          {formData.status === 'PUBLISHED' ? 'Published' : 'Draft'}
+                        <div className={`px-2 py-0.5 rounded text-xs font-bold ${
+                          formData.status === 'PUBLIC' ? 'bg-green-500/10 text-green-600' :
+                          formData.status === 'PRIVATE' ? 'bg-slate-500/10 text-slate-600' :
+                          'bg-yellow-500/10 text-yellow-600'
+                        }`}>
+                          {formData.status === 'PUBLIC' ? 'Public' : formData.status === 'PRIVATE' ? 'Private' : 'Draft'}
                         </div>
                       </div>
                     </div>

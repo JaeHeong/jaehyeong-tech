@@ -27,8 +27,8 @@ export default function PostDetailPage() {
 
     setIsLoading(true)
     api.getPost(slug)
-      .then(({ post }) => {
-        setPost(post)
+      .then(({ data }) => {
+        setPost(data)
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : '게시글을 불러오는데 실패했습니다.')

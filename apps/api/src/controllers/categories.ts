@@ -11,12 +11,12 @@ export async function getCategories(_req: Request, res: Response, next: NextFunc
   try {
     const categories = await prisma.category.findMany({
       include: {
-        _count: { select: { posts: { where: { published: true } } } },
+        _count: { select: { posts: { where: { status: 'PUBLIC' } } } },
       },
       orderBy: { name: 'asc' },
     })
 
-    const data = categories.map((cat: { _count: { posts: number }; [key: string]: unknown }) => ({
+    const data = categories.map((cat) => ({
       ...cat,
       postCount: cat._count.posts,
       _count: undefined,
@@ -35,7 +35,7 @@ export async function getCategoryBySlug(req: Request, res: Response, next: NextF
     const category = await prisma.category.findUnique({
       where: { slug },
       include: {
-        _count: { select: { posts: { where: { published: true } } } },
+        _count: { select: { posts: { where: { status: 'PUBLIC' } } } },
       },
     })
 
@@ -66,7 +66,7 @@ export async function getCategoryPosts(req: Request, res: Response, next: NextFu
       throw new AppError('카테고리를 찾을 수 없습니다.', 404)
     }
 
-    const where = { categoryId: category.id, published: true }
+    const where = { categoryId: category.id, status: 'PUBLIC' as const }
 
     const [posts, total] = await Promise.all([
       prisma.post.findMany({

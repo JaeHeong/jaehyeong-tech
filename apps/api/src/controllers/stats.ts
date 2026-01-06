@@ -27,10 +27,10 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
     ] = await Promise.all([
       // Total posts
       prisma.post.count(),
-      // Published posts
-      prisma.post.count({ where: { published: true } }),
+      // Published posts (PUBLIC + PRIVATE)
+      prisma.post.count({ where: { status: { in: ['PUBLIC', 'PRIVATE'] } } }),
       // Draft posts
-      prisma.post.count({ where: { published: false } }),
+      prisma.post.count({ where: { status: 'DRAFT' } }),
       // Total comments
       prisma.comment.count({ where: { isDeleted: false } }),
       // Comments from last 7 days
@@ -41,20 +41,20 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
       prisma.post.aggregate({
         _sum: { viewCount: true },
       }),
-      // Category stats
+      // Category stats (count only PUBLIC posts for display)
       prisma.category.findMany({
         select: {
           id: true,
           name: true,
           slug: true,
           color: true,
-          _count: { select: { posts: { where: { published: true } } } },
+          _count: { select: { posts: { where: { status: 'PUBLIC' } } } },
         },
         orderBy: { name: 'asc' },
       }),
-      // Recent posts (last 5)
+      // Recent posts (last 5, PUBLIC + PRIVATE)
       prisma.post.findMany({
-        where: { published: true },
+        where: { status: { in: ['PUBLIC', 'PRIVATE'] } },
         select: {
           id: true,
           title: true,
@@ -69,7 +69,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
       }),
       // Recent drafts (last 3)
       prisma.post.findMany({
-        where: { published: false },
+        where: { status: 'DRAFT' },
         select: {
           id: true,
           title: true,

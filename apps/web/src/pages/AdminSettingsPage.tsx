@@ -53,7 +53,7 @@ export default function AdminSettingsPage() {
     try {
       const uploadFormData = new FormData()
       uploadFormData.append('image', file)
-      const response = await api.uploadImage(uploadFormData)
+      const response = await api.uploadImage(uploadFormData, 'avatar')
       setFormData((prev) => ({ ...prev, avatar: response.url }))
       setMessage({ type: 'success', text: '프로필 사진이 업로드되었습니다.' })
     } catch {

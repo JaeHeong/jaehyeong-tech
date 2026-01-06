@@ -52,6 +52,13 @@ async function linkImagesToPost(postId: string, content: string, coverImage?: st
   }
 }
 
+// Public: Get posts
+// status filter:
+//   없음 or 'PUBLIC' → PUBLIC만 (공개 페이지용)
+//   'DRAFT' → admin만, DRAFT만 (임시저장)
+//   'PUBLISHED' → admin만, PUBLIC + PRIVATE (발행된 것)
+//   'PRIVATE' → admin만, PRIVATE만
+//   'ALL' → admin만, 모든 상태
 export async function getPosts(req: Request, res: Response, next: NextFunction) {
   try {
     const page = parseInt(req.query.page as string) || 1
@@ -59,8 +66,33 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
     const category = req.query.category as string
     const tag = req.query.tag as string
     const search = req.query.search as string
+    const statusFilter = req.query.status as string
 
-    const where: Record<string, unknown> = { published: true }
+    const authReq = req as AuthRequest
+    const isAdmin = authReq.user?.role === 'ADMIN'
+
+    const where: Record<string, unknown> = {}
+    let orderByField: 'publishedAt' | 'updatedAt' = 'publishedAt'
+
+    if (statusFilter === 'DRAFT') {
+      if (!isAdmin) throw new AppError('권한이 없습니다.', 403)
+      where.status = 'DRAFT'
+      orderByField = 'updatedAt'
+    } else if (statusFilter === 'PUBLISHED') {
+      // 발행된 것: PUBLIC + PRIVATE
+      if (!isAdmin) throw new AppError('권한이 없습니다.', 403)
+      where.status = { in: ['PUBLIC', 'PRIVATE'] }
+    } else if (statusFilter === 'PRIVATE') {
+      if (!isAdmin) throw new AppError('권한이 없습니다.', 403)
+      where.status = 'PRIVATE'
+    } else if (statusFilter === 'ALL') {
+      if (!isAdmin) throw new AppError('권한이 없습니다.', 403)
+      // No filter
+      orderByField = 'updatedAt'
+    } else {
+      // Default: PUBLIC only (공개 페이지)
+      where.status = 'PUBLIC'
+    }
 
     if (category) {
       where.category = { slug: category }
@@ -85,7 +117,7 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
           category: true,
           tags: true,
         },
-        orderBy: { publishedAt: 'desc' },
+        orderBy: { [orderByField]: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -106,10 +138,11 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
   }
 }
 
+// Public: Get featured posts (PUBLIC only)
 export async function getFeaturedPosts(_req: Request, res: Response, next: NextFunction) {
   try {
     const posts = await prisma.post.findMany({
-      where: { published: true, featured: true },
+      where: { status: 'PUBLIC', featured: true },
       include: {
         author: { select: { id: true, name: true, avatar: true } },
         category: true,
@@ -124,6 +157,7 @@ export async function getFeaturedPosts(_req: Request, res: Response, next: NextF
   }
 }
 
+// Public: Get post by slug
 export async function getPostBySlug(req: Request, res: Response, next: NextFunction) {
   try {
     const { slug } = req.params
@@ -141,9 +175,12 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
       throw new AppError('게시글을 찾을 수 없습니다.', 404)
     }
 
-    if (!post.published) {
+    // Only PUBLIC posts are visible to non-admin
+    // PRIVATE posts are visible only to admin
+    // DRAFT posts are visible only to admin (but normally accessed via getPostById)
+    if (post.status !== 'PUBLIC') {
       const authReq = req as AuthRequest
-      if (!authReq.user || (authReq.user.role !== 'ADMIN' && authReq.user.id !== post.authorId)) {
+      if (!authReq.user || authReq.user.role !== 'ADMIN') {
         throw new AppError('게시글을 찾을 수 없습니다.', 404)
       }
     }
@@ -160,9 +197,38 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
   }
 }
 
+// Admin: Get post by ID (for editing)
+export async function getPostById(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params
+
+    if (!req.user || req.user.role !== 'ADMIN') {
+      throw new AppError('권한이 없습니다.', 403)
+    }
+
+    const post = await prisma.post.findUnique({
+      where: { id },
+      include: {
+        author: { select: { id: true, name: true, avatar: true, bio: true } },
+        category: true,
+        tags: true,
+      },
+    })
+
+    if (!post) {
+      throw new AppError('게시글을 찾을 수 없습니다.', 404)
+    }
+
+    res.json({ data: post })
+  } catch (error) {
+    next(error)
+  }
+}
+
+// Admin: Create post
 export async function createPost(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { title, excerpt, content, coverImage, categoryId, tagIds, published, featured } = req.body
+    const { title, excerpt, content, coverImage, categoryId, tagIds, status, featured } = req.body
 
     if (!req.user) {
       throw new AppError('인증이 필요합니다.', 401)
@@ -180,9 +246,10 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
     const wordCount = content.split(/\s+/).length
     const readingTime = Math.ceil(wordCount / 200)
 
-    // Handle custom publishedAt or use current time
+    // Set publishedAt only when publishing (PUBLIC or PRIVATE)
     let postPublishedAt: Date | null = null
-    if (published) {
+    const postStatus = status || 'DRAFT'
+    if (postStatus !== 'DRAFT') {
       postPublishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : new Date()
     }
 
@@ -194,7 +261,7 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
         content,
         coverImage,
         readingTime,
-        published: published || false,
+        status: postStatus,
         featured: featured || false,
         publishedAt: postPublishedAt,
         author: { connect: { id: req.user.id } },
@@ -217,10 +284,11 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
   }
 }
 
+// Admin: Update post
 export async function updatePost(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params
-    const { title, excerpt, content, coverImage, categoryId, tagIds, published, featured } = req.body
+    const { title, excerpt, content, coverImage, categoryId, tagIds, status, featured } = req.body
 
     if (!req.user) {
       throw new AppError('인증이 필요합니다.', 401)
@@ -249,13 +317,13 @@ export async function updatePost(req: AuthRequest, res: Response, next: NextFunc
     }
     if (coverImage !== undefined) updateData.coverImage = coverImage
     if (categoryId) updateData.category = { connect: { id: categoryId } }
-    if (published !== undefined) {
-      updateData.published = published
-      // Allow custom publishedAt or set to now if publishing for first time
-      if (req.body.publishedAt !== undefined) {
+    if (status !== undefined) {
+      updateData.status = status
+      // Set publishedAt when publishing for first time
+      if (status !== 'DRAFT' && !existing.publishedAt) {
+        updateData.publishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : new Date()
+      } else if (req.body.publishedAt !== undefined) {
         updateData.publishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : null
-      } else if (published && !existing.publishedAt) {
-        updateData.publishedAt = new Date()
       }
     }
     if (featured !== undefined) updateData.featured = featured
@@ -284,6 +352,7 @@ export async function updatePost(req: AuthRequest, res: Response, next: NextFunc
   }
 }
 
+// Admin: Delete post
 export async function deletePost(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params
@@ -328,4 +397,3 @@ export async function deletePost(req: AuthRequest, res: Response, next: NextFunc
     next(error)
   }
 }
-

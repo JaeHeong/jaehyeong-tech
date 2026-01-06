@@ -88,7 +88,7 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
     // Verify post exists
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: { id: true, published: true },
+      select: { id: true, status: true },
     })
 
     if (!post) {
@@ -178,14 +178,14 @@ export async function createComment(req: AuthRequest, res: Response, next: NextF
     // Verify post exists and is published
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: { id: true, published: true },
+      select: { id: true, status: true },
     })
 
     if (!post) {
       throw new AppError('게시글을 찾을 수 없습니다.', 404)
     }
 
-    if (!post.published) {
+    if (post.status !== 'PUBLIC') {
       throw new AppError('비공개 게시글에는 댓글을 작성할 수 없습니다.', 403)
     }
 
@@ -202,7 +202,7 @@ export async function createComment(req: AuthRequest, res: Response, next: NextF
     if (parentId) {
       const parentComment = await prisma.comment.findUnique({
         where: { id: parentId },
-        select: { id: true, postId: true, isDeleted: true },
+        select: { id: true, postId: true, parentId: true, isDeleted: true },
       })
 
       if (!parentComment || parentComment.postId !== postId) {
@@ -211,6 +211,11 @@ export async function createComment(req: AuthRequest, res: Response, next: NextF
 
       if (parentComment.isDeleted) {
         throw new AppError('삭제된 댓글에는 답글을 작성할 수 없습니다.', 400)
+      }
+
+      // Prevent nested replies (only allow replies to top-level comments)
+      if (parentComment.parentId) {
+        throw new AppError('대댓글에는 답글을 작성할 수 없습니다.', 400)
       }
     }
 

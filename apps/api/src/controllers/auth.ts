@@ -4,11 +4,22 @@ import jwt from 'jsonwebtoken'
 import { prisma } from '../services/prisma.js'
 import { AppError } from '../middleware/errorHandler.js'
 import type { AuthRequest } from '../middleware/auth.js'
+import { deleteFromOCI, isOCIConfigured } from '../services/oci.js'
 
 // Admin email whitelist - only these emails get ADMIN role
 const ADMIN_EMAILS = [
   'rlawogud970301@gmail.com',
 ]
+
+// Extract object name from OCI URL for deletion
+function extractOCIObjectName(url: string): string | null {
+  // OCI URL format: https://objectstorage.{region}.oraclecloud.com/n/{namespace}/b/{bucket}/o/{objectName}
+  const match = url.match(/\/o\/(.+)$/)
+  if (match && match[1]) {
+    return decodeURIComponent(match[1])
+  }
+  return null
+}
 
 function generateToken(userId: string): string {
   const secret = process.env.JWT_SECRET
@@ -152,9 +163,18 @@ export async function updateMe(req: AuthRequest, res: Response, next: NextFuncti
 
     const { name, avatar, bio, title, github, twitter, linkedin, website, currentPassword, newPassword } = req.body
 
+    // Get current user data to check for avatar changes
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { avatar: true, password: true }
+    })
+    if (!currentUser) {
+      throw new AppError('사용자를 찾을 수 없습니다.', 404)
+    }
+
     const updateData: Record<string, unknown> = {}
     if (name) updateData.name = name
-    if (avatar !== undefined) updateData.avatar = avatar
+    if (avatar !== undefined) updateData.avatar = avatar || null
     if (bio !== undefined) updateData.bio = bio
     if (title !== undefined) updateData.title = title
     if (github !== undefined) updateData.github = github
@@ -162,20 +182,32 @@ export async function updateMe(req: AuthRequest, res: Response, next: NextFuncti
     if (linkedin !== undefined) updateData.linkedin = linkedin
     if (website !== undefined) updateData.website = website
 
+    // Delete old avatar from OCI if avatar is being changed or removed
+    if (avatar !== undefined && currentUser.avatar && currentUser.avatar !== avatar) {
+      // Only delete if it's an OCI URL (avatars folder)
+      if (currentUser.avatar.includes('oraclecloud.com') && currentUser.avatar.includes('/avatars/')) {
+        const objectName = extractOCIObjectName(currentUser.avatar)
+        if (objectName && isOCIConfigured()) {
+          try {
+            await deleteFromOCI(objectName)
+            console.log(`Deleted old avatar from OCI: ${objectName}`)
+          } catch (err) {
+            // Log but don't fail the request if deletion fails
+            console.error('Failed to delete old avatar from OCI:', err)
+          }
+        }
+      }
+    }
+
     // Password change
     if (newPassword) {
       if (!currentPassword) {
         throw new AppError('현재 비밀번호를 입력해주세요.', 400)
       }
 
-      const user = await prisma.user.findUnique({ where: { id: req.user.id } })
-      if (!user) {
-        throw new AppError('사용자를 찾을 수 없습니다.', 404)
-      }
-
       // OAuth users don't have password - they can set a new one directly
-      if (user.password) {
-        const isValid = await bcrypt.compare(currentPassword, user.password)
+      if (currentUser.password) {
+        const isValid = await bcrypt.compare(currentPassword, currentUser.password)
         if (!isValid) {
           throw new AppError('현재 비밀번호가 일치하지 않습니다.', 400)
         }

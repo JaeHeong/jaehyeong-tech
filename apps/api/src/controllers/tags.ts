@@ -7,12 +7,12 @@ export async function getTags(_req: Request, res: Response, next: NextFunction) 
   try {
     const tags = await prisma.tag.findMany({
       include: {
-        _count: { select: { posts: { where: { published: true } } } },
+        _count: { select: { posts: { where: { status: 'PUBLIC' } } } },
       },
       orderBy: { name: 'asc' },
     })
 
-    const data = tags.map((tag: { _count: { posts: number }; [key: string]: unknown }) => ({
+    const data = tags.map((tag) => ({
       ...tag,
       postCount: tag._count.posts,
       _count: undefined,
@@ -31,7 +31,7 @@ export async function getTagBySlug(req: Request, res: Response, next: NextFuncti
     const tag = await prisma.tag.findUnique({
       where: { slug },
       include: {
-        _count: { select: { posts: { where: { published: true } } } },
+        _count: { select: { posts: { where: { status: 'PUBLIC' } } } },
       },
     })
 
@@ -64,7 +64,7 @@ export async function getTagPosts(req: Request, res: Response, next: NextFunctio
 
     const where = {
       tags: { some: { id: tag.id } },
-      published: true,
+      status: 'PUBLIC' as const,
     }
 
     const [posts, total] = await Promise.all([
@@ -166,7 +166,7 @@ export async function updateTag(req: AuthRequest, res: Response, next: NextFunct
         slug: finalSlug,
       },
       include: {
-        _count: { select: { posts: { where: { published: true } } } },
+        _count: { select: { posts: { where: { status: 'PUBLIC' } } } },
       },
     })
 

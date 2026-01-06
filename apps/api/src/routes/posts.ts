@@ -7,9 +7,10 @@ import { createPostSchema, updatePostSchema, postQuerySchema, idParamSchema } fr
 
 export const postRouter: IRouter = Router()
 
-// Public routes
-postRouter.get('/', validateQuery(postQuerySchema), postController.getPosts)
+// Public routes (optionalAuth to check if user is admin for draft access)
+postRouter.get('/', optionalAuth, validateQuery(postQuerySchema), postController.getPosts)
 postRouter.get('/featured', postController.getFeaturedPosts)
+postRouter.get('/admin/:id', authenticate, validateParams(idParamSchema), postController.getPostById)
 postRouter.get('/:slug', optionalAuth, postController.getPostBySlug)
 
 // Protected routes

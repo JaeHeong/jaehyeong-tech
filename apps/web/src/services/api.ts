@@ -118,7 +118,12 @@ class ApiClient {
   }
 
   async getPost(slug: string) {
-    return this.request<{ post: Post }>(`/posts/${slug}`)
+    return this.request<{ data: Post }>(`/posts/${slug}`)
+  }
+
+  // Admin: Get post by ID (for editing drafts and published posts)
+  async getPostById(id: string) {
+    return this.request<{ data: Post }>(`/posts/admin/${id}`)
   }
 
   async getFeaturedPosts() {
@@ -245,14 +250,15 @@ class ApiClient {
   }
 
   // Upload image
-  async uploadImage(fileOrFormData: File | FormData): Promise<{ url: string }> {
+  async uploadImage(fileOrFormData: File | FormData, type?: 'avatar' | 'post'): Promise<{ url: string }> {
     const formData = fileOrFormData instanceof FormData ? fileOrFormData : (() => {
       const fd = new FormData()
       fd.append('image', fileOrFormData)
       return fd
     })()
 
-    const response = await fetch(`${this.baseUrl}/upload/image`, {
+    const queryParam = type ? `?type=${type}` : ''
+    const response = await fetch(`${this.baseUrl}/upload/image${queryParam}`, {
       method: 'POST',
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
       body: formData,
@@ -502,7 +508,8 @@ export interface Post {
   excerpt: string
   content: string
   coverImage?: string
-  status: 'DRAFT' | 'PUBLISHED'
+  status: 'DRAFT' | 'PUBLIC' | 'PRIVATE'
+  featured: boolean
   category: Category
   tags: Tag[]
   author: AuthUser
@@ -564,7 +571,7 @@ export interface PostsQueryParams {
   category?: string
   tag?: string
   search?: string
-  status?: 'DRAFT' | 'PUBLISHED'
+  status?: 'DRAFT' | 'PUBLISHED' | 'PRIVATE' | 'ALL'
   sortBy?: 'createdAt' | 'viewCount' | 'likeCount'
   featured?: boolean
 }
@@ -575,7 +582,8 @@ export interface CreatePostData {
   excerpt?: string
   categoryId: string
   tagIds?: string[]
-  status?: 'DRAFT' | 'PUBLISHED'
+  status?: 'DRAFT' | 'PUBLIC' | 'PRIVATE'
+  featured?: boolean
   coverImage?: string
   publishedAt?: string
 }
