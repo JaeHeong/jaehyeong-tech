@@ -306,6 +306,66 @@ export async function deletePage(req: AuthRequest, res: Response, next: NextFunc
   }
 }
 
+// Get adjacent notices (previous and next)
+export async function getAdjacentNotices(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { slug } = req.params
+
+    const currentNotice = await prisma.page.findUnique({
+      where: { slug },
+      select: { id: true, publishedAt: true, createdAt: true, type: true },
+    })
+
+    if (!currentNotice || currentNotice.type !== 'NOTICE') {
+      throw new AppError('공지사항을 찾을 수 없습니다.', 404)
+    }
+
+    const publishedAt = currentNotice.publishedAt || currentNotice.createdAt
+
+    const [prevNotice, nextNotice] = await Promise.all([
+      prisma.page.findFirst({
+        where: {
+          type: 'NOTICE',
+          status: 'PUBLISHED',
+          OR: [
+            { publishedAt: { lt: publishedAt } },
+            {
+              publishedAt: publishedAt,
+              id: { lt: currentNotice.id },
+            },
+          ],
+        },
+        orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
+        select: { slug: true, title: true },
+      }),
+      prisma.page.findFirst({
+        where: {
+          type: 'NOTICE',
+          status: 'PUBLISHED',
+          OR: [
+            { publishedAt: { gt: publishedAt } },
+            {
+              publishedAt: publishedAt,
+              id: { gt: currentNotice.id },
+            },
+          ],
+        },
+        orderBy: [{ publishedAt: 'asc' }, { id: 'asc' }],
+        select: { slug: true, title: true },
+      }),
+    ])
+
+    res.json({
+      data: {
+        prev: prevNotice,
+        next: nextNotice,
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 // Admin: Get page stats
 export async function getPageStats(_req: AuthRequest, res: Response, next: NextFunction) {
   try {

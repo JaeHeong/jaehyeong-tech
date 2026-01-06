@@ -9,6 +9,7 @@ export const pageRouter: IRouter = Router()
 // Public routes
 pageRouter.get('/', pageController.getPages)
 pageRouter.get('/notices', pageController.getNotices)
+pageRouter.get('/notices/:slug/adjacent', pageController.getAdjacentNotices)
 pageRouter.get('/slug/:slug', optionalAuth, pageController.getPageBySlug)
 
 // Admin routes

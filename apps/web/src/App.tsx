@@ -16,6 +16,7 @@ import AdminPostEditorPage from './pages/AdminPostEditorPage'
 import AdminSettingsPage from './pages/AdminSettingsPage'
 import AdminPostsPage from './pages/AdminPostsPage'
 import AdminCategoriesPage from './pages/AdminCategoriesPage'
+import AdminTagsPage from './pages/AdminTagsPage'
 import AdminCommentsPage from './pages/AdminCommentsPage'
 import AdminDraftsPage from './pages/AdminDraftsPage'
 import AdminPagesPage from './pages/AdminPagesPage'
@@ -58,6 +59,7 @@ function App() {
         <Route path="posts/new" element={<AdminPostEditorPage />} />
         <Route path="posts/:id/edit" element={<AdminPostEditorPage />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
+        <Route path="tags" element={<AdminTagsPage />} />
         <Route path="drafts" element={<AdminDraftsPage />} />
         <Route path="comments" element={<AdminCommentsPage />} />
         <Route path="pages" element={<AdminPagesPage />} />

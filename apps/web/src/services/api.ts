@@ -164,6 +164,28 @@ class ApiClient {
     return this.request<PostsResponse>(`/categories/${slug}/posts${query ? `?${query}` : ''}`)
   }
 
+  async createCategory(data: CreateCategoryData) {
+    const response = await this.request<{ data: Category }>('/categories', {
+      method: 'POST',
+      body: data,
+    })
+    return response.data
+  }
+
+  async updateCategory(id: string, data: UpdateCategoryData) {
+    const response = await this.request<{ data: Category }>(`/categories/${id}`, {
+      method: 'PUT',
+      body: data,
+    })
+    return response.data
+  }
+
+  async deleteCategory(id: string) {
+    return this.request<void>(`/categories/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
   // Tags endpoints
   async getTags() {
     const response = await this.request<{ data: Tag[] }>('/tags')
@@ -179,6 +201,28 @@ class ApiClient {
     return this.request<PostsResponse>(`/tags/${slug}/posts${query ? `?${query}` : ''}`)
   }
 
+  async createTag(data: CreateTagData) {
+    const response = await this.request<{ data: Tag }>('/tags', {
+      method: 'POST',
+      body: data,
+    })
+    return response.data
+  }
+
+  async updateTag(id: string, data: UpdateTagData) {
+    const response = await this.request<{ data: Tag }>(`/tags/${id}`, {
+      method: 'PUT',
+      body: data,
+    })
+    return response.data
+  }
+
+  async deleteTag(id: string) {
+    return this.request<void>(`/tags/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
   // Search endpoint
   async search(query: string, params?: { page?: number; limit?: number }) {
     const searchParams = new URLSearchParams()
@@ -192,6 +236,12 @@ class ApiClient {
   // Admin stats
   async getAdminStats() {
     return this.request<AdminStats>('/admin/stats')
+  }
+
+  // Dashboard stats
+  async getDashboardStats() {
+    const response = await this.request<{ data: DashboardStats }>('/stats/dashboard')
+    return response.data
   }
 
   // Upload image
@@ -250,6 +300,11 @@ class ApiClient {
   async getPageBySlug(slug: string) {
     const response = await this.request<{ data: Page }>(`/pages/slug/${slug}`)
     return { page: response.data }
+  }
+
+  async getAdjacentNotices(slug: string) {
+    const response = await this.request<{ data: { prev: { slug: string; title: string } | null; next: { slug: string; title: string } | null } }>(`/pages/notices/${slug}/adjacent`)
+    return response.data
   }
 
   // Admin pages endpoints
@@ -469,12 +524,29 @@ export interface Category {
   postCount: number
 }
 
+export interface CreateCategoryData {
+  name: string
+  slug?: string
+  description?: string
+  icon?: string
+  color?: string
+}
+
+export interface UpdateCategoryData extends Partial<CreateCategoryData> {}
+
 export interface Tag {
   id: string
   name: string
   slug: string
   postCount: number
 }
+
+export interface CreateTagData {
+  name: string
+  slug?: string
+}
+
+export interface UpdateTagData extends Partial<CreateTagData> {}
 
 export interface PostsResponse {
   posts: Post[]
@@ -517,6 +589,55 @@ export interface AdminStats {
   totalPosts: number
   totalCategories: number
   pendingComments: number
+}
+
+export interface DashboardStats {
+  stats: {
+    totalPosts: number
+    publishedPosts: number
+    draftPosts: number
+    totalComments: number
+    recentComments: number
+    totalViews: number
+  }
+  categories: {
+    id: string
+    name: string
+    slug: string
+    color: string | null
+    postCount: number
+  }[]
+  recentPosts: {
+    id: string
+    title: string
+    slug: string
+    viewCount: number
+    commentCount: number
+    createdAt: string
+    category: {
+      name: string
+      color: string | null
+    }
+  }[]
+  recentDrafts: {
+    id: string
+    title: string
+    excerpt: string
+    createdAt: string
+    updatedAt: string
+  }[]
+  recentComments: {
+    id: string
+    content: string
+    authorName: string
+    authorAvatar: string | null
+    createdAt: string
+    post: {
+      id: string
+      title: string
+      slug: string
+    }
+  }[]
 }
 
 export interface UrlMetadata {

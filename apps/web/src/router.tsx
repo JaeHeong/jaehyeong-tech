@@ -16,6 +16,7 @@ import AdminPostEditorPage from './pages/AdminPostEditorPage'
 import AdminSettingsPage from './pages/AdminSettingsPage'
 import AdminPostsPage from './pages/AdminPostsPage'
 import AdminCategoriesPage from './pages/AdminCategoriesPage'
+import AdminTagsPage from './pages/AdminTagsPage'
 import AdminCommentsPage from './pages/AdminCommentsPage'
 import AdminDraftsPage from './pages/AdminDraftsPage'
 import AdminPagesPage from './pages/AdminPagesPage'
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
       { path: 'posts/new', element: <AdminPostEditorPage /> },
       { path: 'posts/:id/edit', element: <AdminPostEditorPage /> },
       { path: 'categories', element: <AdminCategoriesPage /> },
+      { path: 'tags', element: <AdminTagsPage /> },
       { path: 'drafts', element: <AdminDraftsPage /> },
       { path: 'comments', element: <AdminCommentsPage /> },
       { path: 'pages', element: <AdminPagesPage /> },

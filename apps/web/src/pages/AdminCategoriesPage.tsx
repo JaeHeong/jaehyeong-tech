@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import api, { Category } from '../services/api'
+import api, { Category, CreateCategoryData } from '../services/api'
 
 interface CategoryFormData {
   name: string
@@ -7,6 +7,10 @@ interface CategoryFormData {
   description: string
   icon: string
   color: string
+}
+
+interface ApiError {
+  message: string
 }
 
 const defaultColors = ['blue', 'purple', 'indigo', 'orange', 'green', 'pink', 'teal', 'red']
@@ -19,6 +23,9 @@ const defaultIcons = [
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; category: Category | null }>({
@@ -95,19 +102,50 @@ export default function AdminCategoriesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
+    setIsSaving(true)
 
-    // Note: This would need a backend endpoint for create/update categories
-    // For now, we'll just show a placeholder message
-    alert('카테고리 API 엔드포인트가 필요합니다. 백엔드 구현이 필요합니다.')
-    handleCloseModal()
+    try {
+      const categoryData: CreateCategoryData = {
+        name: formData.name,
+        slug: formData.slug || undefined,
+        description: formData.description || undefined,
+        icon: formData.icon || undefined,
+        color: formData.color || undefined,
+      }
+
+      if (editingCategory) {
+        const updated = await api.updateCategory(editingCategory.id, categoryData)
+        setCategories(categories.map((c) => (c.id === editingCategory.id ? { ...updated, postCount: c.postCount } : c)))
+      } else {
+        const created = await api.createCategory(categoryData)
+        setCategories([...categories, { ...created, postCount: 0 }])
+      }
+      handleCloseModal()
+    } catch (err) {
+      const apiError = err as ApiError
+      setError(apiError.message || '카테고리 저장에 실패했습니다.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleDelete = async () => {
     if (!deleteModal.category) return
+    setError(null)
+    setIsDeleting(true)
 
-    // Note: This would need a backend endpoint
-    alert('카테고리 삭제 API 엔드포인트가 필요합니다.')
-    setDeleteModal({ isOpen: false, category: null })
+    try {
+      await api.deleteCategory(deleteModal.category.id)
+      setCategories(categories.filter((c) => c.id !== deleteModal.category?.id))
+      setDeleteModal({ isOpen: false, category: null })
+    } catch (err) {
+      const apiError = err as ApiError
+      setError(apiError.message || '카테고리 삭제에 실패했습니다.')
+      setDeleteModal({ isOpen: false, category: null })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const colorClasses: Record<string, string> = {
@@ -139,6 +177,16 @@ export default function AdminCategoriesPage() {
           새 카테고리
         </button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+            <span className="material-symbols-outlined text-[20px]">error</span>
+            <span className="text-sm font-medium">{error}</span>
+          </div>
+        </div>
+      )}
 
       {/* Categories Grid */}
       {isLoading ? (
@@ -335,9 +383,10 @@ export default function AdminCategoriesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-colors"
+                  disabled={isSaving}
+                  className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-colors disabled:opacity-50"
                 >
-                  {editingCategory ? '수정' : '생성'}
+                  {isSaving ? '저장 중...' : editingCategory ? '수정' : '생성'}
                 </button>
               </div>
             </form>
@@ -374,9 +423,10 @@ export default function AdminCategoriesPage() {
               </button>
               <button
                 onClick={handleDelete}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors"
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors disabled:opacity-50"
               >
-                삭제
+                {isDeleting ? '삭제 중...' : '삭제'}
               </button>
             </div>
           </div>

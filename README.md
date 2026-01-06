@@ -56,6 +56,8 @@ jaehyeong-tech/
 │   │   │   │   ├── AdminLoginPage.tsx      # 관리자 로그인
 │   │   │   │   ├── AdminDashboardPage.tsx  # 관리자 대시보드
 │   │   │   │   ├── AdminPostEditorPage.tsx # 포스트 에디터
+│   │   │   │   ├── AdminCategoriesPage.tsx # 카테고리 관리
+│   │   │   │   ├── AdminTagsPage.tsx       # 태그 관리
 │   │   │   │   ├── AdminPagesPage.tsx      # 페이지 관리
 │   │   │   │   ├── AdminPageEditorPage.tsx # 정적 페이지 에디터
 │   │   │   │   └── AdminManagementPage.tsx # 시스템 관리
@@ -137,6 +139,8 @@ jaehyeong-tech/
 - [x] 미리보기 모달 (ESC로 닫기)
 - [x] 저장하지 않은 변경사항 경고
 - [x] 대시보드 통계
+- [x] **카테고리 관리** (CRUD, 포스트 수 표시)
+- [x] **태그 관리** (CRUD, 인라인 편집, 포스트 수 표시)
 - [x] 공지사항 관리 (작성/수정/삭제, 뱃지, 상단 고정)
 - [x] 정적 페이지 관리 (JSON 콘텐츠 편집, 라이브 프리뷰)
 - [x] **데이터 백업/복원** (OCI Object Storage)
@@ -152,7 +156,7 @@ jaehyeong-tech/
 - [x] 전체 검색
 - [x] 조회수 표시
 - [x] 예상 읽기 시간
-- [x] 공지사항 (뱃지, 고정 공지, 페이지네이션)
+- [x] 공지사항 (뱃지, 고정 공지, 페이지네이션, 이전/다음 글 네비게이션)
 - [x] 정적 페이지 (소개, 개인정보처리방침)
 
 ### 이미지 관리
@@ -253,19 +257,30 @@ docker compose logs -f tech-web tech-api
 | DELETE | `/api/posts/:id` | 포스트 삭제 (인증) |
 | POST | `/api/posts/:id/like` | 좋아요 |
 
-### 카테고리 & 태그
+### 카테고리
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
 | GET | `/api/categories` | 카테고리 목록 |
 | GET | `/api/categories/:slug/posts` | 카테고리별 포스트 |
+| POST | `/api/categories` | 카테고리 생성 (인증) |
+| PUT | `/api/categories/:id` | 카테고리 수정 (인증) |
+| DELETE | `/api/categories/:id` | 카테고리 삭제 (인증) |
+
+### 태그
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
 | GET | `/api/tags` | 태그 목록 |
 | GET | `/api/tags/:slug/posts` | 태그별 포스트 |
+| POST | `/api/tags` | 태그 생성 (인증) |
+| PUT | `/api/tags/:id` | 태그 수정 (인증) |
+| DELETE | `/api/tags/:id` | 태그 삭제 (인증) |
 
 ### 페이지 (공지사항 & 정적 페이지)
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
 | GET | `/api/pages` | 전체 페이지 목록 |
 | GET | `/api/pages/notices` | 공지사항 목록 |
+| GET | `/api/pages/notices/:slug/adjacent` | 이전/다음 공지사항 |
 | GET | `/api/pages/slug/:slug` | 슬러그로 페이지 조회 |
 | GET | `/api/pages/admin` | 관리자용 페이지 목록 (인증) |
 | GET | `/api/pages/admin/stats` | 페이지 통계 (인증) |

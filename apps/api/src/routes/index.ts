@@ -11,6 +11,7 @@ import { backupRouter } from './backup.js'
 import { imageRouter } from './images.js'
 import { likeRouter } from './likes.js'
 import { commentRouter } from './comments.js'
+import { statsRouter } from './stats.js'
 
 export const apiRouter: IRouter = Router()
 
@@ -26,6 +27,7 @@ apiRouter.use('/backups', backupRouter)
 apiRouter.use('/images', imageRouter)
 apiRouter.use('/likes', likeRouter)
 apiRouter.use('/comments', commentRouter)
+apiRouter.use('/stats', statsRouter)
 
 // API info
 apiRouter.get('/', (_req, res) => {
@@ -44,6 +46,7 @@ apiRouter.get('/', (_req, res) => {
       images: '/api/images',
       likes: '/api/likes',
       comments: '/api/comments',
+      stats: '/api/stats',
     },
   })
 })

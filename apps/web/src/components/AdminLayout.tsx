@@ -7,6 +7,7 @@ const sidebarItems = [
   { path: '/admin', icon: 'dashboard', label: '대시보드 홈', exact: true },
   { path: '/admin/posts', icon: 'article', label: '게시물 관리' },
   { path: '/admin/categories', icon: 'category', label: '카테고리 관리' },
+  { path: '/admin/tags', icon: 'sell', label: '태그 관리' },
   { path: '/admin/pages', icon: 'description', label: '페이지 관리' },
   { path: '/admin/drafts', icon: 'edit_note', label: '임시 저장 글', badge: '3' },
   { path: '/admin/comments', icon: 'chat', label: '댓글 관리', badgeType: 'new' },
