@@ -68,7 +68,7 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true }:
   }
 
   return (
-    <aside className="lg:col-span-4 space-y-8">
+    <aside className="lg:col-span-4 space-y-8 sticky top-24 self-start">
       {/* Author Profile Card */}
       {showAuthor && author && (
         <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -143,7 +143,7 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true }:
 
       {/* Popular Topics */}
       {showPopularTopics && (
-        <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm sticky top-24">
+        <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex items-center gap-3 mb-5">
             <div className="p-2 bg-pink-500/10 rounded-lg text-pink-500">
               <span className="material-symbols-outlined">trending_up</span>
