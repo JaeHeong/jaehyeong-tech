@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import api, { type Page, type PageStats } from '../services/api'
+import TipTapEditor from '../components/TipTapEditor'
 
 type PageTab = 'NOTICE' | 'STATIC'
 
@@ -521,7 +522,7 @@ export default function AdminPagesPage() {
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setEditModal({ isOpen: false, page: null, isNew: false })}
           />
-          <div className="relative bg-card-light dark:bg-card-dark rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-card-light dark:bg-card-dark rounded-xl shadow-2xl p-6 max-w-5xl w-full mx-4 border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold">
                 {editModal.isNew
@@ -565,17 +566,15 @@ export default function AdminPagesPage() {
                 />
               </div>
 
-              {/* Content */}
+              {/* Content - TipTap Editor */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   내용 *
                 </label>
-                <textarea
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  rows={10}
-                  className="w-full px-4 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20 resize-none"
-                  placeholder="내용을 입력하세요"
+                <TipTapEditor
+                  content={formData.content}
+                  onChange={(content) => setFormData({ ...formData, content })}
+                  placeholder="내용을 작성하세요..."
                 />
               </div>
 
