@@ -124,6 +124,11 @@ export async function getMe(req: AuthRequest, res: Response, next: NextFunction)
         name: true,
         avatar: true,
         bio: true,
+        title: true,
+        github: true,
+        twitter: true,
+        linkedin: true,
+        website: true,
         role: true,
         createdAt: true,
       },
@@ -145,12 +150,17 @@ export async function updateMe(req: AuthRequest, res: Response, next: NextFuncti
       throw new AppError('인증이 필요합니다.', 401)
     }
 
-    const { name, avatar, bio, currentPassword, newPassword } = req.body
+    const { name, avatar, bio, title, github, twitter, linkedin, website, currentPassword, newPassword } = req.body
 
     const updateData: Record<string, unknown> = {}
     if (name) updateData.name = name
     if (avatar !== undefined) updateData.avatar = avatar
     if (bio !== undefined) updateData.bio = bio
+    if (title !== undefined) updateData.title = title
+    if (github !== undefined) updateData.github = github
+    if (twitter !== undefined) updateData.twitter = twitter
+    if (linkedin !== undefined) updateData.linkedin = linkedin
+    if (website !== undefined) updateData.website = website
 
     // Password change
     if (newPassword) {
@@ -183,6 +193,11 @@ export async function updateMe(req: AuthRequest, res: Response, next: NextFuncti
         name: true,
         avatar: true,
         bio: true,
+        title: true,
+        github: true,
+        twitter: true,
+        linkedin: true,
+        website: true,
         role: true,
       },
     })

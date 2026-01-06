@@ -1,13 +1,26 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Header() {
   const [isDark, setIsDark] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const { isAdmin } = useAuth()
+  const { isAdmin, user, logout } = useAuth()
   const navigate = useNavigate()
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const toggleDarkMode = () => {
     setIsDark(!isDark)
@@ -88,23 +101,78 @@ export default function Header() {
                 </span>
               </button>
 
-              {/* Admin Icons */}
+              {/* Admin User Menu */}
               {isAdmin && (
                 <>
-                  <Link
-                    to="/admin/posts/new"
-                    className="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                    title="새 글 작성"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">add</span>
-                  </Link>
-                  <Link
-                    to="/admin"
-                    className="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                    title="관리자 설정"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">settings</span>
-                  </Link>
+                  {/* User Menu */}
+                  <div className="relative" ref={userMenuRef}>
+                    <button
+                      onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                      className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      {user?.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user.name || 'User'}
+                          className="size-7 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-primary text-[16px]">person</span>
+                        </div>
+                      )}
+                    </button>
+
+                    {isUserMenuOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
+                        <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                            {user?.name || '관리자'}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {user?.email}
+                          </p>
+                        </div>
+                        <Link
+                          to="/admin"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">dashboard</span>
+                          대시보드
+                        </Link>
+                        <Link
+                          to="/admin/posts/new"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                          새 글 작성
+                        </Link>
+                        <Link
+                          to="/admin/settings"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">settings</span>
+                          설정
+                        </Link>
+                        <div className="border-t border-slate-200 dark:border-slate-700 mt-1 pt-1">
+                          <button
+                            onClick={() => {
+                              logout()
+                              setIsUserMenuOpen(false)
+                              navigate('/')
+                            }}
+                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">logout</span>
+                            로그아웃
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -116,22 +184,17 @@ export default function Header() {
               <span className="material-symbols-outlined text-[20px]">search</span>
             </button>
             {isAdmin && (
-              <>
-                <Link
-                  to="/admin/posts/new"
-                  className="p-2 text-slate-500 hover:text-primary"
-                  title="새 글 작성"
-                >
-                  <span className="material-symbols-outlined text-[20px]">add</span>
-                </Link>
-                <Link
-                  to="/admin"
-                  className="p-2 text-slate-500 hover:text-primary"
-                  title="관리자 설정"
-                >
-                  <span className="material-symbols-outlined text-[20px]">settings</span>
-                </Link>
-              </>
+              user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name || 'User'}
+                  className="size-7 rounded-full object-cover"
+                />
+              ) : (
+                <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary text-[16px]">person</span>
+                </div>
+              )
             )}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -164,6 +227,67 @@ export default function Header() {
                   {link.label}
                 </NavLink>
               ))}
+
+              {/* Admin Section in Mobile Menu */}
+              {isAdmin && (
+                <>
+                  <div className="my-2 border-t border-slate-200 dark:border-slate-700" />
+                  <div className="px-4 py-2 flex items-center gap-3">
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name || 'User'}
+                        className="size-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-primary text-[18px]">person</span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">
+                        {user?.name || '관리자'}
+                      </p>
+                      <p className="text-xs text-slate-500">{user?.email}</p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">dashboard</span>
+                    대시보드
+                  </Link>
+                  <Link
+                    to="/admin/posts/new"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                    새 글 작성
+                  </Link>
+                  <Link
+                    to="/admin/settings"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">settings</span>
+                    설정
+                  </Link>
+                  <button
+                    onClick={() => {
+                      logout()
+                      setIsMobileMenuOpen(false)
+                      navigate('/')
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">logout</span>
+                    로그아웃
+                  </button>
+                </>
+              )}
             </div>
           </nav>
         )}

@@ -6,9 +6,17 @@ export default function Footer() {
   return (
     <footer className="border-t border-slate-200 dark:border-slate-800 py-10 mt-12 bg-card-light dark:bg-card-dark">
       <div className="container-wrapper flex flex-col md:flex-row justify-between items-center gap-4">
-        <p className="text-slate-500 dark:text-slate-400 text-sm">
-          © {currentYear} jaehyeong tech. All rights reserved.
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
+            © {currentYear} jaehyeong tech. All rights reserved.
+          </p>
+          <Link
+            to="/privacy"
+            className="text-slate-400 hover:text-primary transition-colors text-sm"
+          >
+            개인정보처리방침
+          </Link>
+        </div>
         <div className="flex gap-6">
           <Link
             to="/rss"

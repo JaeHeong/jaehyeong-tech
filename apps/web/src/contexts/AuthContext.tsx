@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   googleLogin: (credential: string) => Promise<void>
   logout: () => void
+  refreshUser: () => Promise<void>
   error: string | null
   clearError: () => void
 }
@@ -74,6 +75,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const { data } = await api.getCurrentUser()
+      setUser(data)
+    } catch {
+      // Silently fail if refresh fails
+    }
+  }, [])
+
   const clearError = useCallback(() => {
     setError(null)
   }, [])
@@ -86,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     googleLogin,
     logout,
+    refreshUser,
     error,
     clearError,
   }

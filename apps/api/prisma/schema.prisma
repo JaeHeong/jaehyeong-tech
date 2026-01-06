@@ -15,6 +15,11 @@ model User {
   name      String
   avatar    String?
   bio       String?
+  title     String?  // Job title
+  github    String?
+  twitter   String?
+  linkedin  String?
+  website   String?
   role      Role     @default(USER)
   posts     Post[]
   createdAt DateTime @default(now())

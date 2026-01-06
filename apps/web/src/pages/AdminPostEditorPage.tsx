@@ -941,13 +941,45 @@ export default function AdminPostEditorPage() {
             <div className="flex-1 overflow-y-auto">
               <article className="mx-auto px-6 py-8 lg:px-12">
                 {/* Cover Image */}
-                {formData.coverImage && (
+                {formData.coverImage ? (
                   <div className="aspect-video rounded-xl overflow-hidden mb-8">
                     <img
                       src={formData.coverImage}
                       alt="Cover"
                       className="w-full h-full object-cover"
                     />
+                  </div>
+                ) : (
+                  <div className="aspect-video rounded-xl overflow-hidden mb-8 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center relative">
+                    <div
+                      className="absolute inset-0 opacity-10"
+                      style={{
+                        backgroundImage: 'radial-gradient(circle at 2px 2px, gray 1px, transparent 0)',
+                        backgroundSize: '24px 24px',
+                      }}
+                    />
+                    <div className="p-6 bg-card-light dark:bg-card-dark rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-xs w-full mx-6 transform rotate-2">
+                      <div className="flex items-center gap-2 mb-3 border-b border-slate-100 dark:border-slate-700 pb-3">
+                        <div className="size-2.5 rounded-full bg-red-500" />
+                        <div className="size-2.5 rounded-full bg-amber-500" />
+                        <div className="size-2.5 rounded-full bg-green-500" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-2 w-2/3 bg-slate-200 dark:bg-slate-700 rounded" />
+                        <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+                        <div className="h-2 w-5/6 bg-slate-200 dark:bg-slate-700 rounded" />
+                        <div className="h-2 w-4/5 bg-slate-200 dark:bg-slate-700 rounded" />
+                      </div>
+                      <div className="mt-4 flex justify-between items-center">
+                        <div className="flex -space-x-2">
+                          <div className="size-6 rounded-full bg-primary border-2 border-white dark:border-slate-800" />
+                          <div className="size-6 rounded-full bg-indigo-500 border-2 border-white dark:border-slate-800" />
+                        </div>
+                        <div className="px-2 py-0.5 bg-green-500/10 text-green-600 rounded text-xs font-bold">
+                          {formData.status === 'PUBLISHED' ? 'Published' : 'Draft'}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
                 {/* Category & Tags */}

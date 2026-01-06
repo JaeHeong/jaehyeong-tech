@@ -84,8 +84,20 @@ class ApiClient {
     return this.request<{ data: AuthUser }>('/auth/me')
   }
 
+  async updateProfile(data: UpdateProfileData) {
+    return this.request<{ data: AuthUser }>('/auth/me', {
+      method: 'PUT',
+      body: data,
+    })
+  }
+
   logout() {
     this.setToken(null)
+  }
+
+  // Author info endpoint (public)
+  async getAuthorInfo() {
+    return this.request<{ data: AuthorInfo }>('/author')
   }
 
   // Posts endpoints
@@ -97,9 +109,12 @@ class ApiClient {
     if (params?.tag) searchParams.set('tag', params.tag)
     if (params?.search) searchParams.set('search', params.search)
     if (params?.status) searchParams.set('status', params.status)
+    if (params?.sortBy) searchParams.set('sortBy', params.sortBy)
+    if (params?.featured !== undefined) searchParams.set('featured', params.featured.toString())
 
     const query = searchParams.toString()
-    return this.request<PostsResponse>(`/posts${query ? `?${query}` : ''}`)
+    const response = await this.request<{ data: Post[]; meta: PostsResponse['meta'] }>(`/posts${query ? `?${query}` : ''}`)
+    return { posts: response.data, meta: response.meta }
   }
 
   async getPost(slug: string) {
@@ -180,9 +195,12 @@ class ApiClient {
   }
 
   // Upload image
-  async uploadImage(file: File): Promise<{ url: string }> {
-    const formData = new FormData()
-    formData.append('image', file)
+  async uploadImage(fileOrFormData: File | FormData): Promise<{ url: string }> {
+    const formData = fileOrFormData instanceof FormData ? fileOrFormData : (() => {
+      const fd = new FormData()
+      fd.append('image', fileOrFormData)
+      return fd
+    })()
 
     const response = await fetch(`${this.baseUrl}/upload/image`, {
       method: 'POST',
@@ -215,7 +233,34 @@ export interface AuthUser {
   email: string
   avatar?: string
   bio?: string
+  title?: string
+  github?: string
+  twitter?: string
+  linkedin?: string
+  website?: string
   role: 'ADMIN' | 'USER'
+}
+
+export interface AuthorInfo {
+  name: string
+  title?: string
+  bio?: string
+  avatar?: string
+  github?: string
+  twitter?: string
+  linkedin?: string
+  website?: string
+}
+
+export interface UpdateProfileData {
+  name?: string
+  title?: string
+  bio?: string
+  avatar?: string
+  github?: string
+  twitter?: string
+  linkedin?: string
+  website?: string
 }
 
 export interface Post {
@@ -271,6 +316,8 @@ export interface PostsQueryParams {
   tag?: string
   search?: string
   status?: 'DRAFT' | 'PUBLISHED'
+  sortBy?: 'createdAt' | 'viewCount' | 'likeCount'
+  featured?: boolean
 }
 
 export interface CreatePostData {
@@ -304,3 +351,4 @@ export interface UrlMetadata {
 }
 
 export const api = new ApiClient(API_BASE_URL)
+export default api

@@ -11,6 +11,12 @@ import SearchPage from './pages/SearchPage'
 import AdminLoginPage from './pages/AdminLoginPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import AdminPostEditorPage from './pages/AdminPostEditorPage'
+import AdminSettingsPage from './pages/AdminSettingsPage'
+import AdminPostsPage from './pages/AdminPostsPage'
+import AdminCategoriesPage from './pages/AdminCategoriesPage'
+import AdminCommentsPage from './pages/AdminCommentsPage'
+import AdminDraftsPage from './pages/AdminDraftsPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 function App() {
@@ -25,6 +31,7 @@ function App() {
         <Route path="categories" element={<CategoryPage />} />
         <Route path="categories/:slug" element={<PostListPage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="privacy" element={<PrivacyPolicyPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
@@ -41,14 +48,13 @@ function App() {
         }
       >
         <Route index element={<AdminDashboardPage />} />
+        <Route path="posts" element={<AdminPostsPage />} />
         <Route path="posts/new" element={<AdminPostEditorPage />} />
         <Route path="posts/:id/edit" element={<AdminPostEditorPage />} />
-        {/* Add more admin routes here */}
-        {/* <Route path="posts" element={<AdminPostsPage />} /> */}
-        {/* <Route path="categories" element={<AdminCategoriesPage />} /> */}
-        {/* <Route path="drafts" element={<AdminDraftsPage />} /> */}
-        {/* <Route path="comments" element={<AdminCommentsPage />} /> */}
-        {/* <Route path="settings" element={<AdminSettingsPage />} /> */}
+        <Route path="categories" element={<AdminCategoriesPage />} />
+        <Route path="drafts" element={<AdminDraftsPage />} />
+        <Route path="comments" element={<AdminCommentsPage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
       </Route>
     </Routes>
   )

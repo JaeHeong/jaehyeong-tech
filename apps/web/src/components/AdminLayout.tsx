@@ -1,5 +1,6 @@
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import Header from './Header'
 
 const sidebarItems = [
   { path: '/admin', icon: 'dashboard', label: '대시보드 홈', exact: true },
@@ -27,68 +28,8 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between gap-4">
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
-                <span className="material-symbols-outlined text-[24px]">terminal</span>
-              </div>
-              <Link to="/" className="text-xl font-bold tracking-tight">
-                jaehyeong<span className="text-primary"> tech</span>
-              </Link>
-            </div>
-
-            <div className="hidden md:flex flex-1 items-center justify-end gap-6">
-              <nav className="flex gap-6 mr-4">
-                <Link
-                  to="/"
-                  className="text-sm font-medium hover:text-primary transition-colors"
-                >
-                  홈
-                </Link>
-                <Link
-                  to="/introduce"
-                  className="text-sm font-medium hover:text-primary transition-colors"
-                >
-                  소개
-                </Link>
-                <Link
-                  to="/posts"
-                  className="text-sm font-medium hover:text-primary transition-colors"
-                >
-                  글 목록
-                </Link>
-                <Link
-                  to="/categories"
-                  className="text-sm font-medium hover:text-primary transition-colors"
-                >
-                  카테고리
-                </Link>
-              </nav>
-
-              <div className="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-800">
-                <div className="relative w-64 group">
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <span className="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">
-                      search
-                    </span>
-                  </div>
-                  <input
-                    className="block w-full py-1.5 pl-4 pr-10 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-primary/50 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                    placeholder="검색어를 입력하세요..."
-                    type="text"
-                  />
-                </div>
-                <button className="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">dark_mode</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Shared Header */}
+      <Header />
 
       {/* Main Content */}
       <div className={`mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isEditorPage ? 'max-w-[1600px]' : 'max-w-7xl'}`}>
@@ -133,9 +74,17 @@ export default function AdminLayout() {
             {/* User Info & Logout */}
             <div className="bg-card-light dark:bg-card-dark rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                  {user?.name?.charAt(0).toUpperCase() || 'A'}
-                </div>
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name || 'User'}
+                    className="size-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                    {user?.name?.charAt(0).toUpperCase() || 'A'}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm truncate">{user?.name || 'Admin'}</p>
                   <p className="text-xs text-slate-500 truncate">{user?.email}</p>
