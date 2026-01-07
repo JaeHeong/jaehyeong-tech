@@ -361,7 +361,7 @@ export async function updateComment(req: AuthRequest, res: Response, next: NextF
 export async function deleteComment(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params
-    const { guestPassword } = req.body
+    const { guestPassword } = req.body || {}
 
     const comment = await prisma.comment.findUnique({
       where: { id },

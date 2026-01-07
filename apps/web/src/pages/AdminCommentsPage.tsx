@@ -202,15 +202,13 @@ export default function AdminCommentsPage() {
                           </Link>
 
                           <div className="flex gap-2">
-                            {!comment.isDeleted && (
-                              <button
-                                onClick={() => setDeleteModal({ isOpen: true, comment })}
-                                className="px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-1"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">delete</span>
-                                삭제
-                              </button>
-                            )}
+                            <button
+                              onClick={() => setDeleteModal({ isOpen: true, comment })}
+                              className="px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete_forever</span>
+                              {comment.isDeleted ? '완전 삭제' : '삭제'}
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -266,10 +264,16 @@ export default function AdminCommentsPage() {
               <h3 className="text-lg font-bold">댓글 삭제</h3>
             </div>
             <p className="text-slate-600 dark:text-slate-400 mb-6">
-              <strong className="text-slate-900 dark:text-white">
-                {deleteModal.comment && getAuthorName(deleteModal.comment)}
-              </strong>
-              님의 댓글을 완전히 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              {deleteModal.comment?.isDeleted ? (
+                <>이미 삭제 처리된 댓글을 완전히 삭제하시겠습니까? 답글이 있다면 함께 삭제됩니다.</>
+              ) : (
+                <>
+                  <strong className="text-slate-900 dark:text-white">
+                    {deleteModal.comment && getAuthorName(deleteModal.comment)}
+                  </strong>
+                  님의 댓글을 완전히 삭제하시겠습니까? 답글이 있다면 함께 삭제됩니다.
+                </>
+              )}
             </p>
             <div className="flex gap-3 justify-end">
               <button
