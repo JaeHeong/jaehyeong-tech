@@ -24,6 +24,7 @@ export default function PostDetailPage() {
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [isLiking, setIsLiking] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   const handleDelete = async () => {
     if (!post) return
@@ -50,6 +51,41 @@ export default function PostDetailPage() {
       console.error('Like failed:', err)
     } finally {
       setIsLiking(false)
+    }
+  }
+
+  const handleShare = async () => {
+    if (!post) return
+
+    const shareUrl = window.location.href
+    const shareData = {
+      title: post.title,
+      text: post.excerpt || post.title,
+      url: shareUrl,
+    }
+
+    try {
+      // Use Web Share API if available (mostly mobile)
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData)
+      } else {
+        // Fallback: copy URL to clipboard
+        await navigator.clipboard.writeText(shareUrl)
+        setShareCopied(true)
+        setTimeout(() => setShareCopied(false), 2000)
+      }
+    } catch (err) {
+      // User cancelled share or error occurred
+      if ((err as Error).name !== 'AbortError') {
+        // Fallback to clipboard copy
+        try {
+          await navigator.clipboard.writeText(shareUrl)
+          setShareCopied(true)
+          setTimeout(() => setShareCopied(false), 2000)
+        } catch {
+          console.error('Share failed:', err)
+        }
+      }
     }
   }
 
@@ -610,9 +646,20 @@ export default function PostDetailPage() {
                     </span>
                     <span className="text-sm font-medium">{likeCount > 0 ? likeCount : '좋아요'}</span>
                   </button>
-                  <button className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">share</span>
-                    <span className="text-sm font-medium">공유하기</span>
+                  <button
+                    onClick={handleShare}
+                    className={`flex items-center gap-2 transition-colors ${
+                      shareCopied
+                        ? 'text-green-500'
+                        : 'text-slate-500 hover:text-primary'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">
+                      {shareCopied ? 'check' : 'share'}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {shareCopied ? '복사됨!' : '공유하기'}
+                    </span>
                   </button>
                 </div>
                 <button className="text-slate-500 hover:text-primary transition-colors">

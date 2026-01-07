@@ -6,21 +6,28 @@ import type { AuthRequest } from '../middleware/auth.js'
 import slugifyLib from 'slugify'
 import { deleteFromOCI, isOCIConfigured } from '../services/oci.js'
 
-// Update featured post - sets featured=true on the post with highest likeCount, then viewCount
+// Update featured post - sets featured=true on the post with highest score
+// Score = (likeCount * LIKE_WEIGHT) + viewCount
+// Likes are weighted more heavily since they're harder to get
 // Only one post can be featured at a time
+const LIKE_WEIGHT = 10 // 1 like = 10 views worth
+
 export async function updateFeaturedPost() {
   try {
-    // Find the post with highest likes, then highest views (PUBLIC only)
-    const topPost = await prisma.post.findFirst({
+    // Find all PUBLIC posts and calculate score
+    const posts = await prisma.post.findMany({
       where: { status: 'PUBLIC' },
-      orderBy: [
-        { likeCount: 'desc' },
-        { viewCount: 'desc' },
-      ],
-      select: { id: true, featured: true },
+      select: { id: true, featured: true, likeCount: true, viewCount: true },
     })
 
-    if (!topPost) return
+    if (posts.length === 0) return
+
+    // Calculate score for each post and find the top one
+    const topPost = posts.reduce((best, post) => {
+      const postScore = (post.likeCount * LIKE_WEIGHT) + post.viewCount
+      const bestScore = (best.likeCount * LIKE_WEIGHT) + best.viewCount
+      return postScore > bestScore ? post : best
+    })
 
     // Only update if the top post is not already featured
     if (!topPost.featured) {
