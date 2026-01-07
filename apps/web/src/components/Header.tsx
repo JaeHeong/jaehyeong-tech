@@ -207,7 +207,10 @@ export default function Header() {
 
           {/* Mobile Navigation */}
           <div className="flex md:hidden items-center gap-2">
-            <button className="p-2 text-slate-500">
+            <button
+              onClick={() => navigate('/search')}
+              className="p-2 text-slate-500 hover:text-primary transition-colors"
+            >
               <span className="material-symbols-outlined text-[20px]">search</span>
             </button>
             {isAuthenticated && (

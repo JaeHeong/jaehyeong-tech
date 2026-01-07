@@ -109,6 +109,7 @@ export default function AdminPostEditorPage() {
   const [formData, setFormData] = useState<PostFormData>(initialFormData)
   const [isDeleting, setIsDeleting] = useState(false)
   const [savedFormData, setSavedFormData] = useState<PostFormData>(initialFormData)
+  const [postSlug, setPostSlug] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -217,6 +218,7 @@ export default function AdminPostEditorPage() {
           }
           setFormData(loadedData)
           setSavedFormData(loadedData)
+          setPostSlug(post.slug)
         })
         .catch((err) => {
           setError('게시물을 불러오는데 실패했습니다.')
@@ -401,7 +403,7 @@ export default function AdminPostEditorPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
         <div className="flex items-center gap-2 md:gap-4">
           <Link
-            to="/admin"
+            to={isEditing && postSlug ? `/posts/${postSlug}` : '/admin/drafts'}
             className="p-1.5 md:p-2 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <span className="material-symbols-outlined text-[20px] md:text-[24px]">arrow_back</span>

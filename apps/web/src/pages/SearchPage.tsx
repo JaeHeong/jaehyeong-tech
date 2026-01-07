@@ -69,33 +69,34 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
         {/* Main Content */}
-        <main className="lg:col-span-8 flex flex-col gap-8">
+        <main className="lg:col-span-8 flex flex-col gap-6 md:gap-8">
           {/* Search Header */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4 md:gap-6">
             {/* Search Input */}
             <form onSubmit={handleSearch}>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                  <span className="material-symbols-outlined text-slate-400 text-[20px]">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 md:pl-4 pointer-events-none">
+                  <span className="material-symbols-outlined text-slate-400 text-[18px] md:text-[20px]">
                     search
                   </span>
                 </div>
                 <input
                   name="search"
                   defaultValue={query}
-                  className="block w-full py-3 pl-12 pr-4 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-lg"
+                  autoFocus
+                  className="block w-full py-2.5 md:py-3 pl-10 md:pl-12 pr-4 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-base md:text-lg"
                   placeholder="제목, 카테고리, 태그로 검색..."
                   type="text"
                 />
               </div>
             </form>
 
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-2 md:gap-4 pb-4 md:pb-6 border-b border-slate-200 dark:border-slate-800">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight">
                   {query ? (
                     <>
                       <span className="text-primary">"{query}"</span> 검색 결과
@@ -104,7 +105,7 @@ export default function SearchPage() {
                     '전체 게시물'
                   )}
                 </h1>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mt-1">
                   총 {totalCount}개의 게시물을 찾았습니다.
                 </p>
               </div>
@@ -113,27 +114,27 @@ export default function SearchPage() {
 
           {/* Search Results */}
           {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <span className="material-symbols-outlined animate-spin text-4xl text-primary">
+            <div className="flex justify-center items-center py-8 md:py-12">
+              <span className="material-symbols-outlined animate-spin text-3xl md:text-4xl text-primary">
                 progress_activity
               </span>
             </div>
           ) : posts.length === 0 ? (
-            <div className="text-center py-12">
-              <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600 mb-4 block">
+            <div className="text-center py-8 md:py-12">
+              <span className="material-symbols-outlined text-5xl md:text-6xl text-slate-300 dark:text-slate-600 mb-3 md:mb-4 block">
                 search_off
               </span>
-              <h3 className="text-lg font-bold mb-2">검색 결과가 없습니다</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm">
+              <h3 className="text-base md:text-lg font-bold mb-1.5 md:mb-2">검색 결과가 없습니다</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm">
                 다른 검색어로 다시 시도해보세요.
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4 md:gap-6">
               {posts.map((post) => (
                 <article
                   key={post.id}
-                  className="group flex flex-col md:flex-row gap-6 items-start pb-6 border-b border-slate-200 dark:border-slate-800 last:border-0"
+                  className="group flex flex-col md:flex-row gap-3 md:gap-6 items-start pb-4 md:pb-6 border-b border-slate-200 dark:border-slate-800 last:border-0"
                 >
                   <Link
                     to={`/posts/${post.slug}`}
@@ -147,46 +148,46 @@ export default function SearchPage() {
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-4xl text-slate-400">
+                        <span className="material-symbols-outlined text-3xl md:text-4xl text-slate-400">
                           {post.category?.icon || 'article'}
                         </span>
                       </div>
                     )}
                   </Link>
                   <div className="flex-1 min-w-0 flex flex-col h-full">
-                    <div className="flex items-center gap-3 text-xs mb-2">
-                      <span className="font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">
+                    <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-xs mb-1.5 md:mb-2">
+                      <span className="font-bold px-1.5 md:px-2 py-0.5 rounded bg-primary/10 text-primary">
                         {post.category?.name || 'Uncategorized'}
                       </span>
                       <span className="text-slate-400">
                         {formatDate(post.publishedAt || post.createdAt)}
                       </span>
                     </div>
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                    <h3 className="text-base md:text-xl font-bold mb-1.5 md:mb-2 group-hover:text-primary transition-colors line-clamp-2">
                       <Link to={`/posts/${post.slug}`}>{post.title}</Link>
                     </h3>
-                    <Link to={`/posts/${post.slug}`} className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3 block">
+                    <Link to={`/posts/${post.slug}`} className="text-slate-600 dark:text-slate-400 text-xs md:text-sm leading-relaxed line-clamp-2 mb-2 md:mb-3 block">
                       {post.excerpt}
                     </Link>
                     {post.tags && post.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-3">
+                      <div className="flex flex-wrap gap-1 md:gap-1.5 mb-2 md:mb-3">
                         {post.tags.slice(0, 3).map((tag) => (
                           <span
                             key={tag.id}
-                            className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-xs text-slate-500 dark:text-slate-400"
+                            className="px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] md:text-xs text-slate-500 dark:text-slate-400"
                           >
                             #{tag.name}
                           </span>
                         ))}
                       </div>
                     )}
-                    <div className="flex items-center gap-4 mt-auto">
-                      <div className="flex items-center gap-1 text-slate-400 text-xs">
-                        <span className="material-symbols-outlined text-[16px]">visibility</span>
+                    <div className="flex items-center gap-3 md:gap-4 mt-auto">
+                      <div className="flex items-center gap-1 text-slate-400 text-[10px] md:text-xs">
+                        <span className="material-symbols-outlined text-[14px] md:text-[16px]">visibility</span>
                         {formatViewCount(post.viewCount)}
                       </div>
-                      <div className="flex items-center gap-1 text-slate-400 text-xs">
-                        <span className="material-symbols-outlined text-[16px]">schedule</span>
+                      <div className="flex items-center gap-1 text-slate-400 text-[10px] md:text-xs">
+                        <span className="material-symbols-outlined text-[14px] md:text-[16px]">schedule</span>
                         {post.readingTime} min
                       </div>
                     </div>
@@ -198,13 +199,13 @@ export default function SearchPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 pt-4">
+            <div className="flex justify-center items-center gap-1 md:gap-2 pt-4">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1.5 md:p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                <span className="material-symbols-outlined text-[18px] md:text-[20px]">chevron_left</span>
               </button>
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let page: number
@@ -221,7 +222,7 @@ export default function SearchPage() {
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${
                       currentPage === page
                         ? 'bg-primary text-white shadow-md shadow-primary/20'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -233,10 +234,10 @@ export default function SearchPage() {
               })}
               {totalPages > 5 && currentPage < totalPages - 2 && (
                 <>
-                  <span className="text-slate-400 px-2">...</span>
+                  <span className="text-slate-400 px-1 md:px-2 text-xs md:text-sm">...</span>
                   <button
                     onClick={() => handlePageChange(totalPages)}
-                    className="px-4 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition-colors"
+                    className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs md:text-sm font-medium transition-colors"
                   >
                     {totalPages}
                   </button>
@@ -245,9 +246,9 @@ export default function SearchPage() {
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1.5 md:p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                <span className="material-symbols-outlined text-[18px] md:text-[20px]">chevron_right</span>
               </button>
             </div>
           )}
