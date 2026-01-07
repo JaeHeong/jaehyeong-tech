@@ -500,6 +500,32 @@ export default function PostDetailPage() {
         }
         /* Strong */
         .post-content strong { font-weight: 600; }
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+          .post-content { font-size: 0.9375rem; line-height: 1.75; }
+          .post-content h1 { font-size: 1.5rem; margin: 1.75rem 0 0.75rem; }
+          .post-content h2 { font-size: 1.25rem; margin: 1.5rem 0 0.75rem; }
+          .post-content h3 { font-size: 1.1rem; margin: 1.25rem 0 0.5rem; }
+          .post-content p { margin: 0.75rem 0; }
+          .post-content p:first-child { font-size: 1rem; }
+          .post-content pre { margin: 1rem 0; border-radius: 0.5rem; }
+          .post-content pre code { font-size: 0.75rem; padding: 0.75rem; }
+          .post-content code:not(pre code) { font-size: 0.8rem; padding: 0.1rem 0.25rem; }
+          .post-content blockquote { padding: 1rem; margin: 1.25rem 0; font-size: 0.9375rem; }
+          .post-content ul, .post-content ol { padding-left: 1.25rem; margin: 0.75rem 0; }
+          .post-content li { margin: 0.375rem 0; }
+          .post-content img { margin: 1rem 0; border-radius: 0.5rem; }
+          .post-content .pullquote-static { padding: 1.5rem 2rem; margin: 1.5rem 0; }
+          .post-content .pullquote-static-content p { font-size: 1.25rem; }
+          .post-content .pullquote-static-mark-open,
+          .post-content .pullquote-static-mark-close { font-size: 3.5rem; }
+          .post-content .callout-static { padding: 0.75rem; margin: 1rem 0; }
+          .post-content .bookmark-card-static { margin: 1rem 0; }
+          .post-content .bookmark-content { padding: 0.75rem; }
+          .post-content .bookmark-title { font-size: 0.875rem; }
+          .post-content .bookmark-description { font-size: 0.75rem; }
+          .post-content .bookmark-image { width: 100px; }
+        }
         /* Bookmark Card */
         .post-content .bookmark-card-static {
           margin: 1.5rem 0;
@@ -1024,47 +1050,47 @@ export default function PostDetailPage() {
           </article>
 
           {/* Navigation */}
-          <div className="grid gap-3" style={{ gridTemplateColumns: '3fr 1fr 3fr' }}>
+          <div className="grid grid-cols-3 md:gap-3 gap-2" style={{ gridTemplateColumns: '2fr 1fr 2fr' }}>
             {/* 이전 글 */}
             {adjacentPosts.prev ? (
               <Link
                 to={`/posts/${adjacentPosts.prev.slug}`}
-                className="group flex items-center gap-3 p-4 bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all"
+                className="group flex items-center gap-2 md:gap-3 p-3 md:p-4 bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all"
               >
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors shrink-0">
+                <span className="material-symbols-outlined text-[18px] md:text-[24px] text-slate-400 group-hover:text-primary transition-colors shrink-0">
                   arrow_back
                 </span>
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">이전 글</span>
-                  <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1 text-sm">
+                  <span className="text-[10px] md:text-xs font-medium text-slate-500 dark:text-slate-400 mb-0.5 md:mb-1 block">이전 글</span>
+                  <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1 text-xs md:text-sm">
                     {adjacentPosts.prev.title}
                   </h4>
                 </div>
               </Link>
             ) : (
-              <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 opacity-50">
-                <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 shrink-0">
+              <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 opacity-50">
+                <span className="material-symbols-outlined text-[18px] md:text-[24px] text-slate-300 dark:text-slate-600 shrink-0">
                   arrow_back
                 </span>
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-1 block">이전 글</span>
-                  <h4 className="font-medium text-slate-400 dark:text-slate-500 text-sm">
+                  <span className="text-[10px] md:text-xs font-medium text-slate-400 dark:text-slate-500 mb-0.5 md:mb-1 block">이전 글</span>
+                  <h4 className="font-medium text-slate-400 dark:text-slate-500 text-xs md:text-sm">
                     없음
                   </h4>
                 </div>
               </div>
             )}
 
-            {/* 목록으로 */}
+            {/* 목록 */}
             <Link
               to="/posts"
-              className="group flex flex-col items-center justify-center p-4 bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all"
+              className="group flex flex-col items-center justify-center p-3 md:p-4 bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all"
             >
-              <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors mb-1">
+              <span className="material-symbols-outlined text-[18px] md:text-[24px] text-slate-400 group-hover:text-primary transition-colors mb-0.5 md:mb-1">
                 list
               </span>
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">
-                목록으로
+              <span className="text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">
+                목록
               </span>
             </Link>
 
@@ -1072,23 +1098,23 @@ export default function PostDetailPage() {
             {adjacentPosts.next ? (
               <Link
                 to={`/posts/${adjacentPosts.next.slug}`}
-                className="group flex items-center gap-3 p-4 bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all text-right"
+                className="group flex items-center gap-2 md:gap-3 p-3 md:p-4 bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all text-right"
               >
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">다음 글</span>
-                  <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1 text-sm">
+                  <span className="text-[10px] md:text-xs font-medium text-slate-500 dark:text-slate-400 mb-0.5 md:mb-1 block">다음 글</span>
+                  <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1 text-xs md:text-sm">
                     {adjacentPosts.next.title}
                   </h4>
                 </div>
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors shrink-0">
+                <span className="material-symbols-outlined text-[18px] md:text-[24px] text-slate-400 group-hover:text-primary transition-colors shrink-0">
                   arrow_forward
                 </span>
               </Link>
             ) : (
-              <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 opacity-50 text-right">
+              <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 opacity-50 text-right">
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-1 block">다음 글</span>
-                  <h4 className="font-medium text-slate-400 dark:text-slate-500 text-sm">
+                  <span className="text-[10px] md:text-xs font-medium text-slate-400 dark:text-slate-500 mb-0.5 md:mb-1 block">다음 글</span>
+                  <h4 className="font-medium text-slate-400 dark:text-slate-500 text-xs md:text-sm">
                     없음
                   </h4>
                 </div>

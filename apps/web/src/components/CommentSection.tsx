@@ -102,19 +102,19 @@ function CommentForm({ postId, parentId, onSubmit, onCancel, isReply = false }: 
   }
 
   return (
-    <form onSubmit={handleSubmit} className={`${isReply ? 'ml-12 mt-4' : ''}`}>
-      <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+    <form onSubmit={handleSubmit} className={`${isReply ? 'ml-8 md:ml-12 mt-3 md:mt-4' : ''}`}>
+      <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 p-3 md:p-4">
         {/* Author info for logged in user */}
         {isAuthenticated && user && (
-          <div className="flex items-center gap-3 mb-4">
-            <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+          <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+            <div className="size-7 md:size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs md:text-sm">
               {user.avatar ? (
-                <img src={user.avatar} alt={user.name} className="size-8 rounded-full object-cover" />
+                <img src={user.avatar} alt={user.name} className="size-7 md:size-8 rounded-full object-cover" />
               ) : (
                 getInitials(user.name)
               )}
             </div>
-            <span className="font-medium text-slate-900 dark:text-white text-sm">{user.name}</span>
+            <span className="font-medium text-slate-900 dark:text-white text-xs md:text-sm">{user.name}</span>
           </div>
         )}
 
@@ -122,34 +122,35 @@ function CommentForm({ postId, parentId, onSubmit, onCancel, isReply = false }: 
         {!isAuthenticated && (
           <>
             {/* Login prompt */}
-            <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                <span className="material-symbols-outlined text-[18px]">account_circle</span>
-                <span>로그인하면 더 편하게 댓글을 남길 수 있어요</span>
+            <div className="flex items-center justify-between gap-2 md:gap-3 mb-3 md:mb-4 p-2 md:p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm text-slate-600 dark:text-slate-400">
+                <span className="material-symbols-outlined text-[16px] md:text-[18px]">account_circle</span>
+                <span className="hidden sm:inline">로그인하면 더 편하게 댓글을 남길 수 있어요</span>
+                <span className="sm:hidden">로그인하면 더 편해요</span>
               </div>
               <Link
                 to="/login"
                 state={{ from: location.pathname }}
-                className="shrink-0 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                className="shrink-0 px-2 md:px-3 py-1 md:py-1.5 text-[11px] md:text-xs font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
               >
                 로그인
               </Link>
             </div>
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-2 gap-2 md:gap-3 mb-3 md:mb-4">
               <input
                 type="text"
                 placeholder="이름 *"
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
-                className="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 maxLength={50}
               />
               <input
                 type="password"
-                placeholder="비밀번호 * (수정/삭제용)"
+                placeholder="비밀번호 *"
                 value={guestPassword}
                 onChange={(e) => setGuestPassword(e.target.value)}
-                className="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 maxLength={100}
               />
             </div>
@@ -161,42 +162,43 @@ function CommentForm({ postId, parentId, onSubmit, onCancel, isReply = false }: 
           placeholder={isReply ? '답글을 입력하세요...' : '댓글을 입력하세요...'}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-          rows={3}
+          className="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+          rows={2}
           maxLength={2000}
         />
 
         {/* Error message */}
         {error && (
-          <p className="mt-2 text-sm text-red-500 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[16px]">error</span>
+          <p className="mt-1.5 md:mt-2 text-xs md:text-sm text-red-500 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px] md:text-[16px]">error</span>
             {error}
           </p>
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between mt-3">
+        <div className="flex items-center justify-between mt-2 md:mt-3">
           {isAuthenticated ? (
-            <label className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
+            <label className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
               <input
                 type="checkbox"
                 checked={isPrivate}
                 onChange={(e) => setIsPrivate(e.target.checked)}
-                className="rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary/20"
+                className="rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary/20 size-3.5 md:size-4"
               />
-              <span className="material-symbols-outlined text-[16px]">lock</span>
-              비공개 댓글
+              <span className="material-symbols-outlined text-[14px] md:text-[16px]">lock</span>
+              <span className="hidden sm:inline">비공개 댓글</span>
+              <span className="sm:hidden">비공개</span>
             </label>
           ) : (
             <div />
           )}
 
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 md:gap-2">
             {onCancel && (
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                className="px-2.5 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
                 취소
               </button>
@@ -204,17 +206,17 @@ function CommentForm({ postId, parentId, onSubmit, onCancel, isReply = false }: 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-2.5 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 md:gap-2"
             >
               {isSubmitting ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
-                  등록 중...
+                  <span className="material-symbols-outlined animate-spin text-[14px] md:text-[16px]">progress_activity</span>
+                  <span className="hidden sm:inline">등록 중...</span>
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[16px]">send</span>
-                  {isReply ? '답글 작성' : '댓글 작성'}
+                  <span className="material-symbols-outlined text-[14px] md:text-[16px]">send</span>
+                  {isReply ? '답글' : '작성'}
                 </>
               )}
             </button>
@@ -316,16 +318,16 @@ function CommentItem({
   // Deleted comment placeholder
   if (comment.isDeleted) {
     return (
-      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg opacity-60">
-        <p className="text-slate-500 dark:text-slate-400 text-sm italic">
+      <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg opacity-60">
+        <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm italic">
           삭제된 댓글입니다.
         </p>
         {/* Show replies even for deleted comments */}
         {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-4 space-y-4">
+          <div className="mt-3 md:mt-4 space-y-3 md:space-y-4">
             {comment.replies.map((reply) => (
-              <div key={reply.id} className="flex gap-2 ml-4">
-                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[20px] mt-1 shrink-0">
+              <div key={reply.id} className="flex gap-1.5 md:gap-2 ml-2 md:ml-4">
+                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[16px] md:text-[20px] mt-1 shrink-0">
                   subdirectory_arrow_right
                 </span>
                 <div className="flex-1">
@@ -349,39 +351,39 @@ function CommentItem({
 
   return (
     <div className="group">
-      <div className="p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+      <div className="p-3 md:p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-start justify-between gap-2 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-3">
             {/* Avatar */}
-            <div className="size-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-sm shrink-0">
+            <div className="size-8 md:size-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-xs md:text-sm shrink-0">
               {comment.author?.avatar ? (
                 <img
                   src={comment.author.avatar}
                   alt={authorName}
-                  className="size-10 rounded-full object-cover"
+                  className="size-8 md:size-10 rounded-full object-cover"
                 />
               ) : (
                 getInitials(authorName)
               )}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-900 dark:text-white">
+              <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                <span className="font-bold text-slate-900 dark:text-white text-sm md:text-base">
                   {authorName}
                 </span>
                 {isPostAuthor && (
-                  <span className="bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">
+                  <span className="bg-primary/10 text-primary text-[9px] md:text-[10px] px-1 md:px-1.5 py-0.5 rounded font-bold uppercase">
                     Author
                   </span>
                 )}
                 {comment.isPrivate && (
                   <span className="text-slate-400 dark:text-slate-500">
-                    <span className="material-symbols-outlined text-[14px]">lock</span>
+                    <span className="material-symbols-outlined text-[12px] md:text-[14px]">lock</span>
                   </span>
                 )}
               </div>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">
                 {formatDate(comment.createdAt)}
               </span>
             </div>
@@ -390,12 +392,12 @@ function CommentItem({
 
         {/* Content */}
         {showEditForm ? (
-          <div className="mt-3">
+          <div className="mt-2 md:mt-3">
             <textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-              rows={3}
+              className="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+              rows={2}
               maxLength={2000}
             />
             {isGuestComment && !isAdmin && (
@@ -404,17 +406,17 @@ function CommentItem({
                 placeholder="비밀번호"
                 value={editPassword}
                 onChange={(e) => setEditPassword(e.target.value)}
-                className="mt-2 w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="mt-1.5 md:mt-2 w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             )}
             {error && (
-              <p className="mt-2 text-sm text-red-500">{error}</p>
+              <p className="mt-1.5 md:mt-2 text-xs md:text-sm text-red-500">{error}</p>
             )}
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-1.5 md:gap-2 mt-1.5 md:mt-2">
               <button
                 onClick={handleEdit}
                 disabled={isUpdating}
-                className="px-3 py-1.5 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
+                className="px-2 md:px-3 py-1 md:py-1.5 text-[11px] md:text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
               >
                 {isUpdating ? '수정 중...' : '수정'}
               </button>
@@ -425,46 +427,46 @@ function CommentItem({
                   setEditPassword('')
                   setError(null)
                 }}
-                className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                className="px-2 md:px-3 py-1 md:py-1.5 text-[11px] md:text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
                 취소
               </button>
             </div>
           </div>
         ) : (
-          <p className="mt-3 text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
+          <p className="mt-2 md:mt-3 text-slate-700 dark:text-slate-300 text-xs md:text-sm leading-relaxed whitespace-pre-wrap">
             {comment.content}
           </p>
         )}
 
         {/* Actions */}
         {!showEditForm && (
-          <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             {/* Only show reply button for top-level comments (not nested replies) */}
             {!comment.parentId && (
               <button
                 onClick={() => setShowReplyForm(!showReplyForm)}
-                className="px-3 py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
+                className="px-2 md:px-3 py-1 md:py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] md:text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-0.5 md:gap-1"
               >
-                <span className="material-symbols-outlined text-[16px]">reply</span>
+                <span className="material-symbols-outlined text-[14px] md:text-[16px]">reply</span>
                 답글
               </button>
             )}
             {canEdit && (
               <button
                 onClick={() => setShowEditForm(true)}
-                className="px-3 py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
+                className="px-2 md:px-3 py-1 md:py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] md:text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-0.5 md:gap-1"
               >
-                <span className="material-symbols-outlined text-[16px]">edit</span>
+                <span className="material-symbols-outlined text-[14px] md:text-[16px]">edit</span>
                 수정
               </button>
             )}
             {canDelete && (
               <button
                 onClick={() => setShowDeleteModal(true)}
-                className="px-3 py-1.5 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center gap-1"
+                className="px-2 md:px-3 py-1 md:py-1.5 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[11px] md:text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center gap-0.5 md:gap-1"
               >
-                <span className="material-symbols-outlined text-[16px]">delete</span>
+                <span className="material-symbols-outlined text-[14px] md:text-[16px]">delete</span>
                 삭제
               </button>
             )}
@@ -474,7 +476,7 @@ function CommentItem({
 
       {/* Reply Form */}
       {showReplyForm && (
-        <div className="ml-12 mt-2">
+        <div className="ml-8 md:ml-12 mt-2">
           <CommentForm
             postId={postId}
             parentId={comment.id}
@@ -487,10 +489,10 @@ function CommentItem({
 
       {/* Replies */}
       {comment.replies && comment.replies.length > 0 && (
-        <div className="mt-3 space-y-3">
+        <div className="mt-2 md:mt-3 space-y-2 md:space-y-3">
           {comment.replies.map((reply) => (
-            <div key={reply.id} className="flex gap-2 ml-4">
-              <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[20px] mt-1 shrink-0">
+            <div key={reply.id} className="flex gap-1.5 md:gap-2 ml-2 md:ml-4">
+              <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[16px] md:text-[20px] mt-1 shrink-0">
                 subdirectory_arrow_right
               </span>
               <div className="flex-1">
@@ -664,9 +666,9 @@ export default function CommentSection({ postId, postAuthorId }: CommentSectionP
 
   if (isLoading) {
     return (
-      <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-8">
+      <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 p-6 md:p-8">
         <div className="flex justify-center items-center">
-          <span className="material-symbols-outlined animate-spin text-3xl text-primary">
+          <span className="material-symbols-outlined animate-spin text-2xl md:text-3xl text-primary">
             progress_activity
           </span>
         </div>
@@ -675,27 +677,27 @@ export default function CommentSection({ postId, postAuthorId }: CommentSectionP
   }
 
   return (
-    <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
       {/* Header */}
-      <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">forum</span>
+      <div className="p-4 md:p-6 border-b border-slate-200 dark:border-slate-800">
+        <h2 className="text-base md:text-xl font-bold flex items-center gap-1.5 md:gap-2">
+          <span className="material-symbols-outlined text-primary text-[20px] md:text-[24px]">forum</span>
           댓글
-          <span className="text-base font-normal text-slate-500">({totalCount})</span>
+          <span className="text-sm md:text-base font-normal text-slate-500">({totalCount})</span>
         </h2>
       </div>
 
       {/* Comment Form */}
-      <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+      <div className="p-4 md:p-6 border-b border-slate-200 dark:border-slate-800">
         <CommentForm postId={postId} onSubmit={handleNewComment} />
       </div>
 
       {/* Comments List */}
       <div className="divide-y divide-slate-100 dark:divide-slate-800">
         {error ? (
-          <div className="p-8 text-center text-red-500">
-            <span className="material-symbols-outlined text-[48px] mb-4 block">error</span>
-            <p>{error}</p>
+          <div className="p-6 md:p-8 text-center text-red-500">
+            <span className="material-symbols-outlined text-[36px] md:text-[48px] mb-3 md:mb-4 block">error</span>
+            <p className="text-sm md:text-base">{error}</p>
           </div>
         ) : comments.length > 0 ? (
           comments.map((comment) => (
@@ -711,9 +713,9 @@ export default function CommentSection({ postId, postAuthorId }: CommentSectionP
             />
           ))
         ) : (
-          <div className="p-8 text-center text-slate-500">
-            <span className="material-symbols-outlined text-[48px] mb-4 block opacity-50">chat_bubble</span>
-            <p>첫 번째 댓글을 남겨보세요!</p>
+          <div className="p-6 md:p-8 text-center text-slate-500">
+            <span className="material-symbols-outlined text-[36px] md:text-[48px] mb-3 md:mb-4 block opacity-50">chat_bubble</span>
+            <p className="text-sm md:text-base">첫 번째 댓글을 남겨보세요!</p>
           </div>
         )}
       </div>

@@ -218,9 +218,9 @@ export default function CategoryPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Main Content */}
         <main className="lg:col-span-8 flex flex-col gap-8">
-          <div className="flex flex-col gap-2 pb-4 border-b border-slate-200 dark:border-slate-800">
-            <h1 className="text-3xl font-bold tracking-tight">주제별 탐색</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-lg">
+          <div className="flex flex-col gap-1 md:gap-2 pb-3 md:pb-4 border-b border-slate-200 dark:border-slate-800">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">주제별 탐색</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm md:text-lg">
               관심 있는 기술 주제를 선택하여 깊이 있는 지식을 탐구해보세요.
             </p>
           </div>
