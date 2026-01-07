@@ -130,6 +130,10 @@ class ApiClient {
     return this.request<{ data: { prev: { slug: string; title: string; coverImage: string | null } | null; next: { slug: string; title: string; coverImage: string | null } | null } }>(`/posts/${slug}/adjacent`)
   }
 
+  async getRelatedPosts(slug: string) {
+    return this.request<{ data: Array<{ id: string; slug: string; title: string; coverImage: string | null; publishedAt: string | null; category: { name: string; slug: string } }> }>(`/posts/${slug}/related`)
+  }
+
   // Admin: Get post by ID (for editing drafts and published posts)
   async getPostById(id: string) {
     return this.request<{ data: Post }>(`/posts/admin/${id}`)

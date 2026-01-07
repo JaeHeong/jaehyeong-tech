@@ -555,6 +555,84 @@ export async function getAdjacentPosts(req: Request, res: Response, next: NextFu
   }
 }
 
+// Public: Get related posts (weighted scoring: same category +2, each shared tag +1)
+export async function getRelatedPosts(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { slug } = req.params
+    const limit = 3
+
+    // Get current post with category and tags
+    const currentPost = await prisma.post.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        categoryId: true,
+        tags: { select: { id: true } },
+      },
+    })
+
+    if (!currentPost) {
+      throw new AppError('게시글을 찾을 수 없습니다.', 404)
+    }
+
+    const currentTagIds = currentPost.tags.map((t) => t.id)
+
+    // Get candidate posts (same category OR shared tags, excluding current post)
+    const candidates = await prisma.post.findMany({
+      where: {
+        status: 'PUBLIC',
+        id: { not: currentPost.id },
+        OR: [
+          { categoryId: currentPost.categoryId },
+          { tags: { some: { id: { in: currentTagIds } } } },
+        ],
+      },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        coverImage: true,
+        publishedAt: true,
+        categoryId: true,
+        category: { select: { name: true, slug: true } },
+        tags: { select: { id: true } },
+      },
+      orderBy: { publishedAt: 'desc' },
+      take: 20, // Get more candidates for scoring
+    })
+
+    // Calculate weighted score for each candidate
+    const scoredPosts = candidates.map((post) => {
+      let score = 0
+
+      // Same category: +2 points
+      if (post.categoryId === currentPost.categoryId) {
+        score += 2
+      }
+
+      // Each shared tag: +1 point
+      const postTagIds = post.tags.map((t) => t.id)
+      const sharedTags = postTagIds.filter((id) => currentTagIds.includes(id))
+      score += sharedTags.length
+
+      return { ...post, score }
+    })
+
+    // Sort by score (desc), then by publishedAt (desc)
+    scoredPosts.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime()
+    })
+
+    // Take top N and remove score/tags from response
+    const relatedPosts = scoredPosts.slice(0, limit).map(({ score, tags, categoryId, ...post }) => post)
+
+    res.json({ data: relatedPosts })
+  } catch (error) {
+    next(error)
+  }
+}
+
 // Admin: Delete post
 export async function deletePost(req: AuthRequest, res: Response, next: NextFunction) {
   try {

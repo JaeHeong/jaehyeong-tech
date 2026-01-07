@@ -13,6 +13,15 @@ interface AdjacentPost {
   coverImage: string | null
 }
 
+interface RelatedPost {
+  id: string
+  slug: string
+  title: string
+  coverImage: string | null
+  publishedAt: string | null
+  category: { name: string; slug: string }
+}
+
 export default function PostDetailPage() {
   const { user } = useAuth()
   const { confirm } = useModal()
@@ -20,6 +29,9 @@ export default function PostDetailPage() {
   const navigate = useNavigate()
   const [post, setPost] = useState<Post | null>(null)
   const [adjacentPosts, setAdjacentPosts] = useState<{ prev: AdjacentPost | null; next: AdjacentPost | null }>({ prev: null, next: null })
+  const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([])
+  const [relatedIndex, setRelatedIndex] = useState(0)
+  const [isRelatedPaused, setIsRelatedPaused] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -160,13 +172,16 @@ export default function PostDetailPage() {
     if (!slug) return
 
     setIsLoading(true)
+    setRelatedIndex(0) // Reset carousel index when post changes
     Promise.all([
       api.getPost(slug),
       api.getAdjacentPosts(slug),
+      api.getRelatedPosts(slug),
     ])
-      .then(([postRes, adjacentRes]) => {
+      .then(([postRes, adjacentRes, relatedRes]) => {
         setPost(postRes.data)
         setAdjacentPosts(adjacentRes.data)
+        setRelatedPosts(relatedRes.data)
         setLikeCount(postRes.data.likeCount)
         // Fetch like status after post is loaded
         api.checkLikeStatus(postRes.data.id)
@@ -183,6 +198,17 @@ export default function PostDetailPage() {
       })
       .finally(() => setIsLoading(false))
   }, [slug])
+
+  // Auto-slide related posts carousel every 3 seconds
+  useEffect(() => {
+    if (relatedPosts.length <= 1 || isRelatedPaused) return
+
+    const interval = setInterval(() => {
+      setRelatedIndex((prev) => (prev + 1) % relatedPosts.length)
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [relatedPosts.length, isRelatedPaused])
 
   // Add copy buttons after post content is rendered
   useEffect(() => {
@@ -809,6 +835,104 @@ export default function PostDetailPage() {
                 className="post-content text-slate-700 dark:text-slate-300 leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: contentWithIds || post.content }}
               />
+
+              {/* Related Posts Carousel */}
+              {relatedPosts.length > 0 && (
+                <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">auto_awesome</span>
+                    관련 글
+                  </h3>
+                  <div
+                    className="relative overflow-hidden rounded-xl"
+                    onMouseEnter={() => setIsRelatedPaused(true)}
+                    onMouseLeave={() => setIsRelatedPaused(false)}
+                  >
+                    {/* Carousel Track */}
+                    <div
+                      className="flex transition-transform duration-500 ease-out"
+                      style={{ transform: `translateX(-${relatedIndex * 100}%)` }}
+                    >
+                      {relatedPosts.map((relatedPost) => (
+                        <Link
+                          key={relatedPost.id}
+                          to={`/posts/${relatedPost.slug}`}
+                          className="w-full flex-shrink-0 flex gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
+                        >
+                          {/* Thumbnail */}
+                          <div className="w-32 h-24 md:w-40 md:h-28 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700">
+                            {relatedPost.coverImage ? (
+                              <img
+                                src={relatedPost.coverImage}
+                                alt={relatedPost.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <span className="material-symbols-outlined text-3xl text-slate-400 dark:text-slate-500">
+                                  article
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0 flex flex-col justify-center">
+                            <span className="text-xs font-medium text-primary mb-1">
+                              {relatedPost.category.name}
+                            </span>
+                            <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-2 mb-2">
+                              {relatedPost.title}
+                            </h4>
+                            <span className="text-sm text-slate-500 dark:text-slate-400">
+                              {relatedPost.publishedAt && new Date(relatedPost.publishedAt).toLocaleDateString('ko-KR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                              })}
+                            </span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+
+                    {/* Indicators with Progress Gauge */}
+                    {relatedPosts.length > 1 && (
+                      <div className="flex justify-center gap-2 mt-4">
+                        {relatedPosts.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setRelatedIndex(idx)}
+                            className={`h-2 rounded-full transition-all duration-300 relative overflow-hidden ${
+                              idx === relatedIndex
+                                ? 'w-8 bg-slate-300 dark:bg-slate-600'
+                                : 'w-2 bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-500'
+                            }`}
+                            aria-label={`관련 글 ${idx + 1}번으로 이동`}
+                          >
+                            {idx === relatedIndex && (
+                              <span
+                                className="absolute inset-0 bg-primary rounded-full origin-left"
+                                style={{
+                                  animation: isRelatedPaused ? 'none' : 'progressFill 3s linear',
+                                }}
+                                key={`${relatedIndex}-${isRelatedPaused}`}
+                              />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Progress Animation Style */}
+                    <style>{`
+                      @keyframes progressFill {
+                        from { transform: scaleX(0); }
+                        to { transform: scaleX(1); }
+                      }
+                    `}</style>
+                  </div>
+                </div>
+              )}
 
               {/* Tags */}
               <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
