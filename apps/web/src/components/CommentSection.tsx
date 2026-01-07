@@ -300,17 +300,23 @@ function CommentItem({
         </p>
         {/* Show replies even for deleted comments */}
         {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-4 ml-8 border-l-2 border-primary/20 pl-4 space-y-4">
+          <div className="mt-4 space-y-4">
             {comment.replies.map((reply) => (
-              <CommentItem
-                key={reply.id}
-                comment={reply}
-                postId={postId}
-                isAdmin={isAdmin}
-                onReplyAdded={onReplyAdded}
-                onCommentUpdated={onCommentUpdated}
-                onCommentDeleted={onCommentDeleted}
-              />
+              <div key={reply.id} className="flex gap-2">
+                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[20px] mt-1 shrink-0">
+                  subdirectory_arrow_right
+                </span>
+                <div className="flex-1">
+                  <CommentItem
+                    comment={reply}
+                    postId={postId}
+                    isAdmin={isAdmin}
+                    onReplyAdded={onReplyAdded}
+                    onCommentUpdated={onCommentUpdated}
+                    onCommentDeleted={onCommentDeleted}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -458,17 +464,23 @@ function CommentItem({
 
       {/* Replies */}
       {comment.replies && comment.replies.length > 0 && (
-        <div className="mt-2 ml-8 border-l-2 border-primary/20 pl-4 space-y-2">
+        <div className="mt-3 space-y-3">
           {comment.replies.map((reply) => (
-            <CommentItem
-              key={reply.id}
-              comment={reply}
-              postId={postId}
-              isAdmin={isAdmin}
-              onReplyAdded={onReplyAdded}
-              onCommentUpdated={onCommentUpdated}
-              onCommentDeleted={onCommentDeleted}
-            />
+            <div key={reply.id} className="flex gap-2">
+              <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[20px] mt-1 shrink-0">
+                subdirectory_arrow_right
+              </span>
+              <div className="flex-1">
+                <CommentItem
+                  comment={reply}
+                  postId={postId}
+                  isAdmin={isAdmin}
+                  onReplyAdded={onReplyAdded}
+                  onCommentUpdated={onCommentUpdated}
+                  onCommentDeleted={onCommentDeleted}
+                />
+              </div>
+            </div>
           ))}
         </div>
       )}
