@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, type Post } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -25,7 +25,16 @@ export default function PostDetailPage() {
   const [likeCount, setLikeCount] = useState(0)
   const [isLiking, setIsLiking] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
+  const [tocExpanded, setTocExpanded] = useState(false)
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // TOC heading type
+  interface TocHeading {
+    id: string
+    text: string
+    level: number
+  }
 
   // Add copy buttons to code blocks
   const addCopyButtons = useCallback(() => {
@@ -172,6 +181,77 @@ export default function PostDetailPage() {
       return () => clearTimeout(timer)
     }
   }, [post, isLoading, addCopyButtons])
+
+  // Extract headings from content for TOC and add IDs to content HTML
+  const { tocHeadings, contentWithIds } = useMemo(() => {
+    if (!post?.content) return { tocHeadings: [] as TocHeading[], contentWithIds: '' }
+
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(post.content, 'text/html')
+    const headings = doc.querySelectorAll('h1, h2, h3')
+
+    const tocList: TocHeading[] = []
+    headings.forEach((heading, index) => {
+      const id = `toc-heading-${index}`
+      heading.setAttribute('id', id)
+      tocList.push({
+        id,
+        text: heading.textContent || '',
+        level: parseInt(heading.tagName.charAt(1) || '1'),
+      })
+    })
+
+    return {
+      tocHeadings: tocList,
+      contentWithIds: doc.body.innerHTML,
+    }
+  }, [post?.content])
+
+  // Track scroll position for active heading
+  useEffect(() => {
+    if (tocHeadings.length === 0) return
+
+    // Set initial active heading
+    const firstHeading = tocHeadings[0]
+    if (firstHeading) {
+      setActiveHeadingId(firstHeading.id)
+    }
+
+    // Scroll tracking
+    const handleScroll = () => {
+      let currentActive = tocHeadings[0]?.id || null
+
+      for (const heading of tocHeadings) {
+        const element = document.getElementById(heading.id)
+        if (element) {
+          const rect = element.getBoundingClientRect()
+          if (rect.top < window.innerHeight / 3) {
+            currentActive = heading.id
+          }
+        }
+      }
+
+      setActiveHeadingId(currentActive)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // Initial check
+
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [tocHeadings])
+
+  // Scroll to heading - position at 1/3 of viewport (matching highlight calculation)
+  const scrollToHeading = (headingId: string) => {
+    const element = document.getElementById(headingId)
+    if (element) {
+      const viewportThird = window.innerHeight / 3
+      const elementPosition = element.getBoundingClientRect().top + window.scrollY
+      window.scrollTo({
+        top: elementPosition - viewportThird + 20, // +20 for slight padding
+        behavior: 'smooth'
+      })
+    }
+  }
 
   if (isLoading) {
     return (
@@ -716,7 +796,7 @@ export default function PostDetailPage() {
               <div
                 ref={contentRef}
                 className="post-content text-slate-700 dark:text-slate-300 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: post.content }}
+                dangerouslySetInnerHTML={{ __html: contentWithIds || post.content }}
               />
 
               {/* Tags */}
@@ -858,23 +938,71 @@ export default function PostDetailPage() {
         <Sidebar />
       </div>
 
-      {/* Scroll to Top/Bottom Buttons */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-40">
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          title="맨 위로"
+      {/* TOC Navigation - Notion Style */}
+      {tocHeadings.length > 0 && (
+        <div
+          className="fixed right-6 top-1/4 -translate-y-1/2 z-40 hidden lg:block"
+          onMouseEnter={() => setTocExpanded(true)}
+          onMouseLeave={() => setTocExpanded(false)}
         >
-          <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">keyboard_arrow_up</span>
-        </button>
-        <button
-          onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
-          className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          title="맨 아래로"
-        >
-          <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">keyboard_arrow_down</span>
-        </button>
-      </div>
+          {/* Indicators - always visible underneath */}
+          <div className="flex flex-col items-end gap-2 py-4 pl-6 pr-2 cursor-pointer">
+            {tocHeadings.map((heading) => (
+              <button
+                key={heading.id}
+                onClick={() => scrollToHeading(heading.id)}
+                className={`
+                  rounded-full cursor-pointer transition-all duration-200
+                  ${heading.level === 1 ? 'w-5 h-1.5' : heading.level === 2 ? 'w-4 h-1' : 'w-3 h-1'}
+                  ${activeHeadingId === heading.id
+                    ? 'bg-primary'
+                    : 'bg-slate-300 dark:bg-slate-600 hover:bg-primary/60'
+                  }
+                `}
+                title={heading.text}
+              />
+            ))}
+          </div>
+
+          {/* Expanded Panel - overlays on top of indicators */}
+          <div
+            className={`
+              absolute right-0 top-0
+              bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
+              rounded-xl shadow-lg p-4 max-h-[70vh] overflow-y-auto
+              transition-all duration-200 ease-out
+              ${tocExpanded
+                ? 'opacity-100 translate-x-0'
+                : 'opacity-0 translate-x-2 pointer-events-none'
+              }
+            `}
+            style={{ minWidth: '220px' }}
+          >
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 block">목차</span>
+            <div className="flex flex-col gap-1">
+              {tocHeadings.map((heading) => (
+                <button
+                  key={heading.id}
+                  onClick={() => {
+                    scrollToHeading(heading.id)
+                    setTocExpanded(false)
+                  }}
+                  className={`
+                    text-left py-1.5 px-2 rounded-lg transition-colors
+                    ${heading.level === 1 ? 'font-semibold text-sm' : heading.level === 2 ? 'pl-4 text-sm' : 'pl-6 text-xs'}
+                    ${activeHeadingId === heading.id
+                      ? 'text-primary bg-primary/10'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }
+                  `}
+                >
+                  {heading.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

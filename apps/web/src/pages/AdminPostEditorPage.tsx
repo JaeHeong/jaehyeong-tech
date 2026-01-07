@@ -1217,23 +1217,6 @@ export default function AdminPostEditorPage() {
         </div>
       )}
 
-      {/* Scroll to Top/Bottom Buttons */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-40">
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          title="맨 위로"
-        >
-          <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">keyboard_arrow_up</span>
-        </button>
-        <button
-          onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
-          className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          title="맨 아래로"
-        >
-          <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">keyboard_arrow_down</span>
-        </button>
-      </div>
     </div>
   )
 }
