@@ -21,7 +21,7 @@ export default function HomePage() {
         }
 
         // Fetch latest posts
-        const postsRes = await api.getPosts({ limit: 6 })
+        const postsRes = await api.getPosts({ limit: 5 })
         setLatestPosts(postsRes.posts)
 
         // Fetch categories
@@ -265,7 +265,7 @@ export default function HomePage() {
                 {latestPosts.map((post) => (
                   <article
                     key={post.id}
-                    className="group flex flex-col md:flex-row gap-6 items-start pb-6 border-b border-slate-200 dark:border-slate-800 last:border-0"
+                    className="group flex flex-col md:flex-row gap-6 items-start pb-6 border-b border-slate-200 dark:border-slate-800"
                   >
                     <Link
                       to={`/posts/${post.slug}`}
@@ -317,6 +317,18 @@ export default function HomePage() {
                     </div>
                   </article>
                 ))}
+                {/* 모든 글 보러가기 */}
+                <Link
+                  to="/posts"
+                  className="flex items-center justify-center gap-2 py-4 mt-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                >
+                  <span className="font-medium text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">
+                    모든 글 보러가기
+                  </span>
+                  <span className="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all">
+                    arrow_forward
+                  </span>
+                </Link>
               </div>
             ) : (
               <div className="text-center py-16 text-slate-500 dark:text-slate-400">

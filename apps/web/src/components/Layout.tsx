@@ -13,10 +13,10 @@ export default function Layout() {
   }, [pathname])
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="grid grid-rows-[auto_1fr_auto] min-h-screen">
       <MouseSparkle />
       <Header />
-      <main className="flex-1">
+      <main>
         <Outlet />
       </main>
       <Footer />

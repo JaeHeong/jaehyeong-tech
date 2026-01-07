@@ -12,7 +12,7 @@
   }
 
   body {
-    @apply bg-background-light dark:bg-background-dark min-h-screen text-slate-900 dark:text-white overflow-x-hidden;
+    @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-white overflow-x-hidden;
   }
 
   ::selection {

@@ -8,7 +8,6 @@ export default function MouseSparkle() {
     let x = 400, ox = 400
     let y = 300, oy = 300
     let shigh = 600
-    let sdown = 0
 
     const tiny: HTMLDivElement[] = []
     const star: HTMLDivElement[] = []
@@ -19,9 +18,9 @@ export default function MouseSparkle() {
     const tinyx: number[] = []
     const tinyy: number[] = []
 
-    function createDiv(height: number, width: number): HTMLDivElement {
+    function createDiv(height: number, width: number, isChild = false): HTMLDivElement {
       const div = document.createElement("div")
-      div.style.position = "absolute"
+      div.style.position = isChild ? "absolute" : "fixed"
       div.style.height = height + "px"
       div.style.width = width + "px"
       div.style.overflow = "hidden"
@@ -55,18 +54,6 @@ export default function MouseSparkle() {
       shigh = shMin
     }
 
-    function setScroll() {
-      if (typeof self.pageYOffset === 'number') {
-        sdown = self.pageYOffset
-      } else if (document.body && document.body.scrollTop) {
-        sdown = document.body.scrollTop
-      } else if (document.documentElement && document.documentElement.scrollTop) {
-        sdown = document.documentElement.scrollTop
-      } else {
-        sdown = 0
-      }
-    }
-
     function updateTiny(i: number) {
       const tinyEl = tiny[i]
       if (!tinyEl) return
@@ -79,7 +66,7 @@ export default function MouseSparkle() {
       if (tinyv[i]) {
         tinyy[i] = (tinyy[i] ?? 0) + 1 + Math.random() * 3
         tinyx[i] = (tinyx[i] ?? 0) + (i % 5 - 2) / 5
-        if ((tinyy[i] ?? 0) < shigh + sdown) {
+        if ((tinyy[i] ?? 0) < shigh) {
           tinyEl.style.top = tinyy[i] + "px"
           tinyEl.style.left = tinyx[i] + "px"
         } else {
@@ -101,7 +88,7 @@ export default function MouseSparkle() {
       if (starv[i]) {
         stary[i] = (stary[i] ?? 0) + 1 + Math.random() * 3
         starx[i] = (starx[i] ?? 0) + (i % 5 - 2) / 5
-        if ((stary[i] ?? 0) < shigh + sdown) {
+        if ((stary[i] ?? 0) < shigh) {
           starEl.style.top = stary[i] + "px"
           starEl.style.left = starx[i] + "px"
         } else {
@@ -157,8 +144,8 @@ export default function MouseSparkle() {
     }
 
     function handleMouseMove(e: MouseEvent) {
-      y = e.pageY
-      x = e.pageX
+      y = e.clientY
+      x = e.clientX
     }
 
     // Initialize
@@ -176,8 +163,8 @@ export default function MouseSparkle() {
       rats2.style.visibility = "hidden"
       rats2.style.zIndex = "999"
 
-      const rlef = createDiv(1, 5)
-      const rdow = createDiv(5, 1)
+      const rlef = createDiv(1, 5, true)
+      const rdow = createDiv(5, 1, true)
       rats2.appendChild(rlef)
       rats2.appendChild(rdow)
       rlef.style.top = "2px"
@@ -193,14 +180,12 @@ export default function MouseSparkle() {
     sparkle()
 
     document.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('scroll', setScroll)
     window.addEventListener('resize', setWidth)
 
     // Cleanup
     return () => {
       clearTimeout(animationId)
       document.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('scroll', setScroll)
       window.removeEventListener('resize', setWidth)
 
       tiny.forEach(el => el.remove())
