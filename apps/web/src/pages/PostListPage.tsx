@@ -103,7 +103,7 @@ export default function PostListPage() {
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center">
                       <span className="material-symbols-outlined text-5xl text-slate-400">
-                        article
+                        {featuredPost.category?.icon || 'article'}
                       </span>
                     </div>
                   )}
@@ -194,7 +194,7 @@ export default function PostListPage() {
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center">
                         <span className="material-symbols-outlined text-4xl text-slate-400">
-                          article
+                          {post.category?.icon || 'article'}
                         </span>
                       </div>
                     )}

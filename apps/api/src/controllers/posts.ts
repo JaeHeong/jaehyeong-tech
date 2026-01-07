@@ -83,17 +83,23 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
     const tag = req.query.tag as string
     const search = req.query.search as string
     const statusFilter = req.query.status as string
+    const sortBy = req.query.sortBy as string
 
     const authReq = req as AuthRequest
     const isAdmin = authReq.user?.role === 'ADMIN'
 
     const where: Record<string, unknown> = {}
-    let orderByField: 'publishedAt' | 'updatedAt' = 'publishedAt'
+    let orderByField: 'publishedAt' | 'updatedAt' | 'viewCount' = 'publishedAt'
+
+    // Support sorting by viewCount for popular posts
+    if (sortBy === 'viewCount') {
+      orderByField = 'viewCount'
+    }
 
     if (statusFilter === 'DRAFT') {
       if (!isAdmin) throw new AppError('권한이 없습니다.', 403)
       where.status = 'DRAFT'
-      orderByField = 'updatedAt'
+      if (!sortBy) orderByField = 'updatedAt'
     } else if (statusFilter === 'PUBLISHED') {
       // 발행된 것: PUBLIC + PRIVATE
       if (!isAdmin) throw new AppError('권한이 없습니다.', 403)
@@ -104,7 +110,7 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
     } else if (statusFilter === 'ALL') {
       if (!isAdmin) throw new AppError('권한이 없습니다.', 403)
       // No filter
-      orderByField = 'updatedAt'
+      if (!sortBy) orderByField = 'updatedAt'
     } else {
       // Default: PUBLIC only (공개 페이지)
       where.status = 'PUBLIC'

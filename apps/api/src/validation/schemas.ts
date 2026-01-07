@@ -108,6 +108,8 @@ export const postQuerySchema = paginationSchema.extend({
   category: z.string().optional(),
   tag: z.string().optional(),
   search: z.string().max(100, '검색어는 100자를 초과할 수 없습니다.').optional(),
+  status: z.enum(['PUBLIC', 'DRAFT', 'PUBLISHED', 'PRIVATE', 'ALL']).optional(),
+  sortBy: z.enum(['publishedAt', 'updatedAt', 'viewCount']).optional(),
 })
 
 // ID parameter schema

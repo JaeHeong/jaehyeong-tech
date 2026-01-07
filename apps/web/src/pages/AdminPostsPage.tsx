@@ -197,7 +197,7 @@ export default function AdminPostsPage() {
                           />
                         ) : (
                           <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                            <span className="material-symbols-outlined text-slate-400">article</span>
+                            <span className="material-symbols-outlined text-slate-400">{post.category?.icon || 'article'}</span>
                           </div>
                         )}
                         <div className="min-w-0">
