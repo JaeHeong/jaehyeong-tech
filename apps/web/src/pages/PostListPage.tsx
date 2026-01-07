@@ -256,9 +256,9 @@ export default function PostListPage() {
                     <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-2">
                       <Link to={`/posts/${post.slug}`}>{post.title}</Link>
                     </h3>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3">
+                    <Link to={`/posts/${post.slug}`} className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3 block">
                       {post.excerpt}
-                    </p>
+                    </Link>
                     <div className="flex items-center gap-4 mt-auto">
                       <div className="flex items-center gap-1 text-slate-400 text-xs">
                         <span className="material-symbols-outlined text-[16px]">visibility</span>
