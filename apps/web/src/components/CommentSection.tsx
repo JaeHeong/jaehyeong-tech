@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 
 interface CommentSectionProps {
   postId: string
+  postAuthorId?: string
 }
 
 // Helper functions
@@ -210,6 +211,7 @@ function CommentForm({ postId, parentId, onSubmit, onCancel, isReply = false }: 
 interface CommentItemProps {
   comment: Comment
   postId: string
+  postAuthorId?: string
   isAdmin: boolean
   onReplyAdded: (parentId: string, reply: Comment) => void
   onCommentUpdated: (comment: Comment) => void
@@ -219,6 +221,7 @@ interface CommentItemProps {
 function CommentItem({
   comment,
   postId,
+  postAuthorId,
   isAdmin,
   onReplyAdded,
   onCommentUpdated,
@@ -238,6 +241,7 @@ function CommentItem({
   const canDelete = isAdmin || comment.isOwner || (!comment.author && comment.guestName)
   const isGuestComment = !comment.author && comment.guestName
   const authorName = comment.author?.name || comment.guestName || '익명'
+  const isPostAuthor = postAuthorId && comment.author?.id === postAuthorId
 
   const handleReplySubmit = (reply: Comment) => {
     onReplyAdded(comment.id, reply)
@@ -310,6 +314,7 @@ function CommentItem({
                   <CommentItem
                     comment={reply}
                     postId={postId}
+                    postAuthorId={postAuthorId}
                     isAdmin={isAdmin}
                     onReplyAdded={onReplyAdded}
                     onCommentUpdated={onCommentUpdated}
@@ -347,7 +352,7 @@ function CommentItem({
                 <span className="font-bold text-slate-900 dark:text-white">
                   {authorName}
                 </span>
-                {isAdmin && comment.author && (
+                {isPostAuthor && (
                   <span className="bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">
                     Author
                   </span>
@@ -474,6 +479,7 @@ function CommentItem({
                 <CommentItem
                   comment={reply}
                   postId={postId}
+                  postAuthorId={postAuthorId}
                   isAdmin={isAdmin}
                   onReplyAdded={onReplyAdded}
                   onCommentUpdated={onCommentUpdated}
@@ -545,7 +551,7 @@ function CommentItem({
 }
 
 // Main CommentSection Component
-export default function CommentSection({ postId }: CommentSectionProps) {
+export default function CommentSection({ postId, postAuthorId }: CommentSectionProps) {
   const { isAdmin } = useAuth()
   const [comments, setComments] = useState<Comment[]>([])
   const [totalCount, setTotalCount] = useState(0)
@@ -679,6 +685,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
               key={comment.id}
               comment={comment}
               postId={postId}
+              postAuthorId={postAuthorId}
               isAdmin={isAdmin}
               onReplyAdded={handleReplyAdded}
               onCommentUpdated={handleCommentUpdated}

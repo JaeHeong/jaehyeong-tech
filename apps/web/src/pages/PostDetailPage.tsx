@@ -1066,7 +1066,7 @@ export default function PostDetailPage() {
           </div>
 
           {/* Comments Section */}
-          <CommentSection postId={post.id} />
+          <CommentSection postId={post.id} postAuthorId={post.author.id} />
         </main>
 
         {/* Sidebar */}
