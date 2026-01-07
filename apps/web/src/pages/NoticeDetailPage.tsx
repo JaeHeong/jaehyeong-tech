@@ -257,6 +257,22 @@ export default function NoticeDetailPage() {
         }
         /* Strong */
         .notice-content strong { font-weight: 600; }
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+          .notice-content { font-size: 0.9375rem; line-height: 1.75; }
+          .notice-content h1 { font-size: 1.5rem; margin: 1.75rem 0 0.75rem; }
+          .notice-content h2 { font-size: 1.25rem; margin: 1.5rem 0 0.75rem; }
+          .notice-content h3 { font-size: 1.1rem; margin: 1.25rem 0 0.5rem; }
+          .notice-content p { margin: 0.75rem 0; }
+          .notice-content p:first-child { font-size: 1rem; }
+          .notice-content pre { margin: 1rem 0; border-radius: 0.5rem; }
+          .notice-content pre code { font-size: 0.75rem; padding: 0.75rem; }
+          .notice-content code:not(pre code) { font-size: 0.8rem; padding: 0.1rem 0.25rem; }
+          .notice-content blockquote { padding: 1rem; margin: 1.25rem 0; font-size: 0.9375rem; }
+          .notice-content ul, .notice-content ol { padding-left: 1.25rem; margin: 0.75rem 0; }
+          .notice-content li { margin: 0.375rem 0; }
+          .notice-content img { margin: 1rem 0; border-radius: 0.5rem; }
+        }
       `}</style>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
