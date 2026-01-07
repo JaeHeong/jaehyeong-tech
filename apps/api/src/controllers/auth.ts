@@ -185,7 +185,10 @@ export async function updateMe(req: AuthRequest, res: Response, next: NextFuncti
     // Delete old avatar from OCI if avatar is being changed or removed
     if (avatar !== undefined && currentUser.avatar && currentUser.avatar !== avatar) {
       // Only delete if it's an OCI URL (avatars folder)
-      if (currentUser.avatar.includes('oraclecloud.com') && currentUser.avatar.includes('/avatars/')) {
+      // Check both encoded (%2F) and decoded (/) versions
+      const isAvatarUrl = currentUser.avatar.includes('oraclecloud.com') &&
+        (currentUser.avatar.includes('/avatars/') || currentUser.avatar.includes('avatars%2F'))
+      if (isAvatarUrl) {
         const objectName = extractOCIObjectName(currentUser.avatar)
         if (objectName && isOCIConfigured()) {
           try {
