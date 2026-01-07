@@ -93,12 +93,12 @@ export default function AdminLoginPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <span className="material-symbols-outlined animate-spin text-4xl text-primary">
+      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-3 md:gap-4">
+          <span className="material-symbols-outlined animate-spin text-3xl md:text-4xl text-primary">
             progress_activity
           </span>
-          <p className="text-slate-500 dark:text-slate-400">로딩 중...</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base">로딩 중...</p>
         </div>
       </div>
     )
@@ -108,59 +108,59 @@ export default function AdminLoginPage() {
     <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded bg-primary/10 text-primary">
-              <span className="material-symbols-outlined text-[28px]">terminal</span>
+        <div className="text-center mb-6 md:mb-8">
+          <Link to="/" className="inline-flex items-center gap-2 md:gap-3">
+            <div className="flex items-center justify-center size-8 md:size-10 rounded bg-primary/10 text-primary">
+              <span className="material-symbols-outlined text-[22px] md:text-[28px]">terminal</span>
             </div>
-            <span className="text-2xl font-bold tracking-tight">
+            <span className="text-xl md:text-2xl font-bold tracking-tight">
               jaehyeong<span className="text-primary"> tech</span>
             </span>
           </Link>
         </div>
 
         {/* Login Card */}
-        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-8">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold mb-2">관리자 로그인</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
+        <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 md:p-8">
+          <div className="text-center mb-4 md:mb-6">
+            <h1 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">관리자 로그인</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm">
               Google 계정으로 로그인하세요
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                <span className="material-symbols-outlined text-[20px]">error</span>
-                <span className="text-sm font-medium">{error}</span>
+            <div className="mb-4 md:mb-6 p-3 md:p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-1.5 md:gap-2 text-red-600 dark:text-red-400">
+                <span className="material-symbols-outlined text-[18px] md:text-[20px]">error</span>
+                <span className="text-xs md:text-sm font-medium">{error}</span>
               </div>
             </div>
           )}
 
           {!GOOGLE_CLIENT_ID ? (
-            <div className="mb-6 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-              <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
-                <span className="material-symbols-outlined text-[20px]">warning</span>
-                <span className="text-sm font-medium">
+            <div className="mb-4 md:mb-6 p-3 md:p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-start gap-1.5 md:gap-2 text-yellow-600 dark:text-yellow-400">
+                <span className="material-symbols-outlined text-[18px] md:text-[20px] shrink-0 mt-0.5">warning</span>
+                <span className="text-xs md:text-sm font-medium">
                   Google OAuth가 설정되지 않았습니다. 환경 변수를 확인하세요.
                 </span>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-6">
+            <div className="flex flex-col items-center gap-4 md:gap-6">
               {/* Google Sign-In Button */}
               <div id="google-signin-button" className="flex justify-center"></div>
 
-              <div className="flex items-center gap-4 w-full">
+              <div className="flex items-center gap-3 md:gap-4 w-full">
                 <div className="flex-1 border-t border-slate-200 dark:border-slate-700"></div>
-                <span className="text-sm text-slate-500 dark:text-slate-400">또는</span>
+                <span className="text-xs md:text-sm text-slate-500 dark:text-slate-400">또는</span>
                 <div className="flex-1 border-t border-slate-200 dark:border-slate-700"></div>
               </div>
 
               {/* Info */}
               <div className="text-center">
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  <span className="material-symbols-outlined text-[16px] align-middle mr-1">
+                <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400">
+                  <span className="material-symbols-outlined text-[14px] md:text-[16px] align-middle mr-1">
                     info
                   </span>
                   관리자 권한은 등록된 이메일에만 부여됩니다.
@@ -169,12 +169,12 @@ export default function AdminLoginPage() {
             </div>
           )}
 
-          <div className="mt-6 text-center">
+          <div className="mt-4 md:mt-6 text-center">
             <Link
               to="/"
-              className="text-sm text-slate-500 dark:text-slate-400 hover:text-primary transition-colors"
+              className="text-xs md:text-sm text-slate-500 dark:text-slate-400 hover:text-primary transition-colors"
             >
-              <span className="material-symbols-outlined text-[16px] align-middle mr-1">
+              <span className="material-symbols-outlined text-[14px] md:text-[16px] align-middle mr-1">
                 arrow_back
               </span>
               블로그로 돌아가기
@@ -183,7 +183,7 @@ export default function AdminLoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-slate-500 dark:text-slate-400 text-xs mt-6">
+        <p className="text-center text-slate-500 dark:text-slate-400 text-[10px] md:text-xs mt-4 md:mt-6">
           &copy; {new Date().getFullYear()} jaehyeong tech. All rights reserved.
         </p>
       </div>

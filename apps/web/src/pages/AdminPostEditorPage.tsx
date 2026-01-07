@@ -387,8 +387,8 @@ export default function AdminPostEditorPage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <span className="material-symbols-outlined animate-spin text-4xl text-primary">
+      <div className="flex justify-center items-center py-8 md:py-12">
+        <span className="material-symbols-outlined animate-spin text-3xl md:text-4xl text-primary">
           progress_activity
         </span>
       </div>
@@ -396,24 +396,24 @@ export default function AdminPostEditorPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <Link
             to="/admin"
-            className="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-1.5 md:p-2 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
-            <span className="material-symbols-outlined">arrow_back</span>
+            <span className="material-symbols-outlined text-[20px] md:text-[24px]">arrow_back</span>
           </Link>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-lg md:text-2xl font-bold">
             {isEditing ? '게시물 수정' : '새 글 작성'}
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap">
           {/* Auto-save status indicator */}
           {(isAutoSaving || lastAutoSave) && (
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="hidden md:flex items-center gap-2 text-xs text-slate-500">
               {isAutoSaving ? (
                 <>
                   <span className="material-symbols-outlined text-[14px] animate-spin">sync</span>
@@ -431,36 +431,36 @@ export default function AdminPostEditorPage() {
             <button
               onClick={handleDelete}
               disabled={isDeleting}
-              className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="px-2.5 md:px-4 py-1.5 md:py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs md:text-sm font-medium transition-colors flex items-center gap-1 md:gap-2 disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-[18px]">
+              <span className="material-symbols-outlined text-[16px] md:text-[18px]">
                 {isDeleting ? 'progress_activity' : 'delete'}
               </span>
-              {isDeleting ? '삭제 중...' : '삭제'}
+              <span className="hidden md:inline">{isDeleting ? '삭제 중...' : '삭제'}</span>
             </button>
           )}
           <button
             onClick={() => setShowPreview(true)}
-            className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium transition-colors flex items-center gap-2"
+            className="px-2.5 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs md:text-sm font-medium transition-colors flex items-center gap-1 md:gap-2"
           >
-            <span className="material-symbols-outlined text-[18px]">visibility</span>
-            미리보기
+            <span className="material-symbols-outlined text-[16px] md:text-[18px]">visibility</span>
+            <span className="hidden md:inline">미리보기</span>
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSaving}
-            className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs md:text-sm font-bold transition-colors flex items-center gap-1 md:gap-2 disabled:opacity-50"
           >
             {isSaving ? (
               <>
-                <span className="material-symbols-outlined animate-spin text-[18px]">
+                <span className="material-symbols-outlined animate-spin text-[16px] md:text-[18px]">
                   progress_activity
                 </span>
-                저장 중...
+                <span className="hidden md:inline">저장 중...</span>
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined text-[18px]">edit</span>
+                <span className="material-symbols-outlined text-[16px] md:text-[18px]">edit</span>
                 수정하기
                 {isDirty && !isAutoSaving && <span className="w-2 h-2 rounded-full bg-orange-500 ml-1" title="저장하지 않은 변경사항" />}
               </>
@@ -470,38 +470,38 @@ export default function AdminPostEditorPage() {
       </div>
 
       {error && (
-        <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-          <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-            <span className="material-symbols-outlined text-[20px]">error</span>
-            <span className="text-sm font-medium">{error}</span>
+        <div className="p-3 md:p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <div className="flex items-center gap-1.5 md:gap-2 text-red-600 dark:text-red-400">
+            <span className="material-symbols-outlined text-[18px] md:text-[20px]">error</span>
+            <span className="text-xs md:text-sm font-medium">{error}</span>
           </div>
         </div>
       )}
 
       {/* Success Toast */}
       {successToast && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 duration-300">
-          <div className="px-4 py-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 shadow-lg">
-            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-              <span className="material-symbols-outlined text-[20px]">check_circle</span>
-              <span className="text-sm font-medium">{successToast}</span>
+        <div className="fixed top-3 right-3 md:top-4 md:right-4 z-50 animate-in slide-in-from-top-2 duration-300">
+          <div className="px-3 md:px-4 py-2 md:py-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 shadow-lg">
+            <div className="flex items-center gap-1.5 md:gap-2 text-green-600 dark:text-green-400">
+              <span className="material-symbols-outlined text-[18px] md:text-[20px]">check_circle</span>
+              <span className="text-xs md:text-sm font-medium">{successToast}</span>
             </div>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Main Editor */}
-        <div className="lg:col-span-3 flex flex-col gap-6">
+        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
           {/* Title */}
-          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+          <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-6">
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleInputChange}
               placeholder="제목을 입력하세요"
-              className="w-full text-2xl font-bold bg-transparent border-none focus:outline-none placeholder-slate-400"
+              className="w-full text-lg md:text-2xl font-bold bg-transparent border-none focus:outline-none placeholder-slate-400"
             />
           </div>
 
@@ -513,8 +513,8 @@ export default function AdminPostEditorPage() {
           />
 
           {/* Excerpt */}
-          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-6">
+            <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 md:mb-2">
               요약 (선택사항)
             </label>
             <textarea
@@ -523,23 +523,23 @@ export default function AdminPostEditorPage() {
               onChange={handleInputChange}
               placeholder="게시물 목록에 표시될 요약을 입력하세요. 비워두면 본문에서 자동 생성됩니다."
               rows={3}
-              className="w-full bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none text-sm"
+              className="w-full bg-slate-100 dark:bg-slate-800 rounded-lg p-2.5 md:p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none text-xs md:text-sm"
             />
           </div>
         </div>
 
         {/* Sidebar */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4 md:gap-6">
           {/* Category */}
-          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+          <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-6">
+            <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 md:mb-3">
               카테고리 <span className="text-red-500">*</span>
             </label>
             <select
               name="categoryId"
               value={formData.categoryId}
               onChange={handleInputChange}
-              className="w-full bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+              className="w-full bg-slate-100 dark:bg-slate-800 rounded-lg p-2.5 md:p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs md:text-sm"
             >
               <option value="">카테고리 선택</option>
               {categories.map((category) => (
@@ -551,17 +551,17 @@ export default function AdminPostEditorPage() {
           </div>
 
           {/* Tags */}
-          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+          <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-6">
+            <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 md:mb-3">
               태그
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 md:gap-2">
               {tags.map((tag) => (
                 <button
                   key={tag.id}
                   type="button"
                   onClick={() => handleTagToggle(tag.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium transition-colors ${
                     formData.tagIds.includes(tag.id)
                       ? 'bg-primary text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -574,44 +574,44 @@ export default function AdminPostEditorPage() {
           </div>
 
           {/* Visibility */}
-          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+          <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-6">
+            <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 md:mb-3">
               공개 설정
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 md:gap-2">
               <button
                 type="button"
                 onClick={() => setFormData((prev) => ({ ...prev, status: 'PUBLIC' }))}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                className={`flex-1 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors flex items-center justify-center gap-1 md:gap-2 ${
                   formData.status === 'PUBLIC'
                     ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 ring-2 ring-green-500'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
-                <span className="material-symbols-outlined text-[18px]">public</span>
+                <span className="material-symbols-outlined text-[16px] md:text-[18px]">public</span>
                 공개
               </button>
               <button
                 type="button"
                 onClick={() => setFormData((prev) => ({ ...prev, status: 'PRIVATE' }))}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                className={`flex-1 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors flex items-center justify-center gap-1 md:gap-2 ${
                   formData.status === 'PRIVATE'
                     ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 ring-2 ring-slate-500'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
-                <span className="material-symbols-outlined text-[18px]">lock</span>
+                <span className="material-symbols-outlined text-[16px] md:text-[18px]">lock</span>
                 비공개
               </button>
             </div>
-            <p className="text-xs text-slate-500 mt-2">
+            <p className="text-[10px] md:text-xs text-slate-500 mt-1.5 md:mt-2">
               {formData.status === 'PUBLIC' ? '모든 방문자에게 공개됩니다.' : '관리자만 볼 수 있습니다.'}
             </p>
           </div>
 
           {/* Cover Image */}
-          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+          <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-6">
+            <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 md:mb-3">
               커버 이미지
             </label>
             <input
@@ -622,7 +622,7 @@ export default function AdminPostEditorPage() {
               className="hidden"
             />
             {formData.coverImage ? (
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 <div className="aspect-video rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative group">
                   <img
                     src={formData.coverImage}
@@ -633,18 +633,18 @@ export default function AdminPostEditorPage() {
                     <button
                       type="button"
                       onClick={() => coverInputRef.current?.click()}
-                      className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                      className="p-1.5 md:p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
                       title="이미지 변경"
                     >
-                      <span className="material-symbols-outlined text-white text-[20px]">edit</span>
+                      <span className="material-symbols-outlined text-white text-[18px] md:text-[20px]">edit</span>
                     </button>
                     <button
                       type="button"
                       onClick={handleRemoveCover}
-                      className="p-2 bg-white/20 hover:bg-red-500/70 rounded-lg transition-colors"
+                      className="p-1.5 md:p-2 bg-white/20 hover:bg-red-500/70 rounded-lg transition-colors"
                       title="이미지 삭제"
                     >
-                      <span className="material-symbols-outlined text-white text-[20px]">delete</span>
+                      <span className="material-symbols-outlined text-white text-[18px] md:text-[20px]">delete</span>
                     </button>
                   </div>
                 </div>
@@ -654,34 +654,34 @@ export default function AdminPostEditorPage() {
                 type="button"
                 onClick={() => coverInputRef.current?.click()}
                 disabled={isUploadingCover}
-                className="w-full aspect-video rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary dark:hover:border-primary bg-slate-50 dark:bg-slate-800/50 transition-colors flex flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:text-primary"
+                className="w-full aspect-video rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary dark:hover:border-primary bg-slate-50 dark:bg-slate-800/50 transition-colors flex flex-col items-center justify-center gap-1.5 md:gap-2 text-slate-500 dark:text-slate-400 hover:text-primary"
               >
                 {isUploadingCover ? (
                   <>
-                    <span className="material-symbols-outlined text-[32px] animate-spin">progress_activity</span>
-                    <span className="text-sm font-medium">업로드 중...</span>
+                    <span className="material-symbols-outlined text-[28px] md:text-[32px] animate-spin">progress_activity</span>
+                    <span className="text-xs md:text-sm font-medium">업로드 중...</span>
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-[32px]">add_photo_alternate</span>
-                    <span className="text-sm font-medium">커버 이미지 선택</span>
-                    <span className="text-xs">JPG, PNG, GIF, WebP (최대 10MB)</span>
+                    <span className="material-symbols-outlined text-[28px] md:text-[32px]">add_photo_alternate</span>
+                    <span className="text-xs md:text-sm font-medium">커버 이미지 선택</span>
+                    <span className="text-[10px] md:text-xs">JPG, PNG, GIF, WebP (최대 10MB)</span>
                   </>
                 )}
               </button>
             )}
-            <p className="text-xs text-slate-500 mt-2">
+            <p className="text-[10px] md:text-xs text-slate-500 mt-1.5 md:mt-2">
               권장 크기: 1200×675px (16:9 비율)
             </p>
           </div>
 
           {/* Editor Tips */}
-          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-            <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">lightbulb</span>
+          <div className="hidden md:block bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-6">
+            <h3 className="text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 md:mb-3 flex items-center gap-1.5 md:gap-2">
+              <span className="material-symbols-outlined text-[16px] md:text-[18px]">lightbulb</span>
               에디터 팁
             </h3>
-            <ul className="text-xs text-slate-500 dark:text-slate-400 space-y-2">
+            <ul className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 space-y-1.5 md:space-y-2">
               <li>• 텍스트를 선택하고 툴바 버튼을 클릭하세요</li>
               <li>• Ctrl+B: 굵게, Ctrl+I: 기울임</li>
               <li>• /1, /2, /3 + 스페이스: 제목 변환</li>
@@ -696,30 +696,47 @@ export default function AdminPostEditorPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Preview Styles */}
           <style>{`
-            /* Headings */
+            /* Headings - Mobile First */
             .preview-content h1 {
-              font-size: 2rem;
+              font-size: 1.5rem;
               font-weight: 700;
-              margin-top: 2rem;
-              margin-bottom: 1rem;
+              margin-top: 1.5rem;
+              margin-bottom: 0.75rem;
               line-height: 1.3;
               color: #0f172a;
             }
             .preview-content h2 {
-              font-size: 1.5rem;
+              font-size: 1.25rem;
               font-weight: 700;
-              margin-top: 1.75rem;
-              margin-bottom: 0.75rem;
+              margin-top: 1.25rem;
+              margin-bottom: 0.5rem;
               line-height: 1.4;
               color: #0f172a;
             }
             .preview-content h3 {
-              font-size: 1.25rem;
+              font-size: 1.125rem;
               font-weight: 600;
-              margin-top: 1.5rem;
-              margin-bottom: 0.5rem;
+              margin-top: 1rem;
+              margin-bottom: 0.375rem;
               line-height: 1.5;
               color: #0f172a;
+            }
+            @media (min-width: 768px) {
+              .preview-content h1 {
+                font-size: 2rem;
+                margin-top: 2rem;
+                margin-bottom: 1rem;
+              }
+              .preview-content h2 {
+                font-size: 1.5rem;
+                margin-top: 1.75rem;
+                margin-bottom: 0.75rem;
+              }
+              .preview-content h3 {
+                font-size: 1.25rem;
+                margin-top: 1.5rem;
+                margin-bottom: 0.5rem;
+              }
             }
             .dark .preview-content h1,
             .dark .preview-content h2,

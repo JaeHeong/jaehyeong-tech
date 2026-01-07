@@ -359,17 +359,17 @@ export default function AdminPageEditorPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+      <div className="flex items-center justify-center py-12 md:py-20">
+        <div className="animate-spin rounded-full h-6 w-6 md:h-8 md:w-8 border-2 border-primary border-t-transparent" />
       </div>
     )
   }
 
   if (!page) {
     return (
-      <div className="text-center py-20">
-        <p className="text-slate-500">페이지를 찾을 수 없습니다.</p>
-        <Link to="/admin/pages?tab=STATIC" className="text-primary hover:underline mt-2 inline-block">
+      <div className="text-center py-12 md:py-20">
+        <p className="text-slate-500 text-sm md:text-base">페이지를 찾을 수 없습니다.</p>
+        <Link to="/admin/pages?tab=STATIC" className="text-primary hover:underline mt-2 inline-block text-sm md:text-base">
           목록으로 돌아가기
         </Link>
       </div>
@@ -381,26 +381,26 @@ export default function AdminPageEditorPage() {
   return (
     <div className="min-h-[calc(100vh-200px)]">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800 mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 pb-4 md:pb-6 border-b border-slate-200 dark:border-slate-800 mb-4 md:mb-6">
+        <div className="flex items-center gap-2 md:gap-4">
           <Link
             to="/admin/pages?tab=STATIC"
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="p-1.5 md:p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
-            <span className="material-symbols-outlined">arrow_back</span>
+            <span className="material-symbols-outlined text-[20px] md:text-[24px]">arrow_back</span>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">정적 페이지 편집</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            <h1 className="text-lg md:text-2xl font-bold">정적 페이지 편집</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-[10px] md:text-sm mt-0.5 md:mt-1">
               템플릿: <span className="font-mono text-primary">{template}</span>
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as 'DRAFT' | 'PUBLISHED')}
-            className="px-4 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+            className="px-2.5 md:px-4 py-1.5 md:py-2 text-xs md:text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
           >
             <option value="DRAFT">임시저장</option>
             <option value="PUBLISHED">공개</option>
@@ -408,16 +408,16 @@ export default function AdminPageEditorPage() {
           <button
             onClick={handleSave}
             disabled={saving || !!parseError}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs md:text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (
               <>
-                <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-                저장 중...
+                <span className="material-symbols-outlined animate-spin text-[16px] md:text-[18px]">progress_activity</span>
+                <span className="hidden md:inline">저장 중...</span>
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined text-[18px]">save</span>
+                <span className="material-symbols-outlined text-[16px] md:text-[18px]">save</span>
                 저장
               </>
             )}
@@ -426,32 +426,32 @@ export default function AdminPageEditorPage() {
       </div>
 
       {/* Title Input */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+      <div className="mb-4 md:mb-6">
+        <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 md:mb-2">
           페이지 제목
         </label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-4 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+          className="w-full px-3 md:px-4 py-2 text-xs md:text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
           placeholder="페이지 제목을 입력하세요"
         />
       </div>
 
       {/* Split View */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
         {/* JSON Editor */}
-        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[20px]">code</span>
-              <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">JSON 콘텐츠</span>
+        <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[400px] md:min-h-[600px]">
+          <div className="p-3 md:p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex justify-between items-center">
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <span className="material-symbols-outlined text-primary text-[18px] md:text-[20px]">code</span>
+              <span className="text-xs md:text-sm font-semibold text-slate-600 dark:text-slate-300">JSON 콘텐츠</span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={formatJson}
-                className="px-3 py-1 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               >
                 포맷팅
               </button>
@@ -459,8 +459,8 @@ export default function AdminPageEditorPage() {
           </div>
 
           {parseError && (
-            <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
-              <p className="text-xs text-red-600 dark:text-red-400 font-mono">
+            <div className="px-3 md:px-4 py-1.5 md:py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
+              <p className="text-[10px] md:text-xs text-red-600 dark:text-red-400 font-mono truncate">
                 JSON 오류: {parseError}
               </p>
             </div>
@@ -469,37 +469,37 @@ export default function AdminPageEditorPage() {
           <textarea
             value={jsonContent}
             onChange={(e) => setJsonContent(e.target.value)}
-            className="flex-1 w-full p-4 font-mono text-sm bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 resize-none focus:outline-none"
+            className="flex-1 w-full p-3 md:p-4 font-mono text-[10px] md:text-sm bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 resize-none focus:outline-none"
             spellCheck={false}
             placeholder="JSON 콘텐츠를 입력하세요..."
           />
         </div>
 
         {/* Live Preview */}
-        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[20px]">preview</span>
-              <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">실시간 미리보기</span>
+        <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[400px] md:min-h-[600px]">
+          <div className="p-3 md:p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex justify-between items-center">
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <span className="material-symbols-outlined text-primary text-[18px] md:text-[20px]">preview</span>
+              <span className="text-xs md:text-sm font-semibold text-slate-600 dark:text-slate-300">실시간 미리보기</span>
             </div>
             {status === 'PUBLISHED' && (
               <Link
                 to={`/${page.slug}`}
                 target="_blank"
-                className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="flex items-center gap-0.5 md:gap-1 px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               >
-                <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                새 탭에서 보기
+                <span className="material-symbols-outlined text-[12px] md:text-[14px]">open_in_new</span>
+                <span className="hidden md:inline">새 탭에서 보기</span>
               </Link>
             )}
           </div>
 
-          <div className="flex-1 overflow-auto p-6 bg-background-light dark:bg-background-dark">
+          <div className="flex-1 overflow-auto p-3 md:p-6 bg-background-light dark:bg-background-dark">
             {parseError ? (
               <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                <span className="material-symbols-outlined text-[48px] mb-4">error_outline</span>
-                <p>JSON 형식이 올바르지 않습니다.</p>
-                <p className="text-sm mt-1">에디터의 오류를 수정해 주세요.</p>
+                <span className="material-symbols-outlined text-[36px] md:text-[48px] mb-3 md:mb-4">error_outline</span>
+                <p className="text-xs md:text-base">JSON 형식이 올바르지 않습니다.</p>
+                <p className="text-[10px] md:text-sm mt-1">에디터의 오류를 수정해 주세요.</p>
               </div>
             ) : parsedContent ? (
               template === 'introduce' ? (
@@ -508,15 +508,15 @@ export default function AdminPageEditorPage() {
                 <PrivacyPreview content={{ ...defaultPrivacyContent, ...parsedContent }} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                  <span className="material-symbols-outlined text-[48px] mb-4">help_outline</span>
-                  <p>알 수 없는 템플릿입니다: {template}</p>
-                  <p className="text-sm mt-1">새 템플릿은 코드로 추가해야 합니다.</p>
+                  <span className="material-symbols-outlined text-[36px] md:text-[48px] mb-3 md:mb-4">help_outline</span>
+                  <p className="text-xs md:text-base">알 수 없는 템플릿입니다: {template}</p>
+                  <p className="text-[10px] md:text-sm mt-1">새 템플릿은 코드로 추가해야 합니다.</p>
                 </div>
               )
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                <span className="material-symbols-outlined text-[48px] mb-4">article</span>
-                <p>콘텐츠를 입력해 주세요.</p>
+                <span className="material-symbols-outlined text-[36px] md:text-[48px] mb-3 md:mb-4">article</span>
+                <p className="text-xs md:text-base">콘텐츠를 입력해 주세요.</p>
               </div>
             )}
           </div>
@@ -524,12 +524,12 @@ export default function AdminPageEditorPage() {
       </div>
 
       {/* Template Info */}
-      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-        <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">info</span>
-          <div className="text-sm text-blue-800 dark:text-blue-300">
-            <p className="font-medium mb-1">템플릿 정보</p>
-            <p className="text-blue-600 dark:text-blue-400">
+      <div className="mt-4 md:mt-6 p-3 md:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg md:rounded-xl border border-blue-200 dark:border-blue-800">
+        <div className="flex items-start gap-2 md:gap-3">
+          <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[18px] md:text-[24px]">info</span>
+          <div className="text-xs md:text-sm text-blue-800 dark:text-blue-300">
+            <p className="font-medium mb-0.5 md:mb-1">템플릿 정보</p>
+            <p className="text-blue-600 dark:text-blue-400 text-[10px] md:text-sm">
               정적 페이지의 레이아웃은 코드에 정의되어 있습니다. 여기서는 JSON 형식의 콘텐츠만 수정할 수 있습니다.
               새로운 레이아웃의 페이지가 필요한 경우 개발자에게 문의하세요.
             </p>

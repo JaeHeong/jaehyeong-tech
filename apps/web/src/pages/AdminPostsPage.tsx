@@ -98,193 +98,217 @@ export default function AdminPostsPage() {
   return (
     <>
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 pb-4 md:pb-6 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold">게시물 관리</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+          <h1 className="text-xl md:text-2xl font-bold">게시물 관리</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mt-0.5 md:mt-1">
             전체 게시글을 관리합니다.
           </p>
         </div>
         <Link
           to="/admin/posts/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold transition-colors"
+          className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs md:text-sm font-bold transition-colors"
         >
-          <span className="material-symbols-outlined text-[18px]">add</span>
+          <span className="material-symbols-outlined text-[16px] md:text-[18px]">add</span>
           새 글 작성
         </Link>
       </div>
 
       {/* Filters */}
-      <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-3 md:p-4">
+        <div className="flex flex-col md:flex-row gap-2 md:gap-4">
           {/* Search */}
           <form onSubmit={handleSearch} className="flex-1">
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <span className="material-symbols-outlined text-slate-400 text-[18px]">search</span>
+              <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 md:pl-3 pointer-events-none">
+                <span className="material-symbols-outlined text-slate-400 text-[16px] md:text-[18px]">search</span>
               </span>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                className="w-full pl-8 md:pl-10 pr-3 md:pr-4 py-1.5 md:py-2 text-xs md:text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                 placeholder="제목으로 검색..."
               />
             </div>
           </form>
 
-          {/* Category Filter */}
-          <select
-            value={currentCategory}
-            onChange={(e) => handleFilterChange('category', e.target.value)}
-            className="px-4 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="">전체 카테고리</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.slug}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
+          {/* Filter Row */}
+          <div className="flex gap-2">
+            {/* Category Filter */}
+            <select
+              value={currentCategory}
+              onChange={(e) => handleFilterChange('category', e.target.value)}
+              className="flex-1 md:flex-none px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="">전체 카테고리</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.slug}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
 
-          {/* Status Filter */}
-          <select
-            value={currentStatus}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="px-4 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="PUBLISHED">발행됨 (전체)</option>
-            <option value="PUBLIC">공개</option>
-            <option value="PRIVATE">비공개</option>
-          </select>
+            {/* Status Filter */}
+            <select
+              value={currentStatus}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+              className="flex-1 md:flex-none px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="PUBLISHED">발행됨</option>
+              <option value="PUBLIC">공개</option>
+              <option value="PRIVATE">비공개</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Posts Table */}
-      <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <span className="material-symbols-outlined animate-spin text-4xl text-primary">
+          <div className="flex justify-center items-center py-12 md:py-20">
+            <span className="material-symbols-outlined animate-spin text-3xl md:text-4xl text-primary">
               progress_activity
             </span>
           </div>
         ) : posts.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium uppercase text-xs">
-                <tr>
-                  <th className="px-6 py-4">제목</th>
-                  <th className="px-6 py-4 w-32">카테고리</th>
-                  <th className="px-6 py-4 w-28">상태</th>
-                  <th className="px-6 py-4 w-24 text-center">조회수</th>
-                  <th className="px-6 py-4 w-32">작성일</th>
-                  <th className="px-6 py-4 w-32 text-right">관리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {posts.map((post) => (
-                  <tr
-                    key={post.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {post.coverImage ? (
-                          <img
-                            src={post.coverImage}
-                            alt=""
-                            className="w-12 h-12 rounded-lg object-cover shrink-0"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                            <span className="material-symbols-outlined text-slate-400">{post.category?.icon || 'article'}</span>
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <div className="font-bold text-slate-900 dark:text-white line-clamp-1">
-                            {post.title}
-                          </div>
-                          <div className="text-xs text-slate-500 line-clamp-1">
-                            {post.excerpt}
-                          </div>
-                        </div>
+          <>
+            {/* Mobile: Card List */}
+            <div className="md:hidden divide-y divide-slate-200 dark:divide-slate-800">
+              {posts.map((post) => (
+                <div key={post.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                  <div className="flex items-start gap-3">
+                    {post.coverImage ? (
+                      <img src={post.coverImage} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-slate-400 text-[20px]">{post.category?.icon || 'article'}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {post.category?.name}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {post.status === 'PUBLIC' ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                          <span className="size-1.5 rounded-full bg-green-500" />
-                          공개
-                        </span>
-                      ) : post.status === 'PRIVATE' ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
-                          <span className="size-1.5 rounded-full bg-slate-500" />
-                          비공개
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-                          <span className="size-1.5 rounded-full bg-yellow-500" />
-                          임시저장
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center text-slate-500">
-                      {post.viewCount.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-slate-500">{formatDate(post.createdAt)}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link
-                          to={`/posts/${post.slug}`}
-                          target="_blank"
-                          className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                          title="미리보기"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">visibility</span>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1">{post.title}</div>
+                        {post.status === 'PUBLIC' ? (
+                          <span className="shrink-0 size-2 rounded-full bg-green-500" />
+                        ) : post.status === 'PRIVATE' ? (
+                          <span className="shrink-0 size-2 rounded-full bg-slate-400" />
+                        ) : (
+                          <span className="shrink-0 size-2 rounded-full bg-yellow-500" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
+                        <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{post.category?.name}</span>
+                        <span>조회 {post.viewCount.toLocaleString()}</span>
+                        <span>{formatDate(post.createdAt)}</span>
+                      </div>
+                      <div className="flex items-center gap-1 mt-2">
+                        <Link to={`/posts/${post.slug}`} target="_blank" className="p-1.5 text-slate-400 hover:text-primary">
+                          <span className="material-symbols-outlined text-[18px]">visibility</span>
                         </Link>
-                        <Link
-                          to={`/admin/posts/${post.id}/edit`}
-                          className="p-2 text-slate-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                          title="수정"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">edit</span>
+                        <Link to={`/admin/posts/${post.id}/edit`} className="p-1.5 text-slate-400 hover:text-blue-500">
+                          <span className="material-symbols-outlined text-[18px]">edit</span>
                         </Link>
-                        <button
-                          onClick={() => setDeleteModal({ isOpen: true, post })}
-                          className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                          title="삭제"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">delete</span>
+                        <button onClick={() => setDeleteModal({ isOpen: true, post })} className="p-1.5 text-slate-400 hover:text-red-500">
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
                         </button>
                       </div>
-                    </td>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop: Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium uppercase text-xs">
+                  <tr>
+                    <th className="px-6 py-4">제목</th>
+                    <th className="px-6 py-4 w-32">카테고리</th>
+                    <th className="px-6 py-4 w-28">상태</th>
+                    <th className="px-6 py-4 w-24 text-center">조회수</th>
+                    <th className="px-6 py-4 w-32">작성일</th>
+                    <th className="px-6 py-4 w-32 text-right">관리</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {posts.map((post) => (
+                    <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {post.coverImage ? (
+                            <img src={post.coverImage} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                              <span className="material-symbols-outlined text-slate-400">{post.category?.icon || 'article'}</span>
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-900 dark:text-white line-clamp-1">{post.title}</div>
+                            <div className="text-xs text-slate-500 line-clamp-1">{post.excerpt}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                          {post.category?.name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {post.status === 'PUBLIC' ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                            <span className="size-1.5 rounded-full bg-green-500" />
+                            공개
+                          </span>
+                        ) : post.status === 'PRIVATE' ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                            <span className="size-1.5 rounded-full bg-slate-500" />
+                            비공개
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                            <span className="size-1.5 rounded-full bg-yellow-500" />
+                            임시저장
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center text-slate-500">{post.viewCount.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-slate-500">{formatDate(post.createdAt)}</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link to={`/posts/${post.slug}`} target="_blank" className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="미리보기">
+                            <span className="material-symbols-outlined text-[20px]">visibility</span>
+                          </Link>
+                          <Link to={`/admin/posts/${post.id}/edit`} className="p-2 text-slate-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="수정">
+                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                          </Link>
+                          <button onClick={() => setDeleteModal({ isOpen: true, post })} className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="삭제">
+                            <span className="material-symbols-outlined text-[20px]">delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
-          <div className="text-center py-20 text-slate-500">
-            <span className="material-symbols-outlined text-[48px] mb-4 block">article</span>
-            <p>게시글이 없습니다.</p>
+          <div className="text-center py-12 md:py-20 text-slate-500">
+            <span className="material-symbols-outlined text-[36px] md:text-[48px] mb-3 md:mb-4 block">article</span>
+            <p className="text-sm md:text-base">게시글이 없습니다.</p>
           </div>
         )}
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-center">
-            <div className="flex items-center gap-2">
+          <div className="px-4 md:px-6 py-3 md:py-4 border-t border-slate-200 dark:border-slate-800 flex justify-center">
+            <div className="flex items-center gap-1 md:gap-2">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+                className="p-1.5 md:p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
               >
-                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                <span className="material-symbols-outlined text-[18px] md:text-[20px]">chevron_left</span>
               </button>
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let page: number
@@ -301,7 +325,7 @@ export default function AdminPostsPage() {
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors ${
                       currentPage === page
                         ? 'bg-primary text-white'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -314,9 +338,9 @@ export default function AdminPostsPage() {
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+                className="p-1.5 md:p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
               >
-                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                <span className="material-symbols-outlined text-[18px] md:text-[20px]">chevron_right</span>
               </button>
             </div>
           </div>
@@ -325,32 +349,32 @@ export default function AdminPostsPage() {
 
       {/* Delete Modal */}
       {deleteModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setDeleteModal({ isOpen: false, post: null })}
           />
-          <div className="relative bg-card-light dark:bg-card-dark rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600">
-                <span className="material-symbols-outlined">warning</span>
+          <div className="relative bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl shadow-2xl p-4 md:p-6 max-w-md w-full border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <div className="p-1.5 md:p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600">
+                <span className="material-symbols-outlined text-[20px] md:text-[24px]">warning</span>
               </div>
-              <h3 className="text-lg font-bold">게시글 삭제</h3>
+              <h3 className="text-base md:text-lg font-bold">게시글 삭제</h3>
             </div>
-            <p className="text-slate-600 dark:text-slate-400 mb-6">
+            <p className="text-slate-600 dark:text-slate-400 mb-4 md:mb-6 text-sm md:text-base">
               <strong className="text-slate-900 dark:text-white">"{deleteModal.post?.title}"</strong>
               을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-2 md:gap-3 justify-end">
               <button
                 onClick={() => setDeleteModal({ isOpen: false, post: null })}
-                className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium transition-colors"
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs md:text-sm font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleDelete}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors"
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold transition-colors"
               >
                 삭제
               </button>

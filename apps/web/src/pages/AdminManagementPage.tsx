@@ -163,40 +163,40 @@ export default function AdminManagementPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-4 md:gap-8">
         {/* Header */}
-        <div className="flex flex-col gap-2 pb-4 border-b border-slate-200 dark:border-slate-800">
-          <h1 className="text-3xl font-bold tracking-tight">시스템 관리</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-lg">
+        <div className="flex flex-col gap-1 md:gap-2 pb-3 md:pb-4 border-b border-slate-200 dark:border-slate-800">
+          <h1 className="text-xl md:text-3xl font-bold tracking-tight">시스템 관리</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-xs md:text-lg">
             데이터 백업 및 스토리지 관리
           </p>
         </div>
 
         {/* Data Backup Section */}
-        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 md:p-8">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0 mb-4 md:mb-6">
             <div>
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">backup</span>
+              <h2 className="text-base md:text-xl font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[20px] md:text-[24px]">backup</span>
                 데이터 백업
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-0.5 md:mt-1">
                 게시물, 카테고리, 태그, 페이지 데이터를 백업하고 복원합니다.
               </p>
             </div>
             <button
               onClick={handleCreateBackup}
               disabled={isCreatingBackup}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white text-xs md:text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 md:gap-2"
             >
               {isCreatingBackup ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                  <span className="material-symbols-outlined animate-spin text-[16px] md:text-[18px]">progress_activity</span>
                   백업 중...
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+                  <span className="material-symbols-outlined text-[16px] md:text-[18px]">cloud_upload</span>
                   즉시 백업
                 </>
               )}
@@ -206,14 +206,14 @@ export default function AdminManagementPage() {
           {/* Backup Message */}
           {backupMessage && (
             <div
-              className={`p-4 rounded-lg mb-4 ${
+              className={`p-3 md:p-4 rounded-lg mb-3 md:mb-4 ${
                 backupMessage.type === 'success'
                   ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800'
                   : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[20px]">
+              <div className="flex items-center gap-2 text-xs md:text-sm">
+                <span className="material-symbols-outlined text-[18px] md:text-[20px]">
                   {backupMessage.type === 'success' ? 'check_circle' : 'error'}
                 </span>
                 {backupMessage.text}
@@ -222,110 +222,153 @@ export default function AdminManagementPage() {
           )}
 
           {/* Backup List */}
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">백업 목록</h3>
+              <h3 className="text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300">백업 목록</h3>
               <button
                 onClick={fetchBackups}
                 disabled={isLoadingBackups}
-                className="text-sm text-primary hover:underline flex items-center gap-1"
+                className="text-xs md:text-sm text-primary hover:underline flex items-center gap-1"
               >
-                <span className="material-symbols-outlined text-[16px]">refresh</span>
+                <span className="material-symbols-outlined text-[14px] md:text-[16px]">refresh</span>
                 새로고침
               </button>
             </div>
 
             {isLoadingBackups ? (
-              <div className="flex items-center justify-center py-8">
-                <span className="material-symbols-outlined animate-spin text-2xl text-primary">progress_activity</span>
+              <div className="flex items-center justify-center py-6 md:py-8">
+                <span className="material-symbols-outlined animate-spin text-xl md:text-2xl text-primary">progress_activity</span>
               </div>
             ) : backups.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                <span className="material-symbols-outlined text-[48px] mb-2 block opacity-50">cloud_off</span>
-                <p className="text-sm">백업이 없습니다.</p>
-                <button onClick={fetchBackups} className="mt-2 text-primary text-sm hover:underline">
+              <div className="text-center py-6 md:py-8 text-slate-500 dark:text-slate-400">
+                <span className="material-symbols-outlined text-[36px] md:text-[48px] mb-2 block opacity-50">cloud_off</span>
+                <p className="text-xs md:text-sm">백업이 없습니다.</p>
+                <button onClick={fetchBackups} className="mt-2 text-primary text-xs md:text-sm hover:underline">
                   목록 불러오기
                 </button>
               </div>
             ) : (
-              <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 dark:bg-slate-800/50">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">파일명</th>
-                      <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">생성일시</th>
-                      <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-400">작업</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                    {backups.map((backup) => (
-                      <tr key={backup.fullPath} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                        <td className="px-4 py-3 font-mono text-xs">{backup.name}</td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                          {formatBackupDate(backup.createdAt)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => backup.name && handleDownloadBackup(backup.name)}
-                              className="p-1.5 text-slate-400 hover:text-blue-500 transition-colors rounded"
-                              title="다운로드"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">download</span>
-                            </button>
-                            <button
-                              onClick={() => backup.name && handleRestoreBackup(backup.name)}
-                              disabled={isRestoringBackup === backup.name}
-                              className="p-1.5 text-slate-400 hover:text-green-500 transition-colors rounded disabled:opacity-50"
-                              title="복원"
-                            >
-                              <span className={`material-symbols-outlined text-[18px] ${isRestoringBackup === backup.name ? 'animate-spin' : ''}`}>
-                                {isRestoringBackup === backup.name ? 'progress_activity' : 'restore'}
-                              </span>
-                            </button>
-                            <button
-                              onClick={() => backup.name && handleDeleteBackup(backup.name)}
-                              className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded"
-                              title="삭제"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
-                          </div>
-                        </td>
+              <>
+                {/* Mobile: Card List */}
+                <div className="md:hidden space-y-2">
+                  {backups.map((backup) => (
+                    <div key={backup.fullPath} className="border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-mono text-[10px] text-slate-700 dark:text-slate-300 truncate">{backup.name}</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">{formatBackupDate(backup.createdAt)}</p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => backup.name && handleDownloadBackup(backup.name)}
+                            className="p-1 text-slate-400 hover:text-blue-500 transition-colors rounded"
+                            title="다운로드"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">download</span>
+                          </button>
+                          <button
+                            onClick={() => backup.name && handleRestoreBackup(backup.name)}
+                            disabled={isRestoringBackup === backup.name}
+                            className="p-1 text-slate-400 hover:text-green-500 transition-colors rounded disabled:opacity-50"
+                            title="복원"
+                          >
+                            <span className={`material-symbols-outlined text-[16px] ${isRestoringBackup === backup.name ? 'animate-spin' : ''}`}>
+                              {isRestoringBackup === backup.name ? 'progress_activity' : 'restore'}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => backup.name && handleDeleteBackup(backup.name)}
+                            className="p-1 text-slate-400 hover:text-red-500 transition-colors rounded"
+                            title="삭제"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop: Table */}
+                <div className="hidden md:block border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 dark:bg-slate-800/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">파일명</th>
+                        <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">생성일시</th>
+                        <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-400">작업</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                      {backups.map((backup) => (
+                        <tr key={backup.fullPath} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                          <td className="px-4 py-3 font-mono text-xs">{backup.name}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                            {formatBackupDate(backup.createdAt)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => backup.name && handleDownloadBackup(backup.name)}
+                                className="p-1.5 text-slate-400 hover:text-blue-500 transition-colors rounded"
+                                title="다운로드"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">download</span>
+                              </button>
+                              <button
+                                onClick={() => backup.name && handleRestoreBackup(backup.name)}
+                                disabled={isRestoringBackup === backup.name}
+                                className="p-1.5 text-slate-400 hover:text-green-500 transition-colors rounded disabled:opacity-50"
+                                title="복원"
+                              >
+                                <span className={`material-symbols-outlined text-[18px] ${isRestoringBackup === backup.name ? 'animate-spin' : ''}`}>
+                                  {isRestoringBackup === backup.name ? 'progress_activity' : 'restore'}
+                                </span>
+                              </button>
+                              <button
+                                onClick={() => backup.name && handleDeleteBackup(backup.name)}
+                                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded"
+                                title="삭제"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>
 
         {/* Image Cleanup Section */}
-        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 md:p-8">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0 mb-4 md:mb-6">
             <div>
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">auto_delete</span>
+              <h2 className="text-base md:text-xl font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[20px] md:text-[24px]">auto_delete</span>
                 이미지 정리
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-0.5 md:mt-1">
                 어떤 게시물에도 연결되지 않은 고아 이미지를 정리합니다.
               </p>
             </div>
             <button
               onClick={fetchOrphanImages}
               disabled={isLoadingImages}
-              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-3 md:px-4 py-1.5 md:py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs md:text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 md:gap-2"
             >
               {isLoadingImages ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                  <span className="material-symbols-outlined animate-spin text-[16px] md:text-[18px]">progress_activity</span>
                   분석 중...
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[18px]">search</span>
+                  <span className="material-symbols-outlined text-[16px] md:text-[18px]">search</span>
                   고아 이미지 검색
                 </>
               )}
@@ -335,14 +378,14 @@ export default function AdminManagementPage() {
           {/* Image Message */}
           {imageMessage && (
             <div
-              className={`p-4 rounded-lg mb-4 ${
+              className={`p-3 md:p-4 rounded-lg mb-3 md:mb-4 ${
                 imageMessage.type === 'success'
                   ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800'
                   : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[20px]">
+              <div className="flex items-center gap-2 text-xs md:text-sm">
+                <span className="material-symbols-outlined text-[18px] md:text-[20px]">
                   {imageMessage.type === 'success' ? 'check_circle' : 'error'}
                 </span>
                 {imageMessage.text}
@@ -352,53 +395,73 @@ export default function AdminManagementPage() {
 
           {/* Image Stats */}
           {imageStats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                <p className="text-sm text-slate-500 dark:text-slate-400">전체 이미지</p>
-                <p className="text-2xl font-bold">{imageStats.total}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
+              <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">전체 이미지</p>
+                <p className="text-lg md:text-2xl font-bold">{imageStats.total}</p>
               </div>
-              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <p className="text-sm text-green-600 dark:text-green-400">연결됨</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{imageStats.linked}</p>
+              <div className="p-3 md:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <p className="text-[10px] md:text-sm text-green-600 dark:text-green-400">연결됨</p>
+                <p className="text-lg md:text-2xl font-bold text-green-600 dark:text-green-400">{imageStats.linked}</p>
               </div>
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <p className="text-sm text-red-600 dark:text-red-400">고아 이미지</p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{imageStats.orphaned}</p>
+              <div className="p-3 md:p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <p className="text-[10px] md:text-sm text-red-600 dark:text-red-400">고아 이미지</p>
+                <p className="text-lg md:text-2xl font-bold text-red-600 dark:text-red-400">{imageStats.orphaned}</p>
               </div>
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                <p className="text-sm text-slate-500 dark:text-slate-400">총 용량</p>
-                <p className="text-2xl font-bold">{formatBytes(imageStats.totalSize)}</p>
+              <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">총 용량</p>
+                <p className="text-lg md:text-2xl font-bold">{formatBytes(imageStats.totalSize)}</p>
               </div>
             </div>
           )}
 
           {/* Orphan Images List */}
           {orphanImages.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <h3 className="text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300">
                   고아 이미지 목록 ({orphanImages.length}개)
                 </h3>
                 <button
                   onClick={handleDeleteOrphans}
                   disabled={isDeletingOrphans}
-                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-3 md:px-4 py-1.5 md:py-2 bg-red-500 hover:bg-red-600 text-white text-xs md:text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 md:gap-2"
                 >
                   {isDeletingOrphans ? (
                     <>
-                      <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                      <span className="material-symbols-outlined animate-spin text-[16px] md:text-[18px]">progress_activity</span>
                       삭제 중...
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-[18px]">delete_forever</span>
+                      <span className="material-symbols-outlined text-[16px] md:text-[18px]">delete_forever</span>
                       모두 삭제
                     </>
                   )}
                 </button>
               </div>
 
-              <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden max-h-80 overflow-y-auto">
+              {/* Mobile: Card List */}
+              <div className="md:hidden border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
+                <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {orphanImages.map((image) => (
+                    <div key={image.id} className="flex items-center gap-3 p-2">
+                      <img
+                        src={image.url}
+                        alt={image.filename}
+                        className="w-10 h-10 object-cover rounded shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-mono text-[10px] text-slate-700 dark:text-slate-300 truncate">{image.filename}</p>
+                        <p className="text-[10px] text-slate-500">{formatBytes(image.size)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Desktop: Table */}
+              <div className="hidden md:block border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden max-h-80 overflow-y-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 sticky top-0">
                     <tr>
@@ -432,9 +495,9 @@ export default function AdminManagementPage() {
           )}
 
           {!imageStats && !isLoadingImages && (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-              <span className="material-symbols-outlined text-[48px] mb-2 block opacity-50">image_search</span>
-              <p className="text-sm">"고아 이미지 검색" 버튼을 눌러 분석을 시작하세요.</p>
+            <div className="text-center py-6 md:py-8 text-slate-500 dark:text-slate-400">
+              <span className="material-symbols-outlined text-[36px] md:text-[48px] mb-2 block opacity-50">image_search</span>
+              <p className="text-xs md:text-sm">"고아 이미지 검색" 버튼을 눌러 분석을 시작하세요.</p>
             </div>
           )}
         </div>

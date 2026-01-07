@@ -1088,22 +1088,36 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           outline: none;
         }
         .ProseMirror h1 {
-          font-size: 2rem;
+          font-size: 1.5rem;
           font-weight: 700;
-          margin-top: 2rem;
-          margin-bottom: 1rem;
+          margin-top: 1.75rem;
+          margin-bottom: 0.75rem;
         }
         .ProseMirror h2 {
-          font-size: 1.5rem;
+          font-size: 1.25rem;
           font-weight: 700;
           margin-top: 1.5rem;
           margin-bottom: 0.75rem;
         }
         .ProseMirror h3 {
-          font-size: 1.25rem;
+          font-size: 1.125rem;
           font-weight: 600;
           margin-top: 1.25rem;
           margin-bottom: 0.5rem;
+        }
+        @media (min-width: 768px) {
+          .ProseMirror h1 {
+            font-size: 2rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+          }
+          .ProseMirror h2 {
+            font-size: 1.5rem;
+            margin-top: 1.5rem;
+          }
+          .ProseMirror h3 {
+            font-size: 1.25rem;
+          }
         }
         .ProseMirror p {
           margin-bottom: 1rem;

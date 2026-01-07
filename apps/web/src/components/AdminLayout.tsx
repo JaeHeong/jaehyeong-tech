@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import Header from './Header'
 import Footer from './Footer'
+import RadialWheelMenu from './RadialWheelMenu'
 import api from '../services/api'
 
 interface SidebarStats {
@@ -106,9 +107,9 @@ export default function AdminLayout() {
       {/* Main Content */}
       <div className={`mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isEditorPage ? 'max-w-[1600px]' : 'max-w-7xl'}`}>
         <div className={`grid grid-cols-1 gap-8 ${isEditorPage ? '' : 'lg:grid-cols-12'}`}>
-          {/* Sidebar - hidden on editor page */}
+          {/* Sidebar - hidden on editor page and mobile */}
           {!isEditorPage && (
-          <aside className="lg:col-span-3 space-y-4">
+          <aside className="hidden lg:block lg:col-span-3 space-y-4">
             <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
               <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                 <h2 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -209,6 +210,9 @@ export default function AdminLayout() {
           </main>
         </div>
       </div>
+
+      {/* Mobile Radial Wheel Menu - hidden on editor page */}
+      {!isEditorPage && <RadialWheelMenu />}
 
       <Footer />
     </div>

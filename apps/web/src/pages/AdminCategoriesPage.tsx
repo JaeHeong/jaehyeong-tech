@@ -172,74 +172,74 @@ export default function AdminCategoriesPage() {
   return (
     <>
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 pb-4 md:pb-6 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold">카테고리 관리</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+          <h1 className="text-xl md:text-2xl font-bold">카테고리 관리</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mt-0.5 md:mt-1">
             블로그 카테고리를 관리합니다.
           </p>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold transition-colors"
+          className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs md:text-sm font-bold transition-colors"
         >
-          <span className="material-symbols-outlined text-[18px]">add</span>
+          <span className="material-symbols-outlined text-[16px] md:text-[18px]">add</span>
           새 카테고리
         </button>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+        <div className="p-3 md:p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
           <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-            <span className="material-symbols-outlined text-[20px]">error</span>
-            <span className="text-sm font-medium">{error}</span>
+            <span className="material-symbols-outlined text-[18px] md:text-[20px]">error</span>
+            <span className="text-xs md:text-sm font-medium">{error}</span>
           </div>
         </div>
       )}
 
       {/* Categories Grid */}
       {isLoading ? (
-        <div className="flex justify-center items-center py-20">
-          <span className="material-symbols-outlined animate-spin text-4xl text-primary">
+        <div className="flex justify-center items-center py-12 md:py-20">
+          <span className="material-symbols-outlined animate-spin text-3xl md:text-4xl text-primary">
             progress_activity
           </span>
         </div>
       ) : categories.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {paginatedCategories.map((category) => (
             <div
               key={category.id}
-              className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 hover:border-primary/30 transition-colors"
+              className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-6 hover:border-primary/30 transition-colors"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 rounded-lg ${colorClasses[category.color || 'blue']}`}>
-                  <span className="material-symbols-outlined text-[28px]">
+              <div className="flex items-start justify-between mb-3 md:mb-4">
+                <div className={`p-2 md:p-3 rounded-lg ${colorClasses[category.color || 'blue']}`}>
+                  <span className="material-symbols-outlined text-[22px] md:text-[28px]">
                     {category.icon || 'folder'}
                   </span>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-0.5 md:gap-1">
                   <button
                     onClick={() => handleOpenModal(category)}
-                    className="p-2 text-slate-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="p-1.5 md:p-2 text-slate-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                     title="수정"
                   >
-                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                    <span className="material-symbols-outlined text-[16px] md:text-[18px]">edit</span>
                   </button>
                   <button
                     onClick={() => setDeleteModal({ isOpen: true, category })}
-                    className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="p-1.5 md:p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                     title="삭제"
                   >
-                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                    <span className="material-symbols-outlined text-[16px] md:text-[18px]">delete</span>
                   </button>
                 </div>
               </div>
-              <h3 className="text-lg font-bold mb-1">{category.name}</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">
+              <h3 className="text-base md:text-lg font-bold mb-0.5 md:mb-1">{category.name}</h3>
+              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mb-2 md:mb-3 line-clamp-2">
                 {category.description || '설명 없음'}
               </p>
-              <div className="flex items-center justify-between text-xs text-slate-400">
+              <div className="flex items-center justify-between text-[10px] md:text-xs text-slate-400">
                 <span>/{category.slug}</span>
                 <span className="font-medium">{category.postCount} Posts</span>
               </div>
@@ -247,16 +247,16 @@ export default function AdminCategoriesPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-12 text-center">
-          <span className="material-symbols-outlined text-[48px] text-slate-300 dark:text-slate-600 mb-4 block">
+        <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 md:p-12 text-center">
+          <span className="material-symbols-outlined text-[36px] md:text-[48px] text-slate-300 dark:text-slate-600 mb-3 md:mb-4 block">
             category
           </span>
-          <p className="text-slate-500 dark:text-slate-400 mb-4">카테고리가 없습니다.</p>
+          <p className="text-slate-500 dark:text-slate-400 mb-3 md:mb-4 text-sm md:text-base">카테고리가 없습니다.</p>
           <button
             onClick={() => handleOpenModal()}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold transition-colors"
+            className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs md:text-sm font-bold transition-colors"
           >
-            <span className="material-symbols-outlined text-[18px]">add</span>
+            <span className="material-symbols-outlined text-[16px] md:text-[18px]">add</span>
             첫 번째 카테고리 만들기
           </button>
         </div>
@@ -265,13 +265,13 @@ export default function AdminCategoriesPage() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             <button
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="p-1.5 md:p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+              <span className="material-symbols-outlined text-[18px] md:text-[20px]">chevron_left</span>
             </button>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               let page: number
@@ -288,7 +288,7 @@ export default function AdminCategoriesPage() {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors ${
                     currentPage === page
                       ? 'bg-primary text-white'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -301,9 +301,9 @@ export default function AdminCategoriesPage() {
             <button
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="p-1.5 md:p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+              <span className="material-symbols-outlined text-[18px] md:text-[20px]">chevron_right</span>
             </button>
           </div>
         </div>
@@ -311,33 +311,33 @@ export default function AdminCategoriesPage() {
 
       {/* Create/Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={handleCloseModal}
           />
-          <div className="relative bg-card-light dark:bg-card-dark rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold">
+          <div className="relative bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl shadow-2xl p-4 md:p-6 max-w-lg w-full border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
+              <h3 className="text-lg md:text-xl font-bold">
                 {editingCategory ? '카테고리 수정' : '새 카테고리'}
               </h3>
               <button
                 onClick={handleCloseModal}
                 className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
               >
-                <span className="material-symbols-outlined">close</span>
+                <span className="material-symbols-outlined text-[20px] md:text-[24px]">close</span>
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">이름</label>
+                <label className="block text-xs md:text-sm font-medium mb-1 md:mb-1.5">이름</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleNameChange(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm"
                   placeholder="카테고리 이름"
                   required
                 />
@@ -345,12 +345,12 @@ export default function AdminCategoriesPage() {
 
               {/* Slug */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">슬러그</label>
+                <label className="block text-xs md:text-sm font-medium mb-1 md:mb-1.5">슬러그</label>
                 <input
                   type="text"
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-sm"
                   placeholder="category-slug"
                   required
                 />
@@ -358,11 +358,11 @@ export default function AdminCategoriesPage() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">설명</label>
+                <label className="block text-xs md:text-sm font-medium mb-1 md:mb-1.5">설명</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20 resize-none"
+                  className="w-full px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20 resize-none text-sm"
                   rows={3}
                   placeholder="카테고리 설명"
                 />
@@ -370,20 +370,20 @@ export default function AdminCategoriesPage() {
 
               {/* Icon */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">아이콘</label>
-                <div className="flex flex-wrap gap-2">
+                <label className="block text-xs md:text-sm font-medium mb-1 md:mb-1.5">아이콘</label>
+                <div className="flex flex-wrap gap-1.5 md:gap-2">
                   {defaultIcons.map((icon) => (
                     <button
                       key={icon}
                       type="button"
                       onClick={() => setFormData({ ...formData, icon })}
-                      className={`p-2 rounded-lg border transition-colors ${
+                      className={`p-1.5 md:p-2 rounded-lg border transition-colors ${
                         formData.icon === icon
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-slate-200 dark:border-slate-700 hover:border-primary/50'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[20px]">{icon}</span>
+                      <span className="material-symbols-outlined text-[18px] md:text-[20px]">{icon}</span>
                     </button>
                   ))}
                 </div>
@@ -391,14 +391,14 @@ export default function AdminCategoriesPage() {
 
               {/* Color */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">색상</label>
-                <div className="flex flex-wrap gap-2">
+                <label className="block text-xs md:text-sm font-medium mb-1 md:mb-1.5">색상</label>
+                <div className="flex flex-wrap gap-1.5 md:gap-2">
                   {defaultColors.map((color) => (
                     <button
                       key={color}
                       type="button"
                       onClick={() => setFormData({ ...formData, color })}
-                      className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                      className={`w-7 h-7 md:w-8 md:h-8 rounded-lg border-2 transition-all ${
                         formData.color === color
                           ? 'border-slate-900 dark:border-white scale-110'
                           : 'border-transparent'
@@ -414,34 +414,34 @@ export default function AdminCategoriesPage() {
               </div>
 
               {/* Preview */}
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                <label className="block text-sm font-medium mb-3">미리보기</label>
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
-                  <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-lg ${colorClasses[formData.color]}`}>
-                      <span className="material-symbols-outlined text-[28px]">{formData.icon}</span>
+              <div className="pt-3 md:pt-4 border-t border-slate-200 dark:border-slate-800">
+                <label className="block text-xs md:text-sm font-medium mb-2 md:mb-3">미리보기</label>
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 md:p-4">
+                  <div className="flex items-start gap-3 md:gap-4">
+                    <div className={`p-2 md:p-3 rounded-lg ${colorClasses[formData.color]}`}>
+                      <span className="material-symbols-outlined text-[22px] md:text-[28px]">{formData.icon}</span>
                     </div>
                     <div>
-                      <h4 className="font-bold">{formData.name || '카테고리 이름'}</h4>
-                      <p className="text-sm text-slate-500">{formData.description || '설명'}</p>
+                      <h4 className="font-bold text-sm md:text-base">{formData.name || '카테고리 이름'}</h4>
+                      <p className="text-xs md:text-sm text-slate-500">{formData.description || '설명'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 justify-end pt-4">
+              <div className="flex gap-2 md:gap-3 justify-end pt-3 md:pt-4">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium transition-colors"
+                  className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs md:text-sm font-medium transition-colors"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-colors disabled:opacity-50"
+                  className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs md:text-sm font-bold transition-colors disabled:opacity-50"
                 >
                   {isSaving ? '저장 중...' : editingCategory ? '수정' : '생성'}
                 </button>
@@ -453,35 +453,35 @@ export default function AdminCategoriesPage() {
 
       {/* Delete Modal */}
       {deleteModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setDeleteModal({ isOpen: false, category: null })}
           />
-          <div className="relative bg-card-light dark:bg-card-dark rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600">
-                <span className="material-symbols-outlined">warning</span>
+          <div className="relative bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl shadow-2xl p-4 md:p-6 max-w-md w-full border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <div className="p-1.5 md:p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600">
+                <span className="material-symbols-outlined text-[20px] md:text-[24px]">warning</span>
               </div>
-              <h3 className="text-lg font-bold">카테고리 삭제</h3>
+              <h3 className="text-base md:text-lg font-bold">카테고리 삭제</h3>
             </div>
-            <p className="text-slate-600 dark:text-slate-400 mb-6">
+            <p className="text-slate-600 dark:text-slate-400 mb-4 md:mb-6 text-sm md:text-base">
               <strong className="text-slate-900 dark:text-white">
                 "{deleteModal.category?.name}"
               </strong>
               을(를) 삭제하시겠습니까? 이 카테고리에 속한 게시글은 영향을 받을 수 있습니다.
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-2 md:gap-3 justify-end">
               <button
                 onClick={() => setDeleteModal({ isOpen: false, category: null })}
-                className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium transition-colors"
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs md:text-sm font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors disabled:opacity-50"
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold transition-colors disabled:opacity-50"
               >
                 {isDeleting ? '삭제 중...' : '삭제'}
               </button>
