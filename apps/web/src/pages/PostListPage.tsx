@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import api, { Post, Category } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -16,10 +16,34 @@ export default function PostListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [totalPages, setTotalPages] = useState(1)
 
+  // Refs for category buttons to enable auto-scroll
+  const categoryButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+
   const currentPage = parseInt(searchParams.get('page') || '1', 10)
   // Use path slug (/categories/:slug) or query param (?category=)
   const currentCategory = pathSlug || searchParams.get('category') || ''
 
+  // Scroll to selected category button
+  const scrollToSelectedCategory = useCallback(() => {
+    const key = currentCategory || 'all'
+    const button = categoryButtonRefs.current.get(key)
+    if (button) {
+      button.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
+    }
+  }, [currentCategory])
+
+  // Scroll to selected category when categories are loaded or category changes
+  useEffect(() => {
+    if (categories.length > 0) {
+      // Small delay to ensure DOM is updated
+      const timer = setTimeout(scrollToSelectedCategory, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [categories, currentCategory, scrollToSelectedCategory])
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -185,6 +209,9 @@ export default function PostListPage() {
           <div className="sticky top-16 z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm py-4 -mx-2 px-2 border-b border-transparent">
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
               <button
+                ref={(el) => {
+                  if (el) categoryButtonRefs.current.set('all', el)
+                }}
                 onClick={() => handleCategoryChange('')}
                 className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   !currentCategory
@@ -197,6 +224,9 @@ export default function PostListPage() {
               {categories.map((cat) => (
                 <button
                   key={cat.id}
+                  ref={(el) => {
+                    if (el) categoryButtonRefs.current.set(cat.slug, el)
+                  }}
                   onClick={() => handleCategoryChange(cat.slug)}
                   className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                     currentCategory === cat.slug
