@@ -14,6 +14,7 @@ import CategoryPage from './pages/CategoryPage'
 import SearchPage from './pages/SearchPage'
 import NoticePage from './pages/NoticePage'
 import NoticeDetailPage from './pages/NoticeDetailPage'
+import LoginPage from './pages/LoginPage'
 import AdminLoginPage from './pages/AdminLoginPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import AdminPostEditorPage from './pages/AdminPostEditorPage'
@@ -48,6 +49,10 @@ const router = createBrowserRouter([
       { path: 'privacy', element: <PrivacyPolicyPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
   },
   {
     path: '/admin/login',

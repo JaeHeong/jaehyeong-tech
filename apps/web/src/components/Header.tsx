@@ -7,7 +7,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const { isAdmin, user, logout } = useAuth()
+  const { isAdmin, isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
   const userMenuRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -119,79 +119,88 @@ export default function Header() {
                 </span>
               </button>
 
-              {/* Admin User Menu */}
-              {isAdmin && (
-                <>
-                  {/* User Menu */}
-                  <div className="relative" ref={userMenuRef}>
-                    <button
-                      onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                      className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      {user?.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt={user.name || 'User'}
-                          className="size-7 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-primary text-[16px]">person</span>
-                        </div>
-                      )}
-                    </button>
-
-                    {isUserMenuOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
-                        <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
-                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                            {user?.name || '관리자'}
-                          </p>
-                          <p className="text-xs text-slate-500 truncate">
-                            {user?.email}
-                          </p>
-                        </div>
-                        <Link
-                          to="/admin"
-                          onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">dashboard</span>
-                          대시보드
-                        </Link>
-                        <Link
-                          to="/admin/posts/new"
-                          onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">edit_note</span>
-                          새 글 작성
-                        </Link>
-                        <Link
-                          to="/admin/settings"
-                          onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">settings</span>
-                          설정
-                        </Link>
-                        <div className="border-t border-slate-200 dark:border-slate-700 mt-1 pt-1">
-                          <button
-                            onClick={() => {
-                              logout()
-                              setIsUserMenuOpen(false)
-                              navigate('/')
-                            }}
-                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                          >
-                            <span className="material-symbols-outlined text-[18px]">logout</span>
-                            로그아웃
-                          </button>
-                        </div>
+              {/* User Menu / Login Button */}
+              {isAuthenticated ? (
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name || 'User'}
+                        className="size-7 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-primary text-[16px]">person</span>
                       </div>
                     )}
-                  </div>
-                </>
+                  </button>
+
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
+                      <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                          {user?.name || '사용자'}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {user?.email}
+                        </p>
+                      </div>
+                      {isAdmin && (
+                        <>
+                          <Link
+                            to="/admin"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">dashboard</span>
+                            대시보드
+                          </Link>
+                          <Link
+                            to="/admin/posts/new"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                            새 글 작성
+                          </Link>
+                          <Link
+                            to="/admin/settings"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">settings</span>
+                            설정
+                          </Link>
+                        </>
+                      )}
+                      <div className={isAdmin ? "border-t border-slate-200 dark:border-slate-700 mt-1 pt-1" : ""}>
+                        <button
+                          onClick={() => {
+                            logout()
+                            setIsUserMenuOpen(false)
+                            navigate('/')
+                          }}
+                          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">logout</span>
+                          로그아웃
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  to="/login"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[18px]">login</span>
+                  로그인
+                </Link>
               )}
             </div>
           </div>
@@ -201,7 +210,7 @@ export default function Header() {
             <button className="p-2 text-slate-500">
               <span className="material-symbols-outlined text-[20px]">search</span>
             </button>
-            {isAdmin && (
+            {isAuthenticated && (
               user?.avatar ? (
                 <img
                   src={user.avatar}
@@ -246,10 +255,10 @@ export default function Header() {
                 </NavLink>
               ))}
 
-              {/* Admin Section in Mobile Menu */}
-              {isAdmin && (
+              {/* User Section in Mobile Menu */}
+              <div className="my-2 border-t border-slate-200 dark:border-slate-700" />
+              {isAuthenticated ? (
                 <>
-                  <div className="my-2 border-t border-slate-200 dark:border-slate-700" />
                   <div className="px-4 py-2 flex items-center gap-3">
                     {user?.avatar ? (
                       <img
@@ -264,35 +273,39 @@ export default function Header() {
                     )}
                     <div>
                       <p className="text-sm font-medium text-slate-900 dark:text-white">
-                        {user?.name || '관리자'}
+                        {user?.name || '사용자'}
                       </p>
                       <p className="text-xs text-slate-500">{user?.email}</p>
                     </div>
                   </div>
-                  <Link
-                    to="/admin"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">dashboard</span>
-                    대시보드
-                  </Link>
-                  <Link
-                    to="/admin/posts/new"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">edit_note</span>
-                    새 글 작성
-                  </Link>
-                  <Link
-                    to="/admin/settings"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">settings</span>
-                    설정
-                  </Link>
+                  {isAdmin && (
+                    <>
+                      <Link
+                        to="/admin"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">dashboard</span>
+                        대시보드
+                      </Link>
+                      <Link
+                        to="/admin/posts/new"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                        새 글 작성
+                      </Link>
+                      <Link
+                        to="/admin/settings"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">settings</span>
+                        설정
+                      </Link>
+                    </>
+                  )}
                   <button
                     onClick={() => {
                       logout()
@@ -305,6 +318,15 @@ export default function Header() {
                     로그아웃
                   </button>
                 </>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <span className="material-symbols-outlined text-[18px]">login</span>
+                  로그인
+                </Link>
               )}
             </div>
           </nav>
