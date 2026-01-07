@@ -668,38 +668,46 @@ export default function PostDetailPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(100, 116, 139, 0.2);
           border: none;
           border-radius: 6px;
           cursor: pointer;
-          opacity: 0;
+          opacity: 0.7;
           transition: all 0.2s;
           z-index: 10;
         }
         .post-content .code-copy-btn .material-symbols-outlined {
           font-size: 16px;
-          color: #94a3b8;
+          color: #64748b;
         }
-        .post-content pre:hover .code-copy-btn {
+        .post-content pre:hover .code-copy-btn,
+        .post-content .code-copy-btn:focus {
           opacity: 1;
         }
         .post-content .code-copy-btn:hover {
-          background: rgba(255, 255, 255, 0.2);
+          background: rgba(100, 116, 139, 0.4);
         }
         .post-content .code-copy-btn:hover .material-symbols-outlined {
-          color: #e2e8f0;
+          color: #334155;
         }
         .post-content .code-copy-btn.copied {
           opacity: 1;
+          background: rgba(34, 197, 94, 0.2);
         }
         .post-content .code-copy-btn.copied .material-symbols-outlined {
           color: #22c55e;
         }
         .dark .post-content .code-copy-btn {
-          background: rgba(0, 0, 0, 0.3);
+          background: rgba(148, 163, 184, 0.2);
+        }
+        .dark .post-content .code-copy-btn .material-symbols-outlined {
+          color: #94a3b8;
         }
         .dark .post-content .code-copy-btn:hover {
-          background: rgba(0, 0, 0, 0.5);
+          background: rgba(148, 163, 184, 0.3);
+        }
+        .dark .post-content .code-copy-btn:hover .material-symbols-outlined {
+          color: #e2e8f0;
         }
       `}</style>
 
