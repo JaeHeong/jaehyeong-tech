@@ -5,6 +5,7 @@ import { AppError } from '../middleware/errorHandler.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import slugifyLib from 'slugify'
 import { deleteFromOCI, isOCIConfigured } from '../services/oci.js'
+import { calculateReadingTime } from '../utils/readingTime.js'
 
 // Update featured post - sets featured=true on the post with highest score
 // Score = (likeCount * LIKE_WEIGHT) + viewCount
@@ -386,9 +387,8 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
       slug = `${slug}-${Date.now()}`
     }
 
-    // Calculate reading time (average 200 words per minute)
-    const wordCount = content.split(/\s+/).length
-    const readingTime = Math.ceil(wordCount / 200)
+    // Calculate reading time (Korean/English mixed content)
+    const readingTime = calculateReadingTime(content)
 
     // Post is always published (PUBLIC or PRIVATE)
     const postStatus = status === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC'
@@ -468,8 +468,7 @@ export async function updatePost(req: AuthRequest, res: Response, next: NextFunc
     if (excerpt !== undefined) updateData.excerpt = excerpt
     if (content !== undefined) {
       updateData.content = content
-      const wordCount = content.split(/\s+/).length
-      updateData.readingTime = Math.ceil(wordCount / 200)
+      updateData.readingTime = calculateReadingTime(content)
     }
     if (coverImage !== undefined) updateData.coverImage = coverImage
     if (categoryId) updateData.category = { connect: { id: categoryId } }

@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import slugifyLib from 'slugify'
 import { updateFeaturedPost } from './posts.js'
+import { calculateReadingTime } from '../utils/readingTime.js'
 
 type SlugifyFn = (str: string, opts?: { lower?: boolean; strict?: boolean }) => string
 const slugify: SlugifyFn = (slugifyLib as unknown as { default?: SlugifyFn }).default || (slugifyLib as unknown as SlugifyFn)
@@ -185,9 +186,8 @@ export async function publishDraft(req: AuthRequest, res: Response, next: NextFu
       slug = `${slug}-${Date.now()}`
     }
 
-    // Calculate reading time
-    const wordCount = draft.content.split(/\s+/).length
-    const readingTime = Math.ceil(wordCount / 200)
+    // Calculate reading time (Korean/English mixed content)
+    const readingTime = calculateReadingTime(draft.content)
 
     // Extract text for excerpt if not provided
     let excerpt = draft.excerpt
