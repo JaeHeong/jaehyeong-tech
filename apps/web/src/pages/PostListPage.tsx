@@ -3,6 +3,7 @@ import { Link, useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import api, { Post, Category } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
+import MobileProfileModal from '../components/MobileProfileModal'
 
 export default function PostListPage() {
   const { user } = useAuth()
@@ -344,6 +345,9 @@ export default function PostListPage() {
         {/* Sidebar */}
         <Sidebar />
       </div>
+
+      {/* Mobile Profile Modal */}
+      <MobileProfileModal />
     </div>
   )
 }

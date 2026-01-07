@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useModal } from '../contexts/ModalContext'
 import Sidebar from '../components/Sidebar'
 import CommentSection from '../components/CommentSection'
+import MobileProfileModal from '../components/MobileProfileModal'
 import { useSEO } from '../hooks/useSEO'
 
 interface AdjacentPost {
@@ -973,7 +974,7 @@ export default function PostDetailPage() {
                   {post.tags.map((tag) => (
                     <Link
                       key={tag.id}
-                      to={`/tags/${tag.slug}`}
+                      to={`/search?q=${encodeURIComponent(tag.name)}`}
                       className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
                     >
                       #{tag.name}
@@ -1171,6 +1172,9 @@ export default function PostDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Mobile Profile Modal */}
+      <MobileProfileModal />
     </div>
   )
 }
