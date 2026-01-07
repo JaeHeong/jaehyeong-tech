@@ -69,7 +69,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
         },
         orderBy: { name: 'asc' },
       }),
-      // Tag stats with post count
+      // Tag stats with post count (top 10 by usage)
       prisma.tag.findMany({
         select: {
           id: true,
@@ -77,7 +77,8 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
           slug: true,
           _count: { select: { posts: { where: { status: 'PUBLIC' } } } },
         },
-        orderBy: { name: 'asc' },
+        orderBy: { posts: { _count: 'desc' } },
+        take: 10,
       }),
       // Static pages count
       prisma.page.count({ where: { type: 'STATIC', status: 'PUBLISHED' } }),
@@ -96,7 +97,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
         },
         select: { id: true, size: true },
       }),
-      // Recent posts (last 10, PUBLIC + PRIVATE)
+      // Recent posts (last 5, PUBLIC + PRIVATE)
       prisma.post.findMany({
         where: { status: { in: ['PUBLIC', 'PRIVATE'] } },
         select: {
@@ -109,9 +110,9 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
           _count: { select: { comments: { where: { isDeleted: false } } } },
         },
         orderBy: { createdAt: 'desc' },
-        take: 10,
+        take: 5,
       }),
-      // Recent drafts (last 10 from Draft table)
+      // Recent drafts (last 5 from Draft table)
       prisma.draft.findMany({
         select: {
           id: true,
@@ -121,9 +122,9 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
           updatedAt: true,
         },
         orderBy: { updatedAt: 'desc' },
-        take: 10,
+        take: 5,
       }),
-      // Latest comments (last 10)
+      // Latest comments (last 5)
       prisma.comment.findMany({
         where: { isDeleted: false },
         select: {
@@ -135,7 +136,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
           post: { select: { id: true, title: true, slug: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: 10,
+        take: 5,
       }),
     ])
 
