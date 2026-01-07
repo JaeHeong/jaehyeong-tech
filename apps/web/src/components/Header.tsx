@@ -10,6 +10,7 @@ export default function Header() {
   const { isAdmin, user, logout } = useAuth()
   const navigate = useNavigate()
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -20,6 +21,18 @@ export default function Header() {
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Alt + / shortcut to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.key === '/') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   const toggleDarkMode = () => {
@@ -48,9 +61,9 @@ export default function Header() {
       <div className="container-wrapper">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 shrink-0">
+          <Link to="/" className="group flex items-center gap-3 shrink-0 cursor-pointer">
             <div className="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
-              <span className="material-symbols-outlined text-[24px]">terminal</span>
+              <span className="material-symbols-outlined text-[24px] group-hover:animate-terminal-wiggle">terminal</span>
             </div>
             <span className="text-xl font-bold tracking-tight">
               jaehyeong<span className="text-primary"> tech</span>
@@ -78,16 +91,20 @@ export default function Header() {
             <div className="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-800">
               {/* Search */}
               <form onSubmit={handleSearch} className="relative w-64 group">
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <span className="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">
+                <button
+                  type="submit"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-slate-400 group-focus-within:text-primary hover:text-primary transition-colors text-[20px]">
                     search
                   </span>
-                </div>
+                </button>
                 <input
+                  ref={searchInputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="검색어를 입력하세요..."
+                  placeholder="검색 (Alt + /)"
                   className="block w-full py-1.5 pl-4 pr-10 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-primary/50 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </form>

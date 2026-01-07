@@ -21,6 +21,16 @@ export default {
         xl: '0.75rem',
         full: '9999px',
       },
+      animation: {
+        'terminal-wiggle': 'terminal-wiggle 0.5s ease-in-out infinite',
+      },
+      keyframes: {
+        'terminal-wiggle': {
+          '0%, 100%': { transform: 'rotate(0deg) scale(1)' },
+          '25%': { transform: 'rotate(-8deg) scale(1.1)' },
+          '75%': { transform: 'rotate(8deg) scale(1.1)' },
+        },
+      },
     },
   },
   plugins: [],
