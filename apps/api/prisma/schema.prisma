@@ -49,6 +49,7 @@ model Post {
   tags        Tag[]
   images      Image[]
   likes       Like[]
+  views       PostView[]
   comments    Comment[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -155,6 +156,18 @@ model Like {
   @@unique([postId, ipHash])
   @@index([postId])
   @@map("likes")
+}
+
+model PostView {
+  id        String   @id @default(cuid())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  ipHash    String   // Hashed IP for unique view tracking
+  createdAt DateTime @default(now())
+
+  @@unique([postId, ipHash])
+  @@index([postId])
+  @@map("post_views")
 }
 
 model Comment {

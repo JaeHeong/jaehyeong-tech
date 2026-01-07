@@ -22,11 +22,9 @@ export default function PostListPage() {
         const catRes = await api.getCategories()
         setCategories(catRes.categories)
 
-        // Fetch featured post
-        const featuredRes = await api.getPosts({ featured: true, limit: 1 })
-        if (featuredRes.posts.length > 0) {
-          setFeaturedPost(featuredRes.posts[0] ?? null)
-        }
+        // Fetch top viewed post (overall or by category)
+        const topViewedRes = await api.getTopViewedPost(currentCategory || undefined)
+        setFeaturedPost(topViewedRes.data)
 
         // Fetch posts
         const postsRes = await api.getPosts({

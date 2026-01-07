@@ -130,6 +130,11 @@ class ApiClient {
     return this.request<{ posts: Post[] }>('/posts/featured')
   }
 
+  async getTopViewedPost(category?: string) {
+    const params = category ? `?category=${category}` : ''
+    return this.request<{ data: Post | null }>(`/posts/top-viewed${params}`)
+  }
+
   async createPost(data: CreatePostData) {
     return this.request<{ post: Post }>('/posts', {
       method: 'POST',

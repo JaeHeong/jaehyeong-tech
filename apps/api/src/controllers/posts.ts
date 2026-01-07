@@ -1,9 +1,25 @@
 import type { Request, Response, NextFunction } from 'express'
+import crypto from 'crypto'
 import { prisma } from '../services/prisma.js'
 import { AppError } from '../middleware/errorHandler.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import slugifyLib from 'slugify'
 import { deleteFromOCI, isOCIConfigured } from '../services/oci.js'
+
+// Hash IP address for unique view tracking
+function hashIP(ip: string): string {
+  const salt = process.env.IP_HASH_SALT || 'default-salt-change-in-production'
+  return crypto.createHash('sha256').update(ip + salt).digest('hex')
+}
+
+// Get client IP (considering reverse proxy)
+function getClientIP(req: Request): string {
+  const forwarded = req.headers['x-forwarded-for']
+  if (typeof forwarded === 'string') {
+    return forwarded.split(',')[0]?.trim() || req.ip || 'unknown'
+  }
+  return req.ip || 'unknown'
+}
 
 type SlugifyFn = (str: string, opts?: { lower?: boolean; strict?: boolean }) => string
 const slugify: SlugifyFn = (slugifyLib as unknown as { default?: SlugifyFn }).default || (slugifyLib as unknown as SlugifyFn)
@@ -157,6 +173,32 @@ export async function getFeaturedPosts(_req: Request, res: Response, next: NextF
   }
 }
 
+// Public: Get top post by view count for a category (or overall if no category)
+export async function getTopViewedPost(req: Request, res: Response, next: NextFunction) {
+  try {
+    const categorySlug = req.query.category as string
+
+    const where: Record<string, unknown> = { status: 'PUBLIC' }
+    if (categorySlug) {
+      where.category = { slug: categorySlug }
+    }
+
+    const post = await prisma.post.findFirst({
+      where,
+      include: {
+        author: { select: { id: true, name: true, avatar: true } },
+        category: true,
+        tags: true,
+      },
+      orderBy: { viewCount: 'desc' },
+    })
+
+    res.json({ data: post })
+  } catch (error) {
+    next(error)
+  }
+}
+
 // Public: Get post by slug
 export async function getPostBySlug(req: Request, res: Response, next: NextFunction) {
   try {
@@ -185,13 +227,52 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
       }
     }
 
-    // Increment view count
-    await prisma.post.update({
-      where: { id: post.id },
-      data: { viewCount: { increment: 1 } },
+    // Track unique view by IP hash (24-hour based)
+    const ipHash = hashIP(getClientIP(req))
+    let viewIncremented = false
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+
+    // Check if this IP has viewed this post within the last 24 hours
+    const existingView = await prisma.postView.findUnique({
+      where: {
+        postId_ipHash: {
+          postId: post.id,
+          ipHash,
+        },
+      },
     })
 
-    res.json({ data: { ...post, viewCount: post.viewCount + 1 } })
+    if (!existingView) {
+      // New unique view - create view record and increment count
+      await prisma.$transaction([
+        prisma.postView.create({
+          data: {
+            postId: post.id,
+            ipHash,
+          },
+        }),
+        prisma.post.update({
+          where: { id: post.id },
+          data: { viewCount: { increment: 1 } },
+        }),
+      ])
+      viewIncremented = true
+    } else if (existingView.createdAt < twentyFourHoursAgo) {
+      // View record exists but is older than 24 hours - update timestamp and increment count
+      await prisma.$transaction([
+        prisma.postView.update({
+          where: { id: existingView.id },
+          data: { createdAt: new Date() },
+        }),
+        prisma.post.update({
+          where: { id: post.id },
+          data: { viewCount: { increment: 1 } },
+        }),
+      ])
+      viewIncremented = true
+    }
+
+    res.json({ data: { ...post, viewCount: post.viewCount + (viewIncremented ? 1 : 0) } })
   } catch (error) {
     next(error)
   }
