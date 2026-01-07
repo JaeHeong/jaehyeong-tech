@@ -49,23 +49,19 @@ export async function toggleLike(req: Request, res: Response, next: NextFunction
 
     if (userId) {
       // Logged-in user: check by userId
-      existingLike = await prisma.like.findUnique({
+      existingLike = await prisma.like.findFirst({
         where: {
-          postId_userId: {
-            postId,
-            userId,
-          },
+          postId,
+          userId,
         },
       })
     } else {
       // Anonymous user: check by ipHash
       const ipHash = hashIP(getClientIP(req))
-      existingLike = await prisma.like.findUnique({
+      existingLike = await prisma.like.findFirst({
         where: {
-          postId_ipHash: {
-            postId,
-            ipHash,
-          },
+          postId,
+          ipHash,
         },
       })
     }
@@ -88,18 +84,20 @@ export async function toggleLike(req: Request, res: Response, next: NextFunction
       likeCount = await prisma.like.count({ where: { postId } })
     } else {
       // Like: create like and increment counter
-      const likeData: { post: { connect: { id: string } }; user?: { connect: { id: string } }; ipHash?: string } = {
-        post: { connect: { id: postId } },
-      }
-
-      if (userId) {
-        likeData.user = { connect: { id: userId } }
-      } else {
-        likeData.ipHash = hashIP(getClientIP(req))
-      }
-
       await prisma.$transaction([
-        prisma.like.create({ data: likeData }),
+        userId
+          ? prisma.like.create({
+              data: {
+                post: { connect: { id: postId } },
+                user: { connect: { id: userId } },
+              },
+            })
+          : prisma.like.create({
+              data: {
+                post: { connect: { id: postId } },
+                ipHash: hashIP(getClientIP(req)),
+              },
+            }),
         prisma.post.update({
           where: { id: postId },
           data: { likeCount: { increment: 1 } },
@@ -147,23 +145,19 @@ export async function checkLikeStatus(req: Request, res: Response, next: NextFun
 
     if (userId) {
       // Logged-in user: check by userId
-      existingLike = await prisma.like.findUnique({
+      existingLike = await prisma.like.findFirst({
         where: {
-          postId_userId: {
-            postId,
-            userId,
-          },
+          postId,
+          userId,
         },
       })
     } else {
       // Anonymous user: check by ipHash
       const ipHash = hashIP(getClientIP(req))
-      existingLike = await prisma.like.findUnique({
+      existingLike = await prisma.like.findFirst({
         where: {
-          postId_ipHash: {
-            postId,
-            ipHash,
-          },
+          postId,
+          ipHash,
         },
       })
     }
