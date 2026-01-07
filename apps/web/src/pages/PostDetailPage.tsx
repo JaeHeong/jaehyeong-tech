@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, type Post } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -25,6 +25,42 @@ export default function PostDetailPage() {
   const [likeCount, setLikeCount] = useState(0)
   const [isLiking, setIsLiking] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  // Add copy buttons to code blocks
+  const addCopyButtons = useCallback(() => {
+    if (!contentRef.current) return
+
+    const preElements = contentRef.current.querySelectorAll('pre')
+    preElements.forEach((pre) => {
+      // Skip if already has copy button
+      if (pre.querySelector('.code-copy-btn')) return
+
+      const copyBtn = document.createElement('button')
+      copyBtn.className = 'code-copy-btn'
+      copyBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span>'
+      copyBtn.title = '코드 복사'
+
+      copyBtn.addEventListener('click', async () => {
+        const code = pre.querySelector('code')
+        const text = code?.textContent || ''
+
+        try {
+          await navigator.clipboard.writeText(text)
+          copyBtn.innerHTML = '<span class="material-symbols-outlined">check</span>'
+          copyBtn.classList.add('copied')
+          setTimeout(() => {
+            copyBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span>'
+            copyBtn.classList.remove('copied')
+          }, 2000)
+        } catch (err) {
+          console.error('Failed to copy:', err)
+        }
+      })
+
+      pre.appendChild(copyBtn)
+    })
+  }, [])
 
   const handleDelete = async () => {
     if (!post) return
@@ -127,6 +163,15 @@ export default function PostDetailPage() {
       })
       .finally(() => setIsLoading(false))
   }, [slug])
+
+  // Add copy buttons after post content is rendered
+  useEffect(() => {
+    if (post && !isLoading) {
+      // Small delay to ensure content is rendered
+      const timer = setTimeout(addCopyButtons, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [post, isLoading, addCopyButtons])
 
   if (isLoading) {
     return (
@@ -488,6 +533,52 @@ export default function PostDetailPage() {
         .dark .post-content .pullquote-static-content p {
           color: #e2e8f0;
         }
+        /* Code Copy Button */
+        .post-content pre {
+          position: relative;
+        }
+        .post-content .code-copy-btn {
+          position: absolute;
+          top: 4px;
+          right: 8px;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255, 255, 255, 0.1);
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          opacity: 0;
+          transition: all 0.2s;
+          z-index: 10;
+        }
+        .post-content .code-copy-btn .material-symbols-outlined {
+          font-size: 16px;
+          color: #94a3b8;
+        }
+        .post-content pre:hover .code-copy-btn {
+          opacity: 1;
+        }
+        .post-content .code-copy-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+        .post-content .code-copy-btn:hover .material-symbols-outlined {
+          color: #e2e8f0;
+        }
+        .post-content .code-copy-btn.copied {
+          opacity: 1;
+        }
+        .post-content .code-copy-btn.copied .material-symbols-outlined {
+          color: #22c55e;
+        }
+        .dark .post-content .code-copy-btn {
+          background: rgba(0, 0, 0, 0.3);
+        }
+        .dark .post-content .code-copy-btn:hover {
+          background: rgba(0, 0, 0, 0.5);
+        }
       `}</style>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -610,6 +701,7 @@ export default function PostDetailPage() {
 
               {/* Content */}
               <div
+                ref={contentRef}
                 className="post-content text-slate-700 dark:text-slate-300 leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: post.content }}
               />
