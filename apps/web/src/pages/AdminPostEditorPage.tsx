@@ -670,6 +670,9 @@ export default function AdminPostEditorPage() {
                 )}
               </button>
             )}
+            <p className="text-xs text-slate-500 mt-2">
+              권장 크기: 1200×675px (16:9 비율)
+            </p>
           </div>
 
           {/* Editor Tips */}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { api, type Comment, type CreateCommentData } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -43,6 +44,7 @@ interface CommentFormProps {
 
 function CommentForm({ postId, parentId, onSubmit, onCancel, isReply = false }: CommentFormProps) {
   const { user, isAuthenticated } = useAuth()
+  const location = useLocation()
   const [content, setContent] = useState('')
   const [guestName, setGuestName] = useState('')
   const [guestPassword, setGuestPassword] = useState('')
@@ -118,24 +120,40 @@ function CommentForm({ postId, parentId, onSubmit, onCancel, isReply = false }: 
 
         {/* Guest info fields */}
         {!isAuthenticated && (
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <input
-              type="text"
-              placeholder="이름 *"
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              maxLength={50}
-            />
-            <input
-              type="password"
-              placeholder="비밀번호 * (수정/삭제용)"
-              value={guestPassword}
-              onChange={(e) => setGuestPassword(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              maxLength={100}
-            />
-          </div>
+          <>
+            {/* Login prompt */}
+            <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                <span className="material-symbols-outlined text-[18px]">account_circle</span>
+                <span>로그인하면 더 편하게 댓글을 남길 수 있어요</span>
+              </div>
+              <Link
+                to="/login"
+                state={{ from: location.pathname }}
+                className="shrink-0 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+              >
+                로그인
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <input
+                type="text"
+                placeholder="이름 *"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                maxLength={50}
+              />
+              <input
+                type="password"
+                placeholder="비밀번호 * (수정/삭제용)"
+                value={guestPassword}
+                onChange={(e) => setGuestPassword(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                maxLength={100}
+              />
+            </div>
+          </>
         )}
 
         {/* Content textarea */}
