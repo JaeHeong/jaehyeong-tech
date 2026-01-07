@@ -368,6 +368,11 @@ export default function PostDetailPage() {
         /* Paragraphs */
         .post-content p { margin: 1rem 0; line-height: 1.8; }
         .post-content p:first-child { font-size: 1.125rem; }
+        /* Word break and wrap */
+        .post-content {
+          word-break: keep-all; /* Korean: don't break in middle of words */
+          overflow-wrap: break-word; /* Break long URLs/words if needed */
+        }
         /* Strong */
         .post-content strong { font-weight: 600; }
         /* Bookmark Card */
