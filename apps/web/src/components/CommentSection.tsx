@@ -302,7 +302,7 @@ function CommentItem({
         {comment.replies && comment.replies.length > 0 && (
           <div className="mt-4 space-y-4">
             {comment.replies.map((reply) => (
-              <div key={reply.id} className="flex gap-2">
+              <div key={reply.id} className="flex gap-2 ml-4">
                 <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[20px] mt-1 shrink-0">
                   subdirectory_arrow_right
                 </span>
@@ -466,7 +466,7 @@ function CommentItem({
       {comment.replies && comment.replies.length > 0 && (
         <div className="mt-3 space-y-3">
           {comment.replies.map((reply) => (
-            <div key={reply.id} className="flex gap-2">
+            <div key={reply.id} className="flex gap-2 ml-4">
               <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[20px] mt-1 shrink-0">
                 subdirectory_arrow_right
               </span>

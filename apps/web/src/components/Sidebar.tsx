@@ -19,7 +19,12 @@ interface PopularPost {
     name: string
   }
   viewCount: number
+  likeCount: number
 }
+
+// Same scoring formula as featured post: 1 like = 10 views
+const LIKE_WEIGHT = 10
+const calculateScore = (post: PopularPost) => (post.likeCount * LIKE_WEIGHT) + post.viewCount
 
 interface SidebarProps {
   showAuthor?: boolean
@@ -47,10 +52,14 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true }:
     }
 
     // Fetch popular posts (PUBLIC only - exclude private posts from ranking)
+    // Sort by score (likeCount * 10 + viewCount) same as featured post
     const fetchPopularPosts = async () => {
       try {
-        const response = await api.getPosts({ limit: 4, sortBy: 'viewCount', status: 'PUBLIC' })
-        setPopularPosts(response.posts)
+        const response = await api.getPosts({ limit: 20, status: 'PUBLIC' })
+        const sorted = response.posts
+          .sort((a, b) => calculateScore(b) - calculateScore(a))
+          .slice(0, 4)
+        setPopularPosts(sorted)
       } catch {
         setPopularPosts([])
       }
@@ -144,11 +153,16 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true }:
       {/* Popular Topics */}
       {showPopularTopics && (
         <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="p-2 bg-pink-500/10 rounded-lg text-pink-500">
-              <span className="material-symbols-outlined">trending_up</span>
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-pink-500/10 rounded-lg text-pink-500">
+                <span className="material-symbols-outlined">trending_up</span>
+              </div>
+              <h3 className="text-lg font-bold">인기 토픽</h3>
             </div>
-            <h3 className="text-lg font-bold">인기 토픽</h3>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">
+              ※ 좋아요·조회수 기반
+            </span>
           </div>
           <div className="flex flex-col gap-4">
             {popularPosts.length > 0 ? (
