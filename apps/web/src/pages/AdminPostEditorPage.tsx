@@ -609,50 +609,6 @@ export default function AdminPostEditorPage() {
             </p>
           </div>
 
-          {/* Publish Date */}
-          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-              발행 일시
-            </label>
-            <div className="flex gap-2 items-center">
-              {/* Date */}
-              <input
-                type="date"
-                value={formData.publishedAt ? formData.publishedAt.split('T')[0] || '' : ''}
-                onChange={(e) => {
-                  const date = e.target.value
-                  const time = formData.publishedAt?.split('T')[1] || '09:00'
-                  setFormData((prev) => ({ ...prev, publishedAt: date ? `${date}T${time}` : '' }))
-                }}
-                className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
-              />
-              {/* Time */}
-              <input
-                type="time"
-                value={formData.publishedAt ? formData.publishedAt.split('T')[1] || '' : ''}
-                onChange={(e) => {
-                  const time = e.target.value
-                  const date = formData.publishedAt?.split('T')[0] || new Date().toISOString().split('T')[0]
-                  setFormData((prev) => ({ ...prev, publishedAt: `${date}T${time}` }))
-                }}
-                className="w-28 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
-              />
-              {formData.publishedAt && (
-                <button
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, publishedAt: '' }))}
-                  className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                  title="초기화"
-                >
-                  <span className="material-symbols-outlined text-slate-500 text-[18px]">close</span>
-                </button>
-              )}
-            </div>
-            <p className="text-xs text-slate-500 mt-2">
-              비워두면 발행 시 현재 시간으로 설정됩니다.
-            </p>
-          </div>
-
           {/* Cover Image */}
           <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
