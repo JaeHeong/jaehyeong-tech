@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import Header from './Header'
 import Footer from './Footer'
@@ -35,30 +35,51 @@ const baseSidebarItems: Array<{
   { path: '/admin/settings', icon: 'settings', label: '설정' },
 ]
 
+// Polling interval for stats refresh (30 seconds)
+const STATS_POLLING_INTERVAL = 30000
+
 export default function AdminLayout() {
   const location = useLocation()
   const { logout, user } = useAuth()
   const [stats, setStats] = useState<SidebarStats | null>(null)
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await api.getDashboardStats()
-        setStats({
-          publishedPosts: response.stats.publishedPosts,
-          draftPosts: response.stats.draftPosts,
-          totalCategories: response.categories.length,
-          totalTags: response.tags.length,
-          totalPages: response.pages.static + response.pages.notice,
-          newComments: response.stats.newComments,
-          totalComments: response.stats.totalComments,
-        })
-      } catch {
-        // Silently fail - badges just won't show
-      }
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await api.getDashboardStats()
+      setStats({
+        publishedPosts: response.stats.publishedPosts,
+        draftPosts: response.stats.draftPosts,
+        totalCategories: response.categories.length,
+        totalTags: response.tags.length,
+        totalPages: response.pages.static + response.pages.notice,
+        newComments: response.stats.newComments,
+        totalComments: response.stats.totalComments,
+      })
+    } catch {
+      // Silently fail - badges just won't show
     }
-    fetchStats()
   }, [])
+
+  // Initial fetch + polling every 30 seconds
+  useEffect(() => {
+    fetchStats()
+    const interval = setInterval(fetchStats, STATS_POLLING_INTERVAL)
+    return () => clearInterval(interval)
+  }, [fetchStats])
+
+  // Refresh on window focus
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchStats()
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [fetchStats])
+
+  // Refresh on route change within admin
+  useEffect(() => {
+    fetchStats()
+  }, [location.pathname, fetchStats])
 
   // Check if we're on the post editor page (full width mode)
   const isEditorPage = location.pathname.includes('/posts/new') ||
