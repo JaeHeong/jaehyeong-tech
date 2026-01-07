@@ -754,9 +754,9 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
   }
 
   return (
-    <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col max-h-[70vh]">
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 overflow-x-auto">
+      <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 overflow-x-auto flex-shrink-0">
         {/* Headings */}
         <div className="flex items-center gap-1">
           <ToolbarButton
@@ -1070,8 +1070,10 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
         </div>
       )}
 
-      {/* Editor Content */}
-      <EditorContent editor={editor} />
+      {/* Editor Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto min-h-[300px]">
+        <EditorContent editor={editor} />
+      </div>
 
       {/* Styles for the editor */}
       <style>{`
