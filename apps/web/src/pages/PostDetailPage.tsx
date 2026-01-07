@@ -681,9 +681,17 @@ export default function PostDetailPage() {
               {/* Meta */}
               <div className="flex flex-wrap items-center gap-6 pb-8 border-b border-slate-100 dark:border-slate-800 mb-8">
                 <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    {post.author.name.charAt(0).toUpperCase()}
-                  </div>
+                  {post.author.avatar ? (
+                    <img
+                      src={post.author.avatar}
+                      alt={post.author.name}
+                      className="size-10 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                    />
+                  ) : (
+                    <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {post.author.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white">{post.author.name}</div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">Author</div>
