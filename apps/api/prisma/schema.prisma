@@ -137,6 +137,7 @@ model Page {
   viewCount   Int        @default(0)
   author      User       @relation(fields: [authorId], references: [id])
   authorId    String
+  views       PageView[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   publishedAt DateTime?
@@ -145,6 +146,18 @@ model Page {
   @@index([slug])
   @@index([isPinned, publishedAt])
   @@map("pages")
+}
+
+model PageView {
+  id        String   @id @default(cuid())
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId    String
+  ipHash    String   // Hashed IP for unique view tracking
+  createdAt DateTime @default(now())
+
+  @@unique([pageId, ipHash])
+  @@index([pageId])
+  @@map("page_views")
 }
 
 model Like {

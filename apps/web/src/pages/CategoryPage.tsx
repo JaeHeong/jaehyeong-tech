@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import api, { Category } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
+import MobileProfileModal from '../components/MobileProfileModal'
 
 const defaultCategories = [
   { name: 'DevOps', icon: 'settings_suggest', color: 'blue', posts: 0, description: '개발과 운영의 경계를 허무는 문화와 도구. Docker, CI/CD, 자동화 프로세스 구축에 대한 이야기입니다.' },
@@ -26,10 +27,107 @@ const categoryColorClasses: Record<string, { icon: string; hover: string }> = {
   red: { icon: 'bg-red-500/10 text-red-500 group-hover:bg-red-500', hover: 'group-hover:border-red-200 dark:group-hover:border-red-900' },
 }
 
+// Category card component for reuse
+interface CategoryCardProps {
+  category: Category | typeof defaultCategories[0]
+  size: 'mobile' | 'desktop'
+  user: { role?: string } | null
+}
+
+function CategoryCard({ category, size, user }: CategoryCardProps) {
+  const cat = 'slug' in category ? category : { ...category, slug: category.name.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-') }
+  const icon = 'icon' in category && category.icon ? category.icon : 'folder'
+  const color = 'color' in category && category.color ? category.color : 'blue'
+  const description = 'description' in category && category.description ? category.description : ''
+  const postCount = 'postCount' in category ? category.postCount : ('posts' in category ? category.posts : 0)
+  const privateCount = 'privateCount' in category ? category.privateCount : 0
+  const colorClasses = categoryColorClasses[color] ?? { icon: 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500', hover: 'group-hover:border-blue-200 dark:group-hover:border-blue-900' }
+
+  if (size === 'mobile') {
+    return (
+      <Link
+        to={`/categories/${cat.slug}`}
+        className="group flex-shrink-0 w-[260px] flex flex-col p-4 card hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer"
+      >
+        <div className="flex justify-between items-start mb-2">
+          <div className={`p-2 rounded-lg ${colorClasses.icon} group-hover:text-white transition-colors`}>
+            <span className="material-symbols-outlined text-[20px]">{icon}</span>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <span className={`px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold border border-slate-200 dark:border-slate-700 ${colorClasses.hover} transition-colors`}>
+              {postCount} Posts
+            </span>
+            {user?.role === 'ADMIN' && privateCount !== undefined && privateCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[9px] font-medium flex items-center gap-0.5">
+                <span className="material-symbols-outlined text-[10px]">visibility_off</span>
+                +{privateCount}
+              </span>
+            )}
+          </div>
+        </div>
+        <h3 className="text-base font-bold mb-1 group-hover:text-primary transition-colors">
+          {cat.name}
+        </h3>
+        <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed mb-2 flex-1 line-clamp-2">
+          {description}
+        </p>
+        <div className="flex items-center text-primary text-[11px] font-bold mt-auto">
+          탐색하기
+          <span className="material-symbols-outlined text-[12px] ml-1 transition-transform group-hover:translate-x-1">
+            arrow_forward
+          </span>
+        </div>
+      </Link>
+    )
+  }
+
+  return (
+    <Link
+      to={`/categories/${cat.slug}`}
+      className="group flex flex-col p-6 card hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer h-full"
+    >
+      <div className="flex justify-between items-start mb-4">
+        <div className={`p-3 rounded-lg ${colorClasses.icon} group-hover:text-white transition-colors`}>
+          <span className="material-symbols-outlined text-[28px]">{icon}</span>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <span className={`px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold border border-slate-200 dark:border-slate-700 ${colorClasses.hover} transition-colors`}>
+            {postCount} Posts
+          </span>
+          {user?.role === 'ADMIN' && privateCount !== undefined && privateCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-medium flex items-center gap-1">
+              <span className="material-symbols-outlined text-[12px]">visibility_off</span>
+              +{privateCount} 비공개
+            </span>
+          )}
+        </div>
+      </div>
+      <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+        {cat.name}
+      </h3>
+      <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4 flex-1">
+        {description}
+      </p>
+      <div className="flex items-center text-primary text-sm font-bold mt-auto">
+        탐색하기
+        <span className="material-symbols-outlined text-[16px] ml-1 transition-transform group-hover:translate-x-1">
+          arrow_forward
+        </span>
+      </div>
+    </Link>
+  )
+}
+
 export default function CategoryPage() {
   const { user } = useAuth()
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  // Refs for dual carousel sync
+  const topRowRef = useRef<HTMLDivElement>(null)
+  const bottomRowRef = useRef<HTMLDivElement>(null)
+  const isSyncing = useRef(false)
+  const lastScrollSource = useRef<'top' | 'bottom' | null>(null)
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -47,6 +145,73 @@ export default function CategoryPage() {
   }, [])
 
   const displayCategories = categories.length > 0 ? categories : defaultCategories
+
+  // Split categories for two rows
+  const midPoint = Math.ceil(displayCategories.length / 2)
+  const topCategories = displayCategories.slice(0, midPoint)
+  const bottomCategories = [...displayCategories.slice(midPoint)].reverse()
+
+  // Triple the arrays for infinite loop effect
+  const topLoop = [...topCategories, ...topCategories, ...topCategories]
+  const bottomLoop = [...bottomCategories, ...bottomCategories, ...bottomCategories]
+
+  const CARD_WIDTH = 268 // 260px card + 8px gap
+
+  // Initialize scroll position to middle section
+  useEffect(() => {
+    if (!isLoading && topRowRef.current && bottomRowRef.current) {
+      const topInitial = topCategories.length * CARD_WIDTH
+      const bottomInitial = bottomCategories.length * CARD_WIDTH
+      topRowRef.current.scrollLeft = topInitial
+      bottomRowRef.current.scrollLeft = bottomInitial
+    }
+  }, [isLoading, topCategories.length, bottomCategories.length])
+
+  // Handle infinite loop jump
+  const handleInfiniteLoop = useCallback((element: HTMLDivElement, itemCount: number) => {
+    const sectionWidth = itemCount * CARD_WIDTH
+    const scrollLeft = element.scrollLeft
+
+    if (scrollLeft < sectionWidth * 0.5) {
+      element.scrollLeft = scrollLeft + sectionWidth
+    } else if (scrollLeft > sectionWidth * 2.5) {
+      element.scrollLeft = scrollLeft - sectionWidth
+    }
+  }, [])
+
+  // Sync scroll between rows (opposite direction)
+  const handleScroll = useCallback((source: 'top' | 'bottom') => {
+    if (isSyncing.current) return
+
+    const sourceRef = source === 'top' ? topRowRef : bottomRowRef
+    const targetRef = source === 'top' ? bottomRowRef : topRowRef
+    const sourceItems = source === 'top' ? topCategories.length : bottomCategories.length
+    const targetItems = source === 'top' ? bottomCategories.length : topCategories.length
+
+    if (!sourceRef.current || !targetRef.current) return
+
+    lastScrollSource.current = source
+    isSyncing.current = true
+
+    const sourceElement = sourceRef.current
+    const targetElement = targetRef.current
+
+    // Calculate scroll ratio
+    const sourceSectionWidth = sourceItems * CARD_WIDTH
+    const targetSectionWidth = targetItems * CARD_WIDTH
+    const sourceScrollRatio = (sourceElement.scrollLeft % sourceSectionWidth) / sourceSectionWidth
+
+    // Apply inverse scroll to target (1 - ratio for opposite direction feel)
+    const targetScroll = targetSectionWidth + (1 - sourceScrollRatio) * targetSectionWidth
+    targetElement.scrollLeft = targetScroll
+
+    // Handle infinite loop
+    handleInfiniteLoop(sourceElement, sourceItems)
+
+    requestAnimationFrame(() => {
+      isSyncing.current = false
+    })
+  }, [topCategories.length, bottomCategories.length, handleInfiniteLoop])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -67,60 +232,77 @@ export default function CategoryPage() {
               </span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {displayCategories.map((category) => {
-                const cat = 'slug' in category ? category : { ...category, slug: category.name.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-') }
-                const icon = 'icon' in category && category.icon ? category.icon : 'folder'
-                const color = 'color' in category && category.color ? category.color : 'blue'
-                const description = 'description' in category && category.description ? category.description : ''
-                const postCount = 'postCount' in category ? category.postCount : ('posts' in category ? category.posts : 0)
-                const privateCount = 'privateCount' in category ? category.privateCount : 0
-                const colorClasses = categoryColorClasses[color] ?? { icon: 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500', hover: 'group-hover:border-blue-200 dark:group-hover:border-blue-900' }
+            <>
+              {/* Mobile Dual Carousel - Infinite Loop */}
+              <div className="md:hidden -mx-4 px-4 space-y-2">
+                {/* Top Row - scrolls right */}
+                <div
+                  ref={topRowRef}
+                  onScroll={() => handleScroll('top')}
+                  className="flex gap-2 overflow-x-auto scrollbar-hide"
+                  style={{ scrollBehavior: 'auto' }}
+                >
+                  {topLoop.map((category, index) => (
+                    <CategoryCard
+                      key={`top-${index}`}
+                      category={category}
+                      size="mobile"
+                      user={user}
+                    />
+                  ))}
+                </div>
 
-                return (
-                  <Link
-                    key={cat.name}
-                    to={`/categories/${cat.slug}`}
-                    className={`group flex flex-col p-6 card hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer h-full`}
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className={`p-3 rounded-lg ${colorClasses.icon} group-hover:text-white transition-colors`}>
-                        <span className="material-symbols-outlined text-[28px]">{icon}</span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className={`px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold border border-slate-200 dark:border-slate-700 ${colorClasses.hover} transition-colors`}>
-                          {postCount} Posts
-                        </span>
-                        {user?.role === 'ADMIN' && privateCount !== undefined && privateCount > 0 && (
-                          <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-medium flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[12px]">visibility_off</span>
-                            +{privateCount} 비공개
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
-                      {cat.name}
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4 flex-1">
-                      {description}
-                    </p>
-                    <div className="flex items-center text-primary text-sm font-bold mt-auto">
-                      탐색하기
-                      <span className="material-symbols-outlined text-[16px] ml-1 transition-transform group-hover:translate-x-1">
-                        arrow_forward
-                      </span>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
+                {/* Connection indicator */}
+                <div className="flex justify-center items-center py-1">
+                  <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                    <span className="material-symbols-outlined text-[14px] animate-pulse">sync_alt</span>
+                    <span className="text-[10px]">연결된 캐러셀</span>
+                  </div>
+                </div>
+
+                {/* Bottom Row - scrolls opposite */}
+                <div
+                  ref={bottomRowRef}
+                  onScroll={() => handleScroll('bottom')}
+                  className="flex gap-2 overflow-x-auto scrollbar-hide"
+                  style={{ scrollBehavior: 'auto' }}
+                >
+                  {bottomLoop.map((category, index) => (
+                    <CategoryCard
+                      key={`bottom-${index}`}
+                      category={category}
+                      size="mobile"
+                      user={user}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex justify-center gap-1 mt-3">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">← 스와이프하면 반대쪽도 움직여요 →</span>
+                </div>
+              </div>
+
+              {/* Desktop Grid */}
+              <div className="hidden md:grid md:grid-cols-2 gap-6">
+                {displayCategories.map((category, index) => (
+                  <CategoryCard
+                    key={`desktop-${index}`}
+                    category={category}
+                    size="desktop"
+                    user={user}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </main>
 
         {/* Sidebar */}
         <Sidebar />
       </div>
+
+      {/* Mobile Profile Modal */}
+      <MobileProfileModal />
     </div>
   )
 }

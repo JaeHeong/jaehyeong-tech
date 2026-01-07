@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express'
+import crypto from 'crypto'
 import { prisma } from '../services/prisma.js'
 import { AppError } from '../middleware/errorHandler.js'
 import type { AuthRequest } from '../middleware/auth.js'
@@ -6,6 +7,21 @@ import slugifyLib from 'slugify'
 
 type SlugifyFn = (str: string, opts?: { lower?: boolean; strict?: boolean }) => string
 const slugify: SlugifyFn = (slugifyLib as unknown as { default?: SlugifyFn }).default || (slugifyLib as unknown as SlugifyFn)
+
+// Hash IP address for unique view tracking
+function hashIP(ip: string): string {
+  const salt = process.env.IP_HASH_SALT || 'default-salt-change-in-production'
+  return crypto.createHash('sha256').update(ip + salt).digest('hex')
+}
+
+// Get client IP (considering reverse proxy)
+function getClientIP(req: Request): string {
+  const forwarded = req.headers['x-forwarded-for']
+  if (typeof forwarded === 'string') {
+    return forwarded.split(',')[0]?.trim() || req.ip || 'unknown'
+  }
+  return req.ip || 'unknown'
+}
 
 // Get all pages (public - only published, with filtering by type)
 export async function getPages(req: Request, res: Response, next: NextFunction) {
@@ -111,13 +127,62 @@ export async function getPageBySlug(req: Request, res: Response, next: NextFunct
       }
     }
 
-    // Increment view count
-    await prisma.page.update({
-      where: { id: page.id },
-      data: { viewCount: { increment: 1 } },
+    // Track unique view by IP hash (24-hour based)
+    const ipHash = hashIP(getClientIP(req))
+    let viewIncremented = false
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+
+    // Check if this IP has viewed this page within the last 24 hours
+    const existingView = await prisma.pageView.findUnique({
+      where: {
+        pageId_ipHash: {
+          pageId: page.id,
+          ipHash,
+        },
+      },
     })
 
-    res.json({ data: { ...page, viewCount: page.viewCount + 1 } })
+    if (!existingView) {
+      // New unique view - create view record and increment count
+      await prisma.$transaction([
+        prisma.pageView.create({
+          data: {
+            pageId: page.id,
+            ipHash,
+          },
+        }),
+        prisma.page.update({
+          where: { id: page.id },
+          data: { viewCount: { increment: 1 } },
+        }),
+      ])
+      viewIncremented = true
+    } else if (existingView.createdAt < twentyFourHoursAgo) {
+      // View record exists but is older than 24 hours - update timestamp and increment count
+      await prisma.$transaction([
+        prisma.pageView.update({
+          where: {
+            pageId_ipHash: {
+              pageId: page.id,
+              ipHash,
+            },
+          },
+          data: { createdAt: new Date() },
+        }),
+        prisma.page.update({
+          where: { id: page.id },
+          data: { viewCount: { increment: 1 } },
+        }),
+      ])
+      viewIncremented = true
+    }
+
+    res.json({
+      data: {
+        ...page,
+        viewCount: viewIncremented ? page.viewCount + 1 : page.viewCount
+      }
+    })
   } catch (error) {
     next(error)
   }

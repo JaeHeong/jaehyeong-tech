@@ -101,22 +101,22 @@ export default function PostListPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Main Content */}
-        <main className="lg:col-span-8 flex flex-col gap-8">
+        <main className="lg:col-span-8 flex flex-col gap-4 md:gap-8">
           {/* Header */}
-          <div className="flex flex-col gap-2 pb-4 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex flex-col gap-1 md:gap-2 pb-3 md:pb-4 border-b border-slate-200 dark:border-slate-800">
             {currentCategory ? (
               <>
-                <h1 className="text-3xl font-bold tracking-tight">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                   {categories.find(c => c.slug === currentCategory)?.name || currentCategory}
                 </h1>
-                <p className="text-slate-500 dark:text-slate-400 text-lg">
+                <p className="text-slate-500 dark:text-slate-400 text-sm md:text-lg">
                   {categories.find(c => c.slug === currentCategory)?.description || '카테고리별 글 목록입니다.'}
                 </p>
               </>
             ) : (
               <>
-                <h1 className="text-3xl font-bold tracking-tight">글 목록</h1>
-                <p className="text-slate-500 dark:text-slate-400 text-lg">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">글 목록</h1>
+                <p className="text-slate-500 dark:text-slate-400 text-sm md:text-lg">
                   DevOps, MLOps, 클라우드 인프라에 대한 기술 글을 공유합니다.
                 </p>
               </>
@@ -129,8 +129,8 @@ export default function PostListPage() {
               to={`/posts/${featuredPost.slug}`}
               className="group relative overflow-hidden rounded-xl card hover:shadow-lg transition-shadow"
             >
-              <div className="flex flex-col md:flex-row">
-                <div className="md:w-2/5 h-48 md:h-auto relative overflow-hidden">
+              <div className="flex flex-row">
+                <div className="w-1/3 md:w-2/5 min-h-[120px] md:min-h-[200px] relative overflow-hidden">
                   {featuredPost.coverImage ? (
                     <img
                       src={featuredPost.coverImage}
@@ -139,40 +139,40 @@ export default function PostListPage() {
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-5xl text-slate-400">
+                      <span className="material-symbols-outlined text-3xl md:text-5xl text-slate-400">
                         {featuredPost.category?.icon || 'article'}
                       </span>
                     </div>
                   )}
-                  <span className="absolute top-3 left-3 px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-full shadow">
-                    {currentCategory ? 'Top in Category' : 'Featured'}
+                  <span className="absolute top-2 left-2 md:top-3 md:left-3 px-2 py-0.5 md:px-2.5 md:py-1 bg-primary text-white text-[10px] md:text-xs font-bold rounded-full shadow">
+                    {currentCategory ? 'Top' : 'Featured'}
                   </span>
                 </div>
-                <div className="md:w-3/5 p-6">
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
+                <div className="w-2/3 md:w-3/5 p-3 md:p-6 flex flex-col justify-center">
+                  <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs text-slate-500 mb-1 md:mb-3">
                     <span className="font-bold text-primary">{featuredPost.category?.name}</span>
                     {user?.role === 'ADMIN' && featuredPost.status === 'PRIVATE' && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                        <span className="material-symbols-outlined text-[14px]">visibility_off</span>
-                        <span className="text-[10px] font-medium">비공개</span>
+                      <span className="inline-flex items-center gap-0.5 md:gap-1 px-1 md:px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                        <span className="material-symbols-outlined text-[12px] md:text-[14px]">visibility_off</span>
+                        <span className="text-[8px] md:text-[10px] font-medium">비공개</span>
                       </span>
                     )}
-                    <span>•</span>
-                    <span>{formatDate(featuredPost.publishedAt || featuredPost.createdAt)}</span>
+                    <span className="hidden md:inline">•</span>
+                    <span className="hidden md:inline">{formatDate(featuredPost.publishedAt || featuredPost.createdAt)}</span>
                   </div>
-                  <h2 className="text-2xl font-bold mb-3 group-hover:text-primary transition-colors line-clamp-2">
+                  <h2 className="text-base md:text-2xl font-bold mb-1 md:mb-3 group-hover:text-primary transition-colors line-clamp-2">
                     {featuredPost.title}
                   </h2>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-4">
+                  <p className="hidden md:block text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-4">
                     {featuredPost.excerpt}
                   </p>
-                  <div className="flex items-center gap-4 text-xs text-slate-400">
+                  <div className="flex items-center gap-2 md:gap-4 text-[10px] md:text-xs text-slate-400">
                     <div className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[16px]">visibility</span>
+                      <span className="material-symbols-outlined text-[14px] md:text-[16px]">visibility</span>
                       {formatViewCount(featuredPost.viewCount)}
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[16px]">schedule</span>
+                      <span className="material-symbols-outlined text-[14px] md:text-[16px]">schedule</span>
                       {featuredPost.readingTime} min
                     </div>
                   </div>
@@ -218,15 +218,15 @@ export default function PostListPage() {
               </span>
             </div>
           ) : posts.length > 0 ? (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4 md:gap-6">
               {posts.map((post) => (
                 <article
                   key={post.id}
-                  className="group flex flex-col md:flex-row gap-6 items-start pb-6 border-b border-slate-200 dark:border-slate-800 last:border-0"
+                  className="group flex flex-row gap-3 md:gap-6 items-start pb-4 md:pb-6 border-b border-slate-200 dark:border-slate-800 last:border-0"
                 >
                   <Link
                     to={`/posts/${post.slug}`}
-                    className="w-full md:w-48 aspect-video md:aspect-[4/3] rounded-lg overflow-hidden shrink-0 border border-slate-100 dark:border-slate-800/50 group-hover:border-primary/20 transition-colors"
+                    className="w-28 md:w-48 aspect-[4/3] rounded-lg overflow-hidden shrink-0 border border-slate-100 dark:border-slate-800/50 group-hover:border-primary/20 transition-colors"
                   >
                     {post.coverImage ? (
                       <img
@@ -236,40 +236,40 @@ export default function PostListPage() {
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-4xl text-slate-400">
+                        <span className="material-symbols-outlined text-2xl md:text-4xl text-slate-400">
                           {post.category?.icon || 'article'}
                         </span>
                       </div>
                     )}
                   </Link>
                   <div className="flex-1 min-w-0 flex flex-col h-full">
-                    <div className="flex items-center gap-3 text-xs mb-2">
-                      <span className="font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">
+                    <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-xs mb-1 md:mb-2">
+                      <span className="font-bold px-1.5 md:px-2 py-0.5 rounded bg-primary/10 text-primary">
                         {post.category?.name || 'Uncategorized'}
                       </span>
                       {user?.role === 'ADMIN' && post.status === 'PRIVATE' && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                          <span className="material-symbols-outlined text-[14px]">visibility_off</span>
-                          <span className="text-[10px] font-medium">비공개</span>
+                        <span className="inline-flex items-center gap-0.5 md:gap-1 px-1 md:px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                          <span className="material-symbols-outlined text-[12px] md:text-[14px]">visibility_off</span>
+                          <span className="text-[8px] md:text-[10px] font-medium">비공개</span>
                         </span>
                       )}
                       <span className="text-slate-400">
                         {formatDate(post.publishedAt || post.createdAt)}
                       </span>
                     </div>
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                    <h3 className="text-sm md:text-xl font-bold mb-1 md:mb-2 group-hover:text-primary transition-colors line-clamp-2 md:line-clamp-2">
                       <Link to={`/posts/${post.slug}`}>{post.title}</Link>
                     </h3>
-                    <Link to={`/posts/${post.slug}`} className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3 block">
+                    <Link to={`/posts/${post.slug}`} className="hidden md:block text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3">
                       {post.excerpt}
                     </Link>
-                    <div className="flex items-center gap-4 mt-auto">
-                      <div className="flex items-center gap-1 text-slate-400 text-xs">
-                        <span className="material-symbols-outlined text-[16px]">visibility</span>
+                    <div className="flex items-center gap-2 md:gap-4 mt-auto">
+                      <div className="flex items-center gap-1 text-slate-400 text-[10px] md:text-xs">
+                        <span className="material-symbols-outlined text-[14px] md:text-[16px]">visibility</span>
                         {formatViewCount(post.viewCount)}
                       </div>
-                      <div className="flex items-center gap-1 text-slate-400 text-xs">
-                        <span className="material-symbols-outlined text-[16px]">schedule</span>
+                      <div className="flex items-center gap-1 text-slate-400 text-[10px] md:text-xs">
+                        <span className="material-symbols-outlined text-[14px] md:text-[16px]">schedule</span>
                         {post.readingTime} min
                       </div>
                     </div>
@@ -287,7 +287,7 @@ export default function PostListPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 pt-4">
+            <div className="flex justify-center items-center gap-1 pt-4">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
@@ -295,42 +295,76 @@ export default function PostListPage() {
               >
                 <span className="material-symbols-outlined text-[20px]">chevron_left</span>
               </button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let page: number
-                if (totalPages <= 5) {
-                  page = i + 1
-                } else if (currentPage <= 3) {
-                  page = i + 1
-                } else if (currentPage >= totalPages - 2) {
-                  page = totalPages - 4 + i
+              {(() => {
+                // 모바일: 중간 1개, 데스크톱: 중간 3개
+                const pagesDesktop: (number | 'ellipsis-left' | 'ellipsis-right')[] = []
+                const pagesMobile: (number | 'ellipsis-left' | 'ellipsis-right')[] = []
+
+                // 데스크톱 로직
+                if (totalPages <= 7) {
+                  for (let i = 1; i <= totalPages; i++) pagesDesktop.push(i)
+                } else if (currentPage <= 4) {
+                  for (let i = 1; i <= 5; i++) pagesDesktop.push(i)
+                  pagesDesktop.push('ellipsis-right')
+                  pagesDesktop.push(totalPages)
+                } else if (currentPage >= totalPages - 3) {
+                  pagesDesktop.push(1)
+                  pagesDesktop.push('ellipsis-left')
+                  for (let i = totalPages - 4; i <= totalPages; i++) pagesDesktop.push(i)
                 } else {
-                  page = currentPage - 2 + i
+                  pagesDesktop.push(1)
+                  pagesDesktop.push('ellipsis-left')
+                  for (let i = currentPage - 1; i <= currentPage + 1; i++) pagesDesktop.push(i)
+                  pagesDesktop.push('ellipsis-right')
+                  pagesDesktop.push(totalPages)
                 }
+
+                // 모바일 로직 (중간 1개)
+                if (totalPages <= 5) {
+                  for (let i = 1; i <= totalPages; i++) pagesMobile.push(i)
+                } else if (currentPage <= 2) {
+                  for (let i = 1; i <= 3; i++) pagesMobile.push(i)
+                  pagesMobile.push('ellipsis-right')
+                  pagesMobile.push(totalPages)
+                } else if (currentPage >= totalPages - 1) {
+                  pagesMobile.push(1)
+                  pagesMobile.push('ellipsis-left')
+                  for (let i = totalPages - 2; i <= totalPages; i++) pagesMobile.push(i)
+                } else {
+                  pagesMobile.push(1)
+                  pagesMobile.push('ellipsis-left')
+                  pagesMobile.push(currentPage)
+                  pagesMobile.push('ellipsis-right')
+                  pagesMobile.push(totalPages)
+                }
+
+                const renderPages = (pages: (number | 'ellipsis-left' | 'ellipsis-right')[], isMobile: boolean) =>
+                  pages.map((page, idx) => {
+                    if (page === 'ellipsis-left' || page === 'ellipsis-right') {
+                      return <span key={`${isMobile ? 'm' : 'd'}-${page}`} className="text-slate-400 px-1 md:px-2">...</span>
+                    }
+                    return (
+                      <button
+                        key={`${isMobile ? 'm' : 'd'}-${idx}`}
+                        onClick={() => handlePageChange(page)}
+                        className={`px-2.5 md:px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === page
+                            ? 'bg-primary text-white shadow-md shadow-primary/20'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  })
+
                 return (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      currentPage === page
-                        ? 'bg-primary text-white shadow-md shadow-primary/20'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    {page}
-                  </button>
+                  <>
+                    <div className="hidden md:flex items-center gap-1">{renderPages(pagesDesktop, false)}</div>
+                    <div className="flex md:hidden items-center gap-1">{renderPages(pagesMobile, true)}</div>
+                  </>
                 )
-              })}
-              {totalPages > 5 && currentPage < totalPages - 2 && (
-                <>
-                  <span className="text-slate-400 px-2">...</span>
-                  <button
-                    onClick={() => handlePageChange(totalPages)}
-                    className="px-4 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition-colors"
-                  >
-                    {totalPages}
-                  </button>
-                </>
-              )}
+              })()}
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
+import MobileProfileModal from '../components/MobileProfileModal'
 import api, { type Page } from '../services/api'
 
 export default function NoticePage() {
@@ -51,14 +52,14 @@ export default function NoticePage() {
         <main className="lg:col-span-8">
           <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 md:p-10 min-h-[600px]">
             {/* Header */}
-            <div className="border-b border-slate-200 dark:border-slate-800 pb-8 mb-8">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
-                  <span className="material-symbols-outlined text-2xl">campaign</span>
+            <div className="border-b border-slate-200 dark:border-slate-800 pb-6 md:pb-8 mb-6 md:mb-8">
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                <div className="p-2 md:p-2.5 bg-primary/10 rounded-xl text-primary">
+                  <span className="material-symbols-outlined text-xl md:text-2xl">campaign</span>
                 </div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">공지사항</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">공지사항</h1>
               </div>
-              <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
+              <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base leading-relaxed">
                 jaehyeong tech 블로그의 주요 소식과 업데이트, 그리고 서비스 관련 안내사항을 확인하실 수 있습니다.
               </p>
             </div>
@@ -81,27 +82,27 @@ export default function NoticePage() {
                   <Link
                     key={notice.id}
                     to={`/notices/${notice.slug}`}
-                    className="block p-6 rounded-xl bg-primary/5 border border-primary/10 relative overflow-hidden group"
+                    className="block p-4 md:p-6 rounded-xl bg-primary/5 border border-primary/10 relative overflow-hidden group"
                   >
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                      <span className="material-symbols-outlined text-6xl text-primary">bookmark_star</span>
+                      <span className="material-symbols-outlined text-4xl md:text-6xl text-primary">bookmark_star</span>
                     </div>
                     <div className="relative z-10">
-                      <div className="flex flex-wrap items-center gap-3 mb-3">
+                      <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-2 md:mb-3">
                         {notice.badge && (
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${getBadgeStyle(notice.badge, notice.badgeColor)}`}>
+                          <span className={`px-2 md:px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-bold ${getBadgeStyle(notice.badge, notice.badgeColor)}`}>
                             {notice.badge}
                           </span>
                         )}
-                        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                        <span className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
                           {formatDate(notice.publishedAt || notice.createdAt)}
                         </span>
                       </div>
-                      <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-primary transition-colors">
+                      <h2 className="text-base md:text-xl font-bold text-slate-900 dark:text-white mb-2 md:mb-3 group-hover:text-primary transition-colors line-clamp-2">
                         {notice.title}
                       </h2>
                       {notice.excerpt && (
-                        <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed line-clamp-3">
+                        <p className="hidden md:block text-slate-600 dark:text-slate-300 text-sm leading-relaxed line-clamp-3">
                           {notice.excerpt}
                         </p>
                       )}
@@ -114,25 +115,25 @@ export default function NoticePage() {
                   <Link
                     key={notice.id}
                     to={`/notices/${notice.slug}`}
-                    className="group block border-b border-slate-100 dark:border-slate-800 pb-8 last:border-0 last:pb-0"
+                    className="group block border-b border-slate-100 dark:border-slate-800 pb-6 md:pb-8 last:border-0 last:pb-0"
                   >
-                    <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-3">
+                    <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1 md:gap-2 mb-2 md:mb-3">
+                      <div className="flex items-center gap-2 md:gap-3">
                         {notice.badge && (
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${getBadgeStyle(notice.badge, notice.badgeColor)}`}>
+                          <span className={`px-2 md:px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-bold ${getBadgeStyle(notice.badge, notice.badgeColor)}`}>
                             {notice.badge}
                           </span>
                         )}
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">
+                        <h3 className="text-sm md:text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-2">
                           {notice.title}
                         </h3>
                       </div>
-                      <span className="text-sm text-slate-400 shrink-0">
+                      <span className="text-xs md:text-sm text-slate-400 shrink-0">
                         {formatDate(notice.publishedAt || notice.createdAt)}
                       </span>
                     </div>
                     {notice.excerpt && (
-                      <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed">
+                      <p className="hidden md:block text-slate-600 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed">
                         {notice.excerpt}
                       </p>
                     )}
@@ -181,6 +182,9 @@ export default function NoticePage() {
         {/* Sidebar */}
         <Sidebar />
       </div>
+
+      {/* Mobile Profile Modal */}
+      <MobileProfileModal />
     </div>
   )
 }

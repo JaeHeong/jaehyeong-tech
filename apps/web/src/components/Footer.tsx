@@ -31,31 +31,31 @@ export default function Footer() {
   const oldBlog = author?.twitter || 'https://jaehyeong.tistory.com/'
 
   return (
-    <footer className="border-t border-slate-200 dark:border-slate-800 py-10 mt-12 bg-card-light dark:bg-card-dark">
-      <div className="container-wrapper flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-4">
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
+    <footer className="border-t border-slate-200 dark:border-slate-800 py-6 md:py-10 mt-8 md:mt-12 bg-card-light dark:bg-card-dark">
+      <div className="container-wrapper flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
+          <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm">
             © {currentYear} jaehyeong tech. All rights reserved.
           </p>
           <Link
             to="/privacy"
-            className="text-slate-400 hover:text-primary transition-colors text-sm"
+            className="text-slate-400 hover:text-primary transition-colors text-xs md:text-sm"
           >
             개인정보처리방침
           </Link>
         </div>
-        <div className="flex gap-6">
+        <div className="flex gap-4 md:gap-6">
           <a
             href="/rss.xml"
             className="text-slate-400 hover:text-primary transition-colors"
           >
-            <span className="material-symbols-outlined">rss_feed</span>
+            <span className="material-symbols-outlined text-[20px] md:text-[24px]">rss_feed</span>
           </a>
           <a
             href={oldBlog}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-slate-400 hover:text-primary transition-colors"
+            className="text-slate-400 hover:text-primary transition-colors text-xs md:text-sm"
           >
             구 블로그
           </a>
@@ -63,7 +63,7 @@ export default function Footer() {
             href={github}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-slate-400 hover:text-primary transition-colors"
+            className="text-slate-400 hover:text-primary transition-colors text-xs md:text-sm"
           >
             GitHub
           </a>
@@ -71,7 +71,7 @@ export default function Footer() {
             href={linkedin}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-slate-400 hover:text-primary transition-colors"
+            className="text-slate-400 hover:text-primary transition-colors text-xs md:text-sm"
           >
             LinkedIn
           </a>

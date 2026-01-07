@@ -58,136 +58,81 @@ export default function HomePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Featured Post - Full Width */}
-      <section className="mb-16">
+      <section className="mb-10 md:mb-16">
         {featuredPost ? (
           <Link
             to={`/posts/${featuredPost.slug}`}
-            className="relative overflow-hidden rounded-2xl card shadow-sm hover:shadow-md transition-shadow group cursor-pointer block"
+            className="relative overflow-hidden rounded-xl md:rounded-2xl card shadow-sm hover:shadow-md transition-shadow group cursor-pointer block"
           >
-            <div className="grid lg:grid-cols-2 gap-8 items-center">
-              <div className="p-8 lg:p-12 flex flex-col justify-center h-full">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
-                    Featured
-                  </span>
+            <div className="flex flex-row lg:grid lg:grid-cols-2 lg:gap-8 items-center">
+              {/* Mobile: Image first (left), Desktop: Text first */}
+              <div className="w-1/3 lg:w-auto lg:order-1 min-h-[120px] md:min-h-[200px] lg:min-h-[320px] lg:h-full relative overflow-hidden order-1 lg:order-2">
+                {featuredPost.coverImage ? (
+                  <div
+                    className="w-full h-full min-h-[120px] md:min-h-[200px] lg:min-h-[320px] bg-cover bg-center"
+                    style={{ backgroundImage: `url(${featuredPost.coverImage})` }}
+                  />
+                ) : (
+                  <div className="w-full h-full min-h-[120px] md:min-h-[200px] lg:min-h-[320px] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center relative overflow-hidden">
+                    <span className="material-symbols-outlined text-3xl md:text-5xl text-slate-400">
+                      article
+                    </span>
+                  </div>
+                )}
+                <span className="absolute top-2 left-2 md:top-3 md:left-3 px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-primary/90 text-white text-[10px] md:text-xs font-bold uppercase tracking-wider">
+                  Featured
+                </span>
+              </div>
+              <div className="w-2/3 lg:w-auto p-3 md:p-6 lg:p-12 flex flex-col justify-center h-full order-2 lg:order-1">
+                <div className="flex items-center gap-2 mb-1 md:mb-4 lg:mb-6">
                   {user?.role === 'ADMIN' && featuredPost.status === 'PRIVATE' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                    <span className="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                       <span className="material-symbols-outlined text-[14px]">visibility_off</span>
                       <span className="text-xs font-medium">비공개</span>
                     </span>
                   )}
-                  <span className="text-slate-500 dark:text-slate-400 text-sm">
+                  <span className="text-slate-500 dark:text-slate-400 text-[10px] md:text-sm">
                     {formatDate(featuredPost.publishedAt || featuredPost.createdAt)}
                   </span>
                 </div>
-                <h2 className="text-3xl lg:text-4xl font-bold tracking-tight mb-4 leading-tight group-hover:text-primary transition-colors">
+                <h2 className="text-base md:text-2xl lg:text-4xl font-bold tracking-tight mb-1 md:mb-3 lg:mb-4 leading-tight group-hover:text-primary transition-colors line-clamp-2">
                   {featuredPost.title}
                 </h2>
-                <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed mb-8">
+                <p className="hidden md:block text-slate-600 dark:text-slate-400 text-sm lg:text-lg leading-relaxed mb-4 lg:mb-8 line-clamp-2 lg:line-clamp-none">
                   {featuredPost.excerpt}
                 </p>
-                <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white mt-auto">
+                <div className="hidden md:flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white mt-auto">
                   <span>자세히 읽기</span>
                   <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">
                     arrow_forward
                   </span>
                 </div>
               </div>
-              {featuredPost.coverImage ? (
-                <div
-                  className="h-64 lg:h-full min-h-[320px] bg-cover bg-center"
-                  style={{ backgroundImage: `url(${featuredPost.coverImage})` }}
-                />
-              ) : (
-                <div className="h-64 lg:h-full min-h-[320px] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center relative overflow-hidden">
-                  <div
-                    className="absolute inset-0 opacity-10"
-                    style={{
-                      backgroundImage: 'radial-gradient(circle at 2px 2px, gray 1px, transparent 0)',
-                      backgroundSize: '24px 24px',
-                    }}
-                  />
-                  <div className="p-8 bg-card-light dark:bg-card-dark rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-sm w-full mx-8 transform rotate-3 transition-transform group-hover:rotate-0 duration-500">
-                    <div className="flex items-center gap-3 mb-4 border-b border-slate-100 dark:border-slate-700 pb-4">
-                      <div className="size-3 rounded-full bg-red-500" />
-                      <div className="size-3 rounded-full bg-amber-500" />
-                      <div className="size-3 rounded-full bg-green-500" />
-                    </div>
-                    <div className="space-y-3">
-                      <div className="h-2 w-2/3 bg-slate-200 dark:bg-slate-700 rounded" />
-                      <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded" />
-                      <div className="h-2 w-5/6 bg-slate-200 dark:bg-slate-700 rounded" />
-                      <div className="h-2 w-4/5 bg-slate-200 dark:bg-slate-700 rounded" />
-                    </div>
-                    <div className="mt-6 flex justify-between items-center">
-                      <div className="flex -space-x-2">
-                        <div className="size-8 rounded-full bg-blue-500 border-2 border-white dark:border-slate-800" />
-                        <div className="size-8 rounded-full bg-indigo-500 border-2 border-white dark:border-slate-800" />
-                      </div>
-                      <div className="px-3 py-1 bg-green-500/10 text-green-600 rounded text-xs font-bold">
-                        Passing
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </Link>
         ) : (
-          <div className="relative overflow-hidden rounded-2xl card shadow-sm group cursor-pointer">
-            <div className="grid lg:grid-cols-2 gap-8 items-center">
-              <div className="p-8 lg:p-12 flex flex-col justify-center h-full">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
-                    Featured
-                  </span>
-                  <span className="text-slate-500 dark:text-slate-400 text-sm">
+          <div className="relative overflow-hidden rounded-xl md:rounded-2xl card shadow-sm group cursor-pointer">
+            <div className="flex flex-row lg:grid lg:grid-cols-2 lg:gap-8 items-center">
+              <div className="w-1/3 lg:w-auto min-h-[120px] md:min-h-[200px] lg:min-h-[320px] lg:h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center relative overflow-hidden order-1 lg:order-2">
+                <span className="material-symbols-outlined text-3xl md:text-5xl text-slate-400">
+                  article
+                </span>
+                <span className="absolute top-2 left-2 md:top-3 md:left-3 px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-primary/90 text-white text-[10px] md:text-xs font-bold uppercase tracking-wider">
+                  Featured
+                </span>
+              </div>
+              <div className="w-2/3 lg:w-auto p-3 md:p-6 lg:p-12 flex flex-col justify-center h-full order-2 lg:order-1">
+                <div className="flex items-center gap-2 mb-1 md:mb-4 lg:mb-6">
+                  <span className="text-slate-500 dark:text-slate-400 text-[10px] md:text-sm">
                     Coming Soon
                   </span>
                 </div>
-                <h2 className="text-3xl lg:text-4xl font-bold tracking-tight mb-4 leading-tight group-hover:text-primary transition-colors">
-                  Kubernetes 환경에서의 대규모 MLOps 파이프라인 구축 가이드
+                <h2 className="text-base md:text-2xl lg:text-4xl font-bold tracking-tight mb-1 md:mb-3 lg:mb-4 leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                  첫 번째 글을 작성해보세요
                 </h2>
-                <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed mb-8">
-                  Kubeflow와 MLflow를 활용하여 모델 학습부터 배포, 모니터링까지 이어지는 엔드투엔드 머신러닝 파이프라인을 구축했던 경험과 마주했던 트러블슈팅 과정을 상세히 공유합니다.
+                <p className="hidden md:block text-slate-600 dark:text-slate-400 text-sm lg:text-lg leading-relaxed mb-4 lg:mb-8 line-clamp-2">
+                  DevOps, MLOps, 클라우드 인프라에 대한 기술 글을 공유합니다.
                 </p>
-                <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white mt-auto">
-                  <span>자세히 읽기</span>
-                  <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">
-                    arrow_forward
-                  </span>
-                </div>
-              </div>
-              <div className="h-64 lg:h-full min-h-[320px] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center relative overflow-hidden">
-                <div
-                  className="absolute inset-0 opacity-10"
-                  style={{
-                    backgroundImage: 'radial-gradient(circle at 2px 2px, gray 1px, transparent 0)',
-                    backgroundSize: '24px 24px',
-                  }}
-                />
-                <div className="p-8 bg-card-light dark:bg-card-dark rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-sm w-full mx-8 transform rotate-3 transition-transform group-hover:rotate-0 duration-500">
-                  <div className="flex items-center gap-3 mb-4 border-b border-slate-100 dark:border-slate-700 pb-4">
-                    <div className="size-3 rounded-full bg-red-500" />
-                    <div className="size-3 rounded-full bg-amber-500" />
-                    <div className="size-3 rounded-full bg-green-500" />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="h-2 w-2/3 bg-slate-200 dark:bg-slate-700 rounded" />
-                    <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded" />
-                    <div className="h-2 w-5/6 bg-slate-200 dark:bg-slate-700 rounded" />
-                    <div className="h-2 w-4/5 bg-slate-200 dark:bg-slate-700 rounded" />
-                  </div>
-                  <div className="mt-6 flex justify-between items-center">
-                    <div className="flex -space-x-2">
-                      <div className="size-8 rounded-full bg-blue-500 border-2 border-white dark:border-slate-800" />
-                      <div className="size-8 rounded-full bg-indigo-500 border-2 border-white dark:border-slate-800" />
-                    </div>
-                    <div className="px-3 py-1 bg-green-500/10 text-green-600 rounded text-xs font-bold">
-                      Passing
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -195,11 +140,11 @@ export default function HomePage() {
       </section>
 
       {/* Categories */}
-      <section className="mb-16">
-        <div className="flex items-end justify-between mb-8">
+      <section className="mb-10 md:mb-16">
+        <div className="flex items-end justify-between mb-4 md:mb-8">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight mb-2">주요 주제</h2>
-            <p className="text-slate-500 dark:text-slate-400">
+            <h2 className="text-xl md:text-2xl font-bold tracking-tight mb-1 md:mb-2">주요 주제</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base">
               DevOps와 AI 기술의 핵심 영역을 탐구합니다.
             </p>
           </div>
@@ -210,7 +155,7 @@ export default function HomePage() {
             전체 카테고리 보기
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {displayCategories.map((category) => {
             const cat = 'slug' in category ? category : { ...category, slug: category.name.toLowerCase().replace(/ /g, '-') }
             const icon = 'icon' in category && category.icon ? category.icon : 'folder'
@@ -221,29 +166,41 @@ export default function HomePage() {
               <Link
                 key={cat.name}
                 to={`/categories/${cat.slug}`}
-                className="group p-6 rounded-xl card hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer"
+                className="group p-4 md:p-6 rounded-xl card hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer"
               >
                 <div
-                  className={`size-12 rounded-lg bg-${color}-500/10 text-${color}-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}
+                  className={`size-10 md:size-12 rounded-lg bg-${color}-500/10 text-${color}-500 flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform duration-300`}
                 >
-                  <span className="material-symbols-outlined text-[28px]">{icon}</span>
+                  <span className="material-symbols-outlined text-[24px] md:text-[28px]">{icon}</span>
                 </div>
-                <h3 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors">
+                <h3 className="text-base md:text-lg font-bold mb-1 md:mb-2 group-hover:text-primary transition-colors">
                   {cat.name}
                 </h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2">
+                <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm line-clamp-2">
                   {description}
                 </p>
               </Link>
             )
           })}
         </div>
+        {/* Mobile: 전체 카테고리 보기 링크 */}
+        <Link
+          to="/categories"
+          className="sm:hidden flex items-center justify-center gap-2 py-3 mt-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-primary/5 transition-all group"
+        >
+          <span className="font-medium text-sm text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">
+            전체 카테고리 보기
+          </span>
+          <span className="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all">
+            arrow_forward
+          </span>
+        </Link>
       </section>
 
       {/* Latest Posts with Sidebar */}
       <section>
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold tracking-tight">최신 게시글</h2>
+        <div className="flex items-center justify-between mb-4 md:mb-8">
+          <h2 className="text-xl md:text-2xl font-bold tracking-tight">최신 게시글</h2>
           <Link
             to="/posts"
             className="text-sm font-bold text-primary hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
@@ -262,15 +219,15 @@ export default function HomePage() {
                 </span>
               </div>
             ) : latestPosts.length > 0 ? (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4 md:gap-6">
                 {latestPosts.map((post) => (
                   <article
                     key={post.id}
-                    className="group flex flex-col md:flex-row gap-6 items-start pb-6 border-b border-slate-200 dark:border-slate-800"
+                    className="group flex flex-row gap-3 md:gap-6 items-start pb-4 md:pb-6 border-b border-slate-200 dark:border-slate-800"
                   >
                     <Link
                       to={`/posts/${post.slug}`}
-                      className="w-full md:w-48 aspect-video md:aspect-[4/3] rounded-lg overflow-hidden shrink-0 border border-slate-100 dark:border-slate-800/50 group-hover:border-primary/20 transition-colors"
+                      className="w-28 md:w-48 aspect-[4/3] rounded-lg overflow-hidden shrink-0 border border-slate-100 dark:border-slate-800/50 group-hover:border-primary/20 transition-colors"
                     >
                       {post.coverImage ? (
                         <img
@@ -280,38 +237,38 @@ export default function HomePage() {
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-4xl text-slate-400">
+                          <span className="material-symbols-outlined text-2xl md:text-4xl text-slate-400">
                             {post.category?.icon || 'article'}
                           </span>
                         </div>
                       )}
                     </Link>
                     <div className="flex-1 min-w-0 flex flex-col h-full">
-                      <div className="flex items-center gap-3 text-xs mb-2">
-                        <span className="font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">
+                      <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-xs mb-1 md:mb-2">
+                        <span className="font-bold px-1.5 md:px-2 py-0.5 rounded bg-primary/10 text-primary">
                           {post.category?.name || 'Uncategorized'}
                         </span>
                         {user?.role === 'ADMIN' && post.status === 'PRIVATE' && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                            <span className="material-symbols-outlined text-[14px]">visibility_off</span>
-                            <span className="text-[10px] font-medium">비공개</span>
+                          <span className="inline-flex items-center gap-0.5 md:gap-1 px-1 md:px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                            <span className="material-symbols-outlined text-[12px] md:text-[14px]">visibility_off</span>
+                            <span className="text-[8px] md:text-[10px] font-medium">비공개</span>
                           </span>
                         )}
                         <span className="text-slate-400">{formatDate(post.publishedAt || post.createdAt)}</span>
                       </div>
-                      <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+                      <h3 className="text-sm md:text-xl font-bold mb-1 md:mb-2 group-hover:text-primary transition-colors line-clamp-2 md:line-clamp-1">
                         <Link to={`/posts/${post.slug}`}>{post.title}</Link>
                       </h3>
-                      <Link to={`/posts/${post.slug}`} className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3 block">
+                      <Link to={`/posts/${post.slug}`} className="hidden md:block text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3">
                         {post.excerpt}
                       </Link>
-                      <div className="flex items-center gap-4 mt-auto">
-                        <div className="flex items-center gap-1 text-slate-400 text-xs">
-                          <span className="material-symbols-outlined text-[16px]">visibility</span>
+                      <div className="flex items-center gap-2 md:gap-4 mt-auto">
+                        <div className="flex items-center gap-1 text-slate-400 text-[10px] md:text-xs">
+                          <span className="material-symbols-outlined text-[14px] md:text-[16px]">visibility</span>
                           {post.viewCount >= 1000 ? `${(post.viewCount / 1000).toFixed(1)}k` : post.viewCount}
                         </div>
-                        <div className="flex items-center gap-1 text-slate-400 text-xs">
-                          <span className="material-symbols-outlined text-[16px]">schedule</span>
+                        <div className="flex items-center gap-1 text-slate-400 text-[10px] md:text-xs">
+                          <span className="material-symbols-outlined text-[14px] md:text-[16px]">schedule</span>
                           {post.readingTime} min
                         </div>
                       </div>
@@ -321,12 +278,12 @@ export default function HomePage() {
                 {/* 모든 글 보러가기 */}
                 <Link
                   to="/posts"
-                  className="flex items-center justify-center gap-2 py-4 mt-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                  className="flex items-center justify-center gap-2 py-3 md:py-4 mt-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-primary/5 transition-all group"
                 >
-                  <span className="font-medium text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">
+                  <span className="font-medium text-sm md:text-base text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">
                     모든 글 보러가기
                   </span>
-                  <span className="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all">
+                  <span className="material-symbols-outlined text-[18px] md:text-[20px] text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all">
                     arrow_forward
                   </span>
                 </Link>
