@@ -88,7 +88,8 @@ export default function AdminLayout() {
 
   // Check if we're on the post editor page (full width mode)
   const isEditorPage = location.pathname.includes('/posts/new') ||
-    /\/posts\/[^/]+\/edit/.test(location.pathname)
+    /\/posts\/[^/]+\/edit/.test(location.pathname) ||
+    /\/drafts\/[^/]+\/edit/.test(location.pathname)
 
   const isActive = (path: string, exact?: boolean) => {
     if (exact) {
