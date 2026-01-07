@@ -115,7 +115,10 @@ export default function AdminPostEditorPage() {
   const [isUploadingCover, setIsUploadingCover] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [successToast, setSuccessToast] = useState<string | null>(null)
+  const [isAutoSaving, setIsAutoSaving] = useState(false)
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Close preview modal on ESC key
   useEffect(() => {
@@ -212,6 +215,48 @@ export default function AdminPostEditorPage() {
         .finally(() => setIsLoading(false))
     }
   }, [isEditing, id])
+
+  // Auto-save functionality (only for editing existing posts)
+  useEffect(() => {
+    // Clear existing timer
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current)
+    }
+
+    // Don't auto-save if not editing, not dirty, or currently saving
+    if (!isEditing || !id || !isDirty || isSaving || isAutoSaving) {
+      return
+    }
+
+    // Set timer to auto-save after 5 seconds of inactivity
+    autoSaveTimerRef.current = setTimeout(async () => {
+      setIsAutoSaving(true)
+      try {
+        // Extract text from HTML for excerpt if not provided
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = formData.content
+        const textContent = tempDiv.textContent || tempDiv.innerText || ''
+
+        await api.updatePost(id, {
+          ...formData,
+          excerpt: formData.excerpt || textContent.slice(0, 200),
+        })
+
+        setSavedFormData(formData)
+        setLastAutoSave(new Date())
+      } catch (err) {
+        console.error('Auto-save failed:', err)
+      } finally {
+        setIsAutoSaving(false)
+      }
+    }, 5000)
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current)
+      }
+    }
+  }, [formData, isDirty, isSaving, isAutoSaving, isEditing, id])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -347,6 +392,22 @@ export default function AdminPostEditorPage() {
           </h1>
         </div>
         <div className="flex items-center gap-3">
+          {/* Auto-save status indicator */}
+          {(isAutoSaving || lastAutoSave) && (
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              {isAutoSaving ? (
+                <>
+                  <span className="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                  <span>자동 저장 중...</span>
+                </>
+              ) : lastAutoSave ? (
+                <>
+                  <span className="material-symbols-outlined text-[14px] text-green-500">check_circle</span>
+                  <span>자동 저장됨 {lastAutoSave.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                </>
+              ) : null}
+            </div>
+          )}
           {isEditing && (
             <button
               onClick={handleDelete}
@@ -382,7 +443,7 @@ export default function AdminPostEditorPage() {
               <>
                 <span className="material-symbols-outlined text-[18px]">edit</span>
                 수정하기
-                {isDirty && <span className="w-2 h-2 rounded-full bg-orange-500 ml-1" title="저장하지 않은 변경사항" />}
+                {isDirty && !isAutoSaving && <span className="w-2 h-2 rounded-full bg-orange-500 ml-1" title="저장하지 않은 변경사항" />}
               </>
             )}
           </button>

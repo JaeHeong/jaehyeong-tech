@@ -111,7 +111,10 @@ export default function AdminDraftEditorPage() {
   const [showPreview, setShowPreview] = useState(false)
   const [successToast, setSuccessToast] = useState<string | null>(null)
   const [draftId, setDraftId] = useState<string | null>(id || null)
+  const [isAutoSaving, setIsAutoSaving] = useState(false)
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Close preview modal on ESC key
   useEffect(() => {
@@ -203,6 +206,55 @@ export default function AdminDraftEditorPage() {
         .finally(() => setIsLoading(false))
     }
   }, [isEditing, id])
+
+  // Auto-save functionality
+  useEffect(() => {
+    // Clear existing timer
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current)
+    }
+
+    // Don't auto-save if not dirty or currently saving
+    if (!isDirty || isSaving || isAutoSaving || isPublishing) {
+      return
+    }
+
+    // Set timer to auto-save after 5 seconds of inactivity
+    autoSaveTimerRef.current = setTimeout(async () => {
+      setIsAutoSaving(true)
+      try {
+        const draftData = {
+          title: formData.title || undefined,
+          content: formData.content,
+          excerpt: formData.excerpt || undefined,
+          coverImage: formData.coverImage || undefined,
+          categoryId: formData.categoryId || undefined,
+          tagIds: formData.tagIds,
+        }
+
+        if (draftId) {
+          await api.updateDraft(draftId, draftData)
+        } else {
+          const { draft } = await api.createDraft(draftData)
+          setDraftId(draft.id)
+          window.history.replaceState(null, '', `/admin/drafts/${draft.id}/edit`)
+        }
+
+        setSavedFormData(formData)
+        setLastAutoSave(new Date())
+      } catch (err) {
+        console.error('Auto-save failed:', err)
+      } finally {
+        setIsAutoSaving(false)
+      }
+    }, 5000)
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current)
+      }
+    }
+  }, [formData, isDirty, isSaving, isAutoSaving, isPublishing, draftId])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -387,6 +439,22 @@ export default function AdminDraftEditorPage() {
           )}
         </div>
         <div className="flex items-center gap-3">
+          {/* Auto-save status indicator */}
+          {(isAutoSaving || lastAutoSave) && (
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              {isAutoSaving ? (
+                <>
+                  <span className="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                  <span>자동 저장 중...</span>
+                </>
+              ) : lastAutoSave ? (
+                <>
+                  <span className="material-symbols-outlined text-[14px] text-green-500">check_circle</span>
+                  <span>자동 저장됨 {lastAutoSave.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                </>
+              ) : null}
+            </div>
+          )}
           <button
             onClick={() => setShowPreview(true)}
             className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium transition-colors flex items-center gap-2"
@@ -401,7 +469,7 @@ export default function AdminDraftEditorPage() {
           >
             <span className="material-symbols-outlined text-[18px]">save</span>
             {isSaving ? '저장 중...' : '임시저장'}
-            {isDirty && <span className="w-2 h-2 rounded-full bg-orange-500" title="저장하지 않은 변경사항" />}
+            {isDirty && !isAutoSaving && <span className="w-2 h-2 rounded-full bg-orange-500" title="저장하지 않은 변경사항" />}
           </button>
           <button
             onClick={handlePublish}
