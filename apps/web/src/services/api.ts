@@ -607,6 +607,7 @@ export interface DashboardStats {
     totalComments: number
     recentComments: number
     totalViews: number
+    totalLikes: number
   }
   categories: {
     id: string
@@ -614,6 +615,27 @@ export interface DashboardStats {
     slug: string
     color: string | null
     postCount: number
+  }[]
+  tags: {
+    id: string
+    name: string
+    slug: string
+    postCount: number
+  }[]
+  pages: {
+    static: number
+    notice: number
+  }
+  images: {
+    total: number
+    totalSize: number
+    linked: number
+    orphaned: number
+    orphanSize: number
+  }
+  backups: {
+    name: string
+    createdAt: string | null
   }[]
   recentPosts: {
     id: string

@@ -36,25 +36,62 @@ function formatDate(dateString: string) {
   return date.toLocaleDateString('ko-KR')
 }
 
+function formatBytes(bytes: number) {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
 export default function AdminDashboardPage() {
   const [data, setData] = useState<DashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isCleaningImages, setIsCleaningImages] = useState(false)
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false)
+
+  const fetchData = async () => {
+    try {
+      const stats = await api.getDashboardStats()
+      setData(stats)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const stats = await api.getDashboardStats()
-        setData(stats)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다.')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     fetchData()
   }, [])
+
+  const handleCleanOrphanImages = async () => {
+    if (!confirm('고아 이미지를 정리하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return
+    setIsCleaningImages(true)
+    try {
+      const result = await api.deleteOrphanImages()
+      alert(`${result.deleted}개 이미지 삭제 완료 (${formatBytes(result.freedSpace)} 확보)`)
+      fetchData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '이미지 정리에 실패했습니다.')
+    } finally {
+      setIsCleaningImages(false)
+    }
+  }
+
+  const handleCreateBackup = async () => {
+    setIsCreatingBackup(true)
+    try {
+      await api.createBackup()
+      alert('백업이 생성되었습니다.')
+      fetchData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '백업 생성에 실패했습니다.')
+    } finally {
+      setIsCreatingBackup(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -81,7 +118,7 @@ export default function AdminDashboardPage() {
 
   return (
     <>
-      {/* Stats Cards */}
+      {/* Stats Cards - 핵심 지표 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
@@ -98,15 +135,12 @@ export default function AdminDashboardPage() {
         <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">
-              게시글
+              총 좋아요
             </p>
-            <h3 className="text-3xl font-bold">{data.stats.publishedPosts}</h3>
-            <p className="text-xs text-slate-400 mt-1">
-              임시저장 {data.stats.draftPosts}개
-            </p>
+            <h3 className="text-3xl font-bold">{data.stats.totalLikes.toLocaleString()}</h3>
           </div>
-          <div className="p-3 bg-green-500/10 rounded-lg text-green-500">
-            <span className="material-symbols-outlined text-[28px]">article</span>
+          <div className="p-3 bg-red-500/10 rounded-lg text-red-500">
+            <span className="material-symbols-outlined text-[28px]">favorite</span>
           </div>
         </div>
 
@@ -124,10 +158,15 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Posts Management Table */}
-      <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-xl font-bold">최근 게시글</h2>
+      {/* Posts Management Table - 최근 게시글 */}
+      <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[360px]">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold">최근 게시글</h2>
+            <span className="text-sm text-slate-500">
+              공개 {data.stats.publishedPosts}개 / 임시 {data.stats.draftPosts}개
+            </span>
+          </div>
           <Link
             to="/admin/posts/new"
             className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
@@ -136,10 +175,10 @@ export default function AdminDashboardPage() {
             새 글 작성
           </Link>
         </div>
-        {data.recentPosts.length > 0 ? (
-          <div className="overflow-x-auto">
+        <div className="flex-1 overflow-y-auto">
+          {data.recentPosts.length > 0 ? (
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium uppercase text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium uppercase text-xs sticky top-0">
                 <tr>
                   <th className="px-6 py-4">제목</th>
                   <th className="px-6 py-4 w-32">카테고리</th>
@@ -194,14 +233,14 @@ export default function AdminDashboardPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        ) : (
-          <div className="text-center py-12 text-slate-500">
-            <span className="material-symbols-outlined text-[48px] mb-4 block">article</span>
-            <p>게시글이 없습니다.</p>
-          </div>
-        )}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-center">
+          ) : (
+            <div className="text-center py-12 text-slate-500">
+              <span className="material-symbols-outlined text-[48px] mb-4 block">article</span>
+              <p>게시글이 없습니다.</p>
+            </div>
+          )}
+        </div>
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-center flex-shrink-0">
           <Link
             to="/admin/posts"
             className="text-sm font-bold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
@@ -212,11 +251,11 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Bottom Grid: Comments and Drafts/Categories */}
+      {/* 2-Column Grid: Comments + Drafts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Comments */}
-        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[320px]">
+          <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
             <h3 className="font-bold">최근 댓글</h3>
             <Link
               to="/admin/comments"
@@ -225,7 +264,7 @@ export default function AdminDashboardPage() {
               전체보기
             </Link>
           </div>
-          <div className="divide-y divide-slate-200 dark:divide-slate-800 flex-1">
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800">
             {data.recentComments.length > 0 ? (
               data.recentComments.map((comment) => (
                 <div
@@ -271,70 +310,276 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Right Column: Drafts and Categories */}
-        <div className="flex flex-col gap-6">
-          {/* Draft Posts */}
-          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold">임시 저장 글</h3>
-              <Link
-                to="/admin/drafts"
-                className="text-xs font-bold text-primary hover:text-primary/80"
-              >
-                모두 보기
-              </Link>
+        {/* Draft Posts */}
+        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[320px]">
+          <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
+            <h3 className="font-bold">임시 저장 글</h3>
+            <Link
+              to="/admin/drafts"
+              className="text-xs font-bold text-primary hover:text-primary/80"
+            >
+              모두 보기
+            </Link>
+          </div>
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800">
+            {data.recentDrafts.length > 0 ? (
+              data.recentDrafts.map((draft) => (
+                <Link
+                  key={draft.id}
+                  to={`/admin/posts/${draft.id}/edit`}
+                  className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group block"
+                >
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">
+                      {draft.title}
+                    </h4>
+                    <span className="text-xs text-slate-400">{formatDate(draft.updatedAt)}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-1">{draft.excerpt}</p>
+                </Link>
+              ))
+            ) : (
+              <div className="p-8 text-center text-slate-500">
+                <span className="material-symbols-outlined text-[32px] mb-2 block">edit_note</span>
+                <p className="text-sm">임시 저장 글이 없습니다.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3-Column Grid: Categories + Tags + Pages */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Categories */}
+        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[280px]">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px] text-slate-500">folder</span>
+              <h3 className="font-bold">카테고리</h3>
             </div>
-            <div className="divide-y divide-slate-200 dark:divide-slate-800 flex-1">
-              {data.recentDrafts.length > 0 ? (
-                data.recentDrafts.map((draft) => (
-                  <Link
-                    key={draft.id}
-                    to={`/admin/posts/${draft.id}/edit`}
-                    className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group block"
+            <Link
+              to="/admin/categories"
+              className="text-xs font-bold text-primary hover:text-primary/80"
+            >
+              관리
+            </Link>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {data.categories.length > 0 ? (
+              <div className="space-y-2">
+                {data.categories.map((category) => (
+                  <div
+                    key={category.id}
+                    className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
                   >
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">
-                        {draft.title}
-                      </h4>
-                      <span className="text-xs text-slate-400">{formatDate(draft.updatedAt)}</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-1">{draft.excerpt}</p>
-                  </Link>
-                ))
-              ) : (
-                <div className="p-8 text-center text-slate-500">
-                  <span className="material-symbols-outlined text-[32px] mb-2 block">edit_note</span>
-                  <p className="text-sm">임시 저장 글이 없습니다.</p>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${categoryColorMap[category.color || 'blue'] || categoryColorMap.blue}`}
+                    >
+                      {category.name}
+                    </span>
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
+                      {category.postCount}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <p className="text-sm">카테고리가 없습니다.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[280px]">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px] text-slate-500">label</span>
+              <h3 className="font-bold">태그</h3>
+              <span className="text-xs text-slate-400">({data.tags.length})</span>
+            </div>
+            <Link
+              to="/admin/tags"
+              className="text-xs font-bold text-primary hover:text-primary/80"
+            >
+              관리
+            </Link>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {data.tags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {data.tags
+                  .sort((a, b) => b.postCount - a.postCount)
+                  .map((tag) => (
+                    <span
+                      key={tag.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs"
+                    >
+                      <span className="text-slate-700 dark:text-slate-300">{tag.name}</span>
+                      <span className="text-slate-400 dark:text-slate-500">{tag.postCount}</span>
+                    </span>
+                  ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <p className="text-sm">태그가 없습니다.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Pages */}
+        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[280px]">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px] text-slate-500">description</span>
+              <h3 className="font-bold">페이지</h3>
+            </div>
+            <Link
+              to="/admin/pages"
+              className="text-xs font-bold text-primary hover:text-primary/80"
+            >
+              관리
+            </Link>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-4">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">정적 페이지</span>
+                  <span className="text-2xl font-bold">{data.pages.static}</span>
                 </div>
-              )}
+                <p className="text-xs text-slate-500">소개, 개인정보처리방침 등</p>
+              </div>
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">공지사항</span>
+                  <span className="text-2xl font-bold">{data.pages.notice}</span>
+                </div>
+                <p className="text-xs text-slate-500">블로그 공지사항</p>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Category Stats */}
-          <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold">카테고리 현황</h3>
-              <Link
-                to="/admin/categories"
-                className="text-xs font-bold text-primary hover:text-primary/80"
-              >
-                관리
-              </Link>
+      {/* System Management - 2 Column */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Images */}
+        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[280px]">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px] text-slate-500">image</span>
+              <h3 className="font-bold">이미지 저장소</h3>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
-              {data.categories.slice(0, 4).map((category) => (
-                <div
-                  key={category.id}
-                  className="flex flex-col p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
-                >
-                  <span className="text-xs text-slate-500 mb-1">{category.name}</span>
-                  <span className="text-lg font-bold">
-                    {category.postCount}{' '}
-                    <span className="text-xs font-normal text-slate-400">posts</span>
-                  </span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <span className="text-sm text-slate-600 dark:text-slate-400">총 이미지</span>
+                <div className="text-right">
+                  <span className="font-bold">{data.images.total}개</span>
+                  <span className="text-xs text-slate-500 ml-2">({formatBytes(data.images.totalSize)})</span>
                 </div>
-              ))}
+              </div>
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <span className="text-sm text-slate-600 dark:text-slate-400">연결된 이미지</span>
+                <span className="font-bold text-green-600 dark:text-green-400">{data.images.linked}개</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">고아 이미지</span>
+                  {data.images.orphaned > 0 && (
+                    <span className="material-symbols-outlined text-[16px] text-amber-500">warning</span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className={`font-bold ${data.images.orphaned > 0 ? 'text-amber-600 dark:text-amber-400' : ''}`}>
+                    {data.images.orphaned}개
+                  </span>
+                  {data.images.orphaned > 0 && (
+                    <span className="text-xs text-slate-500 ml-2">({formatBytes(data.images.orphanSize)})</span>
+                  )}
+                </div>
+              </div>
             </div>
+          </div>
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex-shrink-0">
+            <button
+              onClick={handleCleanOrphanImages}
+              disabled={isCleaningImages || data.images.orphaned === 0}
+              className="w-full px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 disabled:dark:bg-slate-700 text-white disabled:text-slate-500 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+            >
+              {isCleaningImages ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                  정리 중...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">delete_sweep</span>
+                  고아 이미지 정리
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Backups */}
+        <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[280px]">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px] text-slate-500">backup</span>
+              <h3 className="font-bold">백업</h3>
+              <span className="text-xs text-slate-400">({data.backups.length})</span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {data.backups.length > 0 ? (
+              <div className="space-y-2">
+                {data.backups.map((backup) => (
+                  <div
+                    key={backup.name}
+                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px] text-slate-400">folder_zip</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400 truncate max-w-[180px]">
+                        {backup.name}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      {backup.createdAt ? formatDate(backup.createdAt) : '-'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <span className="material-symbols-outlined text-[32px] mb-2 block">cloud_off</span>
+                <p className="text-sm">백업이 없습니다.</p>
+              </div>
+            )}
+          </div>
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex-shrink-0">
+            <button
+              onClick={handleCreateBackup}
+              disabled={isCreatingBackup}
+              className="w-full px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-slate-300 disabled:dark:bg-slate-700 text-white disabled:text-slate-500 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+            >
+              {isCreatingBackup ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                  백업 생성 중...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">add</span>
+                  백업 생성
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
