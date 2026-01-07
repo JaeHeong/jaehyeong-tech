@@ -21,6 +21,9 @@ export default function PostDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [liked, setLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
+  const [isLiking, setIsLiking] = useState(false)
 
   const handleDelete = async () => {
     if (!post) return
@@ -33,6 +36,20 @@ export default function PostDetailPage() {
     } catch (err) {
       alert(err instanceof Error ? err.message : '삭제에 실패했습니다.')
       setIsDeleting(false)
+    }
+  }
+
+  const handleLike = async () => {
+    if (!post || isLiking) return
+    setIsLiking(true)
+    try {
+      const result = await api.toggleLike(post.id)
+      setLiked(result.liked)
+      setLikeCount(result.likeCount)
+    } catch (err) {
+      console.error('Like failed:', err)
+    } finally {
+      setIsLiking(false)
     }
   }
 
@@ -58,6 +75,16 @@ export default function PostDetailPage() {
       .then(([postRes, adjacentRes]) => {
         setPost(postRes.data)
         setAdjacentPosts(adjacentRes.data)
+        setLikeCount(postRes.data.likeCount)
+        // Fetch like status after post is loaded
+        api.checkLikeStatus(postRes.data.id)
+          .then((likeRes) => {
+            setLiked(likeRes.liked)
+            setLikeCount(likeRes.likeCount)
+          })
+          .catch(() => {
+            // Ignore error, just use initial likeCount from post
+          })
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : '게시글을 불러오는데 실패했습니다.')
@@ -569,9 +596,19 @@ export default function PostDetailPage() {
               {/* Actions */}
               <div className="mt-8 flex items-center justify-between">
                 <div className="flex gap-4">
-                  <button className="flex items-center gap-2 text-slate-500 hover:text-red-500 transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">favorite</span>
-                    <span className="text-sm font-medium">{post.likeCount > 0 ? post.likeCount : '좋아요'}</span>
+                  <button
+                    onClick={handleLike}
+                    disabled={isLiking}
+                    className={`flex items-center gap-2 transition-colors ${
+                      liked
+                        ? 'text-red-500'
+                        : 'text-slate-500 hover:text-red-500'
+                    } disabled:opacity-50`}
+                  >
+                    <span className={`material-symbols-outlined text-[20px] ${isLiking ? 'animate-pulse' : ''}`}>
+                      {liked ? 'favorite' : 'favorite_border'}
+                    </span>
+                    <span className="text-sm font-medium">{likeCount > 0 ? likeCount : '좋아요'}</span>
                   </button>
                   <button className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors">
                     <span className="material-symbols-outlined text-[20px]">share</span>

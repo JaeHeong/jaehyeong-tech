@@ -517,6 +517,19 @@ class ApiClient {
     })
     return { post: response.data }
   }
+
+  // Like endpoints
+  async toggleLike(postId: string) {
+    const response = await this.request<{ data: LikeResponse }>(`/likes/${postId}`, {
+      method: 'POST',
+    })
+    return response.data
+  }
+
+  async checkLikeStatus(postId: string) {
+    const response = await this.request<{ data: LikeResponse }>(`/likes/${postId}`)
+    return response.data
+  }
 }
 
 // Types
@@ -957,6 +970,11 @@ export interface AdminCommentsResponse {
     limit: number
     totalPages: number
   }
+}
+
+export interface LikeResponse {
+  liked: boolean
+  likeCount: number
 }
 
 export const api = new ApiClient(API_BASE_URL)
