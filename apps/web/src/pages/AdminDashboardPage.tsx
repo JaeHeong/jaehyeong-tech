@@ -163,6 +163,7 @@ export default function AdminDashboardPage() {
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold">최근 게시글</h2>
+            <span className="text-xs text-slate-400">최근 5개</span>
             <span className="text-sm text-slate-500">
               공개 {data.stats.publishedPosts}개 / 임시 {data.stats.draftPosts}개
             </span>
@@ -256,7 +257,10 @@ export default function AdminDashboardPage() {
         {/* Recent Comments */}
         <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[320px]">
           <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
-            <h3 className="font-bold">최근 댓글</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold">최근 댓글</h3>
+              <span className="text-xs text-slate-400">최근 5개</span>
+            </div>
             <Link
               to="/admin/comments"
               className="text-xs font-bold text-primary hover:text-primary/80"
@@ -313,7 +317,10 @@ export default function AdminDashboardPage() {
         {/* Draft Posts */}
         <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[320px]">
           <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
-            <h3 className="font-bold">임시 저장 글</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold">임시 저장 글</h3>
+              <span className="text-xs text-slate-400">최근 5개</span>
+            </div>
             <Link
               to="/admin/drafts"
               className="text-xs font-bold text-primary hover:text-primary/80"

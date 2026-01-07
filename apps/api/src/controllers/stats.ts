@@ -69,7 +69,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
         },
         orderBy: { name: 'asc' },
       }),
-      // Tag stats with post count (top 10 by usage)
+      // Tag stats with post count (all tags, sorted by usage)
       prisma.tag.findMany({
         select: {
           id: true,
@@ -78,7 +78,6 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
           _count: { select: { posts: { where: { status: 'PUBLIC' } } } },
         },
         orderBy: { posts: { _count: 'desc' } },
-        take: 10,
       }),
       // Static pages count
       prisma.page.count({ where: { type: 'STATIC', status: 'PUBLISHED' } }),
