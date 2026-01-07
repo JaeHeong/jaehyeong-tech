@@ -91,6 +91,7 @@ export const updateAuthorSchema = z.object({
   name: z.string().min(2, '이름은 최소 2자 이상이어야 합니다.').max(50, '이름은 50자를 초과할 수 없습니다.').optional(),
   bio: z.string().max(500, '소개는 500자를 초과할 수 없습니다.').nullable().optional(),
   title: z.string().max(100, '직함은 100자를 초과할 수 없습니다.').nullable().optional(),
+  avatar: z.string().url('유효한 URL을 입력해주세요.').nullable().optional().or(z.literal('')),
   github: z.string().url('유효한 URL을 입력해주세요.').nullable().optional().or(z.literal('')),
   twitter: z.string().url('유효한 URL을 입력해주세요.').nullable().optional().or(z.literal('')),
   linkedin: z.string().url('유효한 URL을 입력해주세요.').nullable().optional().or(z.literal('')),

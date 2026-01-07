@@ -5,6 +5,8 @@ import { api } from '../services/api'
 export default function AdminSettingsPage() {
   const { user, refreshUser } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isInitializedRef = useRef(false)
+  const avatarRef = useRef<string>('')  // Track avatar separately to avoid stale closure
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -20,18 +22,22 @@ export default function AdminSettingsPage() {
     website: '',
   })
 
+  // 초기 로드 시에만 user 데이터로 폼 초기화
   useEffect(() => {
-    if (user) {
+    if (user && !isInitializedRef.current) {
+      const avatarValue = user.avatar || ''
+      avatarRef.current = avatarValue
       setFormData({
         name: user.name || '',
         title: user.title || '',
         bio: user.bio || '',
-        avatar: user.avatar || '',
+        avatar: avatarValue,
         github: user.github || '',
         twitter: user.twitter || '',
         linkedin: user.linkedin || '',
         website: user.website || '',
       })
+      isInitializedRef.current = true
     }
   }, [user])
 
@@ -54,6 +60,7 @@ export default function AdminSettingsPage() {
       const uploadFormData = new FormData()
       uploadFormData.append('image', file)
       const response = await api.uploadImage(uploadFormData, 'avatar')
+      avatarRef.current = response.url
       setFormData((prev) => ({ ...prev, avatar: response.url }))
       setMessage({ type: 'success', text: '프로필 사진이 업로드되었습니다.' })
     } catch {
@@ -64,6 +71,7 @@ export default function AdminSettingsPage() {
   }
 
   const handleAvatarDelete = () => {
+    avatarRef.current = ''
     setFormData((prev) => ({ ...prev, avatar: '' }))
   }
 
@@ -73,7 +81,33 @@ export default function AdminSettingsPage() {
     setMessage(null)
 
     try {
-      await api.updateProfile(formData)
+      // Use ref as source of truth for avatar
+      const profileData = {
+        name: formData.name || '',
+        title: formData.title || '',
+        bio: formData.bio || '',
+        avatar: avatarRef.current,
+        github: formData.github || '',
+        twitter: formData.twitter || '',
+        linkedin: formData.linkedin || '',
+        website: formData.website || '',
+      }
+      const response = await api.updateProfile(profileData)
+      // 저장된 데이터로 폼 업데이트
+      if (response.data) {
+        const responseAvatar = response.data.avatar || ''
+        avatarRef.current = responseAvatar
+        setFormData({
+          name: response.data.name || '',
+          title: response.data.title || '',
+          bio: response.data.bio || '',
+          avatar: responseAvatar,
+          github: response.data.github || '',
+          twitter: response.data.twitter || '',
+          linkedin: response.data.linkedin || '',
+          website: response.data.website || '',
+        })
+      }
       if (refreshUser) {
         await refreshUser()
       }
