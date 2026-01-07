@@ -50,40 +50,6 @@ export default function PostDetailPage() {
     level: number
   }
 
-  // Add copy buttons to code blocks
-  const addCopyButtons = useCallback(() => {
-    if (!contentRef.current) return
-
-    const preElements = contentRef.current.querySelectorAll('pre')
-    preElements.forEach((pre) => {
-      // Skip if already has copy button
-      if (pre.querySelector('.code-copy-btn')) return
-
-      const copyBtn = document.createElement('button')
-      copyBtn.className = 'code-copy-btn'
-      copyBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span>'
-      copyBtn.title = '코드 복사'
-
-      copyBtn.addEventListener('click', async () => {
-        const code = pre.querySelector('code')
-        const text = code?.textContent || ''
-
-        try {
-          await navigator.clipboard.writeText(text)
-          copyBtn.innerHTML = '<span class="material-symbols-outlined">check</span>'
-          copyBtn.classList.add('copied')
-          setTimeout(() => {
-            copyBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span>'
-            copyBtn.classList.remove('copied')
-          }, 2000)
-        } catch (err) {
-          console.error('Failed to copy:', err)
-        }
-      })
-
-      pre.appendChild(copyBtn)
-    })
-  }, [])
 
   const handleDelete = async () => {
     if (!post) return
@@ -210,23 +176,16 @@ export default function PostDetailPage() {
     return () => clearInterval(interval)
   }, [relatedPosts.length, isRelatedPaused])
 
-  // Add copy buttons after post content is rendered
-  useEffect(() => {
-    if (post && !isLoading) {
-      // Small delay to ensure content is rendered
-      const timer = setTimeout(addCopyButtons, 100)
-      return () => clearTimeout(timer)
-    }
-  }, [post, isLoading, addCopyButtons])
 
-  // Extract headings from content for TOC and add IDs to content HTML
+  // Extract headings from content, add IDs, and add copy buttons to code blocks
   const { tocHeadings, contentWithIds } = useMemo(() => {
     if (!post?.content) return { tocHeadings: [] as TocHeading[], contentWithIds: '' }
 
     const parser = new DOMParser()
     const doc = parser.parseFromString(post.content, 'text/html')
-    const headings = doc.querySelectorAll('h1, h2, h3')
 
+    // Add IDs to headings for TOC
+    const headings = doc.querySelectorAll('h1, h2, h3')
     const tocList: TocHeading[] = []
     headings.forEach((heading, index) => {
       const id = `toc-heading-${index}`
@@ -238,11 +197,59 @@ export default function PostDetailPage() {
       })
     })
 
+    // Add copy buttons to all pre elements
+    const preElements = doc.querySelectorAll('pre')
+    preElements.forEach((pre, index) => {
+      pre.style.position = 'relative'
+      const copyBtn = doc.createElement('button')
+      copyBtn.className = 'code-copy-btn'
+      copyBtn.setAttribute('data-copy-index', index.toString())
+      copyBtn.setAttribute('title', '코드 복사')
+      copyBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span>'
+      pre.appendChild(copyBtn)
+    })
+
     return {
       tocHeadings: tocList,
       contentWithIds: doc.body.innerHTML,
     }
   }, [post?.content])
+
+  // Handle copy button clicks via event delegation
+  const handleContentClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    const copyBtn = target.closest('.code-copy-btn') as HTMLButtonElement | null
+
+    if (!copyBtn || copyBtn.classList.contains('copying')) return
+
+    e.preventDefault()
+    e.stopPropagation()
+
+    const pre = copyBtn.closest('pre')
+    const code = pre?.querySelector('code')
+    const text = code?.textContent || ''
+    const iconSpan = copyBtn.querySelector('.material-symbols-outlined')
+
+    navigator.clipboard.writeText(text).then(() => {
+      if (iconSpan) {
+        // Show check icon and lock hover
+        copyBtn.classList.add('copying')
+        iconSpan.textContent = 'check'
+
+        // After 1.5s, hide and reset
+        setTimeout(() => {
+          copyBtn.classList.add('hiding')
+
+          setTimeout(() => {
+            iconSpan.textContent = 'content_copy'
+            copyBtn.classList.remove('copying', 'hiding')
+          }, 200)
+        }, 1500)
+      }
+    }).catch((err) => {
+      console.error('Failed to copy:', err)
+    })
+  }, [])
 
   // Track scroll position for active heading
   useEffect(() => {
@@ -656,58 +663,75 @@ export default function PostDetailPage() {
           color: #e2e8f0;
         }
         /* Code Copy Button */
-        .post-content pre {
-          position: relative;
+        .post-content pre > code {
+          overflow: auto;
+          display: block;
         }
         .post-content .code-copy-btn {
           position: absolute;
           top: 4px;
           right: 8px;
-          width: 28px;
-          height: 28px;
+          width: 24px;
+          height: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(100, 116, 139, 0.2);
+          background: rgba(100, 116, 139, 0.3);
           border: none;
-          border-radius: 6px;
+          border-radius: 4px;
           cursor: pointer;
-          opacity: 0.7;
-          transition: all 0.2s;
-          z-index: 10;
+          opacity: 0;
+          transition: opacity 0.2s, background 0.2s;
+          z-index: 20;
         }
         .post-content .code-copy-btn .material-symbols-outlined {
-          font-size: 16px;
+          font-size: 14px;
           color: #64748b;
         }
-        .post-content pre:hover .code-copy-btn,
-        .post-content .code-copy-btn:focus {
+        /* Show on hover (unless copying) */
+        .post-content pre:hover .code-copy-btn:not(.copying):not(.hiding) {
           opacity: 1;
         }
         .post-content .code-copy-btn:hover {
-          background: rgba(100, 116, 139, 0.4);
+          background: rgba(100, 116, 139, 0.5);
         }
         .post-content .code-copy-btn:hover .material-symbols-outlined {
           color: #334155;
         }
-        .post-content .code-copy-btn.copied {
+        /* Copying state - always visible with green bg */
+        .post-content .code-copy-btn.copying {
           opacity: 1;
-          background: rgba(34, 197, 94, 0.2);
+          background: rgba(34, 197, 94, 0.3);
         }
-        .post-content .code-copy-btn.copied .material-symbols-outlined {
+        .post-content .code-copy-btn.copying .material-symbols-outlined {
           color: #22c55e;
         }
+        /* Hiding state */
+        .post-content .code-copy-btn.hiding {
+          opacity: 0;
+        }
+        /* Dark mode */
         .dark .post-content .code-copy-btn {
-          background: rgba(148, 163, 184, 0.2);
+          background: rgba(148, 163, 184, 0.3);
         }
         .dark .post-content .code-copy-btn .material-symbols-outlined {
           color: #94a3b8;
         }
+        .dark .post-content pre:hover .code-copy-btn:not(.copying):not(.hiding) {
+          opacity: 1;
+        }
         .dark .post-content .code-copy-btn:hover {
-          background: rgba(148, 163, 184, 0.3);
+          background: rgba(148, 163, 184, 0.5);
         }
         .dark .post-content .code-copy-btn:hover .material-symbols-outlined {
           color: #e2e8f0;
+        }
+        .dark .post-content .code-copy-btn.copying {
+          opacity: 1;
+          background: rgba(34, 197, 94, 0.3);
+        }
+        .dark .post-content .code-copy-btn.copying .material-symbols-outlined {
+          color: #22c55e;
         }
       `}</style>
 
@@ -841,6 +865,7 @@ export default function PostDetailPage() {
               <div
                 ref={contentRef}
                 className="post-content text-slate-700 dark:text-slate-300 leading-relaxed"
+                onClick={handleContentClick}
                 dangerouslySetInnerHTML={{ __html: contentWithIds || post.content }}
               />
 
