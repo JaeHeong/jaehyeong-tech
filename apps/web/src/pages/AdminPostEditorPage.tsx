@@ -615,67 +615,27 @@ export default function AdminPostEditorPage() {
               발행 일시
             </label>
             <div className="flex gap-2 items-center">
-              {/* Year */}
+              {/* Date */}
               <input
-                type="number"
-                min="2020"
-                max="2100"
-                placeholder="년"
-                value={formData.publishedAt ? formData.publishedAt.split('T')[0]?.split('-')[0] || '' : ''}
+                type="date"
+                value={formData.publishedAt ? formData.publishedAt.split('T')[0] || '' : ''}
                 onChange={(e) => {
-                  const year = e.target.value.slice(0, 4)
-                  const [, month = '01', day = '01'] = (formData.publishedAt?.split('T')[0] || '').split('-')
+                  const date = e.target.value
                   const time = formData.publishedAt?.split('T')[1] || '09:00'
-                  if (year.length === 4) {
-                    setFormData((prev) => ({ ...prev, publishedAt: `${year}-${month}-${day}T${time}` }))
-                  }
+                  setFormData((prev) => ({ ...prev, publishedAt: date ? `${date}T${time}` : '' }))
                 }}
-                className="w-20 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm text-center"
+                className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
               />
-              <span className="text-slate-400">-</span>
-              {/* Month */}
-              <select
-                value={formData.publishedAt ? formData.publishedAt.split('T')[0]?.split('-')[1] || '' : ''}
-                onChange={(e) => {
-                  const month = e.target.value
-                  const [year = new Date().getFullYear().toString(), , day = '01'] = (formData.publishedAt?.split('T')[0] || '').split('-')
-                  const time = formData.publishedAt?.split('T')[1] || '09:00'
-                  setFormData((prev) => ({ ...prev, publishedAt: `${year}-${month}-${day}T${time}` }))
-                }}
-                className="w-16 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm text-center appearance-none cursor-pointer"
-              >
-                <option value="">월</option>
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}월</option>
-                ))}
-              </select>
-              <span className="text-slate-400">-</span>
-              {/* Day */}
-              <select
-                value={formData.publishedAt ? formData.publishedAt.split('T')[0]?.split('-')[2] || '' : ''}
-                onChange={(e) => {
-                  const day = e.target.value
-                  const [year = new Date().getFullYear().toString(), month = '01'] = (formData.publishedAt?.split('T')[0] || '').split('-')
-                  const time = formData.publishedAt?.split('T')[1] || '09:00'
-                  setFormData((prev) => ({ ...prev, publishedAt: `${year}-${month}-${day}T${time}` }))
-                }}
-                className="w-16 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm text-center appearance-none cursor-pointer"
-              >
-                <option value="">일</option>
-                {Array.from({ length: 31 }, (_, i) => (
-                  <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}일</option>
-                ))}
-              </select>
               {/* Time */}
               <input
                 type="time"
                 value={formData.publishedAt ? formData.publishedAt.split('T')[1] || '' : ''}
                 onChange={(e) => {
                   const time = e.target.value
-                  const date = formData.publishedAt?.split('T')[0] || `${new Date().getFullYear()}-01-01`
+                  const date = formData.publishedAt?.split('T')[0] || new Date().toISOString().split('T')[0]
                   setFormData((prev) => ({ ...prev, publishedAt: `${date}T${time}` }))
                 }}
-                className="w-24 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+                className="w-28 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
               />
               {formData.publishedAt && (
                 <button
