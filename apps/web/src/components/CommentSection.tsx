@@ -157,16 +157,20 @@ function CommentForm({ postId, parentId, onSubmit, onCancel, isReply = false }: 
 
         {/* Actions */}
         <div className="flex items-center justify-between mt-3">
-          <label className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isPrivate}
-              onChange={(e) => setIsPrivate(e.target.checked)}
-              className="rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary/20"
-            />
-            <span className="material-symbols-outlined text-[16px]">lock</span>
-            비공개 댓글
-          </label>
+          {isAuthenticated ? (
+            <label className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isPrivate}
+                onChange={(e) => setIsPrivate(e.target.checked)}
+                className="rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary/20"
+              />
+              <span className="material-symbols-outlined text-[16px]">lock</span>
+              비공개 댓글
+            </label>
+          ) : (
+            <div />
+          )}
 
           <div className="flex gap-2">
             {onCancel && (

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import api, { Post, Category } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
 
 export default function PostListPage() {
   const { user } = useAuth()
+  const { slug: pathSlug } = useParams<{ slug: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [posts, setPosts] = useState<Post[]>([])
   const [featuredPost, setFeaturedPost] = useState<Post | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
@@ -14,7 +16,8 @@ export default function PostListPage() {
   const [totalPages, setTotalPages] = useState(1)
 
   const currentPage = parseInt(searchParams.get('page') || '1', 10)
-  const currentCategory = searchParams.get('category') || ''
+  // Use path slug (/categories/:slug) or query param (?category=)
+  const currentCategory = pathSlug || searchParams.get('category') || ''
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,20 +47,35 @@ export default function PostListPage() {
     }
 
     fetchData()
-  }, [currentPage, currentCategory])
+  }, [currentPage, currentCategory, pathSlug])
 
   const handleCategoryChange = (categorySlug: string) => {
-    const params = new URLSearchParams()
-    if (categorySlug) {
-      params.set('category', categorySlug)
+    // If we're on /categories/:slug path, navigate to appropriate URL
+    if (pathSlug !== undefined) {
+      if (categorySlug) {
+        navigate(`/categories/${categorySlug}`)
+      } else {
+        navigate('/posts')
+      }
+    } else {
+      // If we're on /posts with query params
+      const params = new URLSearchParams()
+      if (categorySlug) {
+        params.set('category', categorySlug)
+      }
+      setSearchParams(params)
     }
-    setSearchParams(params)
   }
 
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams)
-    params.set('page', page.toString())
-    setSearchParams(params)
+    if (pathSlug !== undefined) {
+      // For path-based routing, use query params for pagination
+      navigate(`/categories/${pathSlug}?page=${page}`)
+    } else {
+      const params = new URLSearchParams(searchParams)
+      params.set('page', page.toString())
+      setSearchParams(params)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -82,14 +100,27 @@ export default function PostListPage() {
         <main className="lg:col-span-8 flex flex-col gap-8">
           {/* Header */}
           <div className="flex flex-col gap-2 pb-4 border-b border-slate-200 dark:border-slate-800">
-            <h1 className="text-3xl font-bold tracking-tight">글 목록</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-lg">
-              DevOps, MLOps, 클라우드 인프라에 대한 기술 글을 공유합니다.
-            </p>
+            {currentCategory ? (
+              <>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {categories.find(c => c.slug === currentCategory)?.name || currentCategory}
+                </h1>
+                <p className="text-slate-500 dark:text-slate-400 text-lg">
+                  {categories.find(c => c.slug === currentCategory)?.description || '카테고리별 글 목록입니다.'}
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-3xl font-bold tracking-tight">글 목록</h1>
+                <p className="text-slate-500 dark:text-slate-400 text-lg">
+                  DevOps, MLOps, 클라우드 인프라에 대한 기술 글을 공유합니다.
+                </p>
+              </>
+            )}
           </div>
 
-          {/* Featured Post */}
-          {featuredPost && !currentCategory && currentPage === 1 && (
+          {/* Featured Post - shows for both global and per-category */}
+          {featuredPost && currentPage === 1 && (
             <Link
               to={`/posts/${featuredPost.slug}`}
               className="group relative overflow-hidden rounded-xl card hover:shadow-lg transition-shadow"
@@ -110,7 +141,7 @@ export default function PostListPage() {
                     </div>
                   )}
                   <span className="absolute top-3 left-3 px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-full shadow">
-                    Featured
+                    {currentCategory ? 'Top in Category' : 'Featured'}
                   </span>
                 </div>
                 <div className="md:w-3/5 p-6">

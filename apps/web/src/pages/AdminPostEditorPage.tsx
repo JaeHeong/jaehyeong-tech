@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useParams, Link, useBlocker } from 'react-router-dom'
+import { useParams, Link, useBlocker, useNavigate } from 'react-router-dom'
 import { api, type Category, type Tag } from '../services/api'
 import TipTapEditor from '../components/TipTapEditor'
 import { common, createLowlight } from 'lowlight'
@@ -101,9 +101,11 @@ const initialFormData: PostFormData = {
 
 export default function AdminPostEditorPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const isEditing = !!id
 
   const [formData, setFormData] = useState<PostFormData>(initialFormData)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [savedFormData, setSavedFormData] = useState<PostFormData>(initialFormData)
   const [categories, setCategories] = useState<Category[]>([])
   const [tags, setTags] = useState<Tag[]>([])
@@ -303,6 +305,22 @@ export default function AdminPostEditorPage() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!id) return
+    if (!window.confirm('정말 이 게시글을 삭제하시겠습니까?\n삭제된 게시글은 복구할 수 없습니다.')) return
+
+    setIsDeleting(true)
+    try {
+      await api.deletePost(id)
+      // Clear dirty state to prevent navigation warning
+      setSavedFormData(formData)
+      navigate('/admin/posts', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '삭제에 실패했습니다.')
+      setIsDeleting(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -329,6 +347,18 @@ export default function AdminPostEditorPage() {
           </h1>
         </div>
         <div className="flex items-center gap-3">
+          {isEditing && (
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {isDeleting ? 'progress_activity' : 'delete'}
+              </span>
+              {isDeleting ? '삭제 중...' : '삭제'}
+            </button>
+          )}
           <button
             onClick={() => setShowPreview(true)}
             className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium transition-colors flex items-center gap-2"

@@ -51,6 +51,11 @@ class ApiClient {
       throw new Error(error.message || `HTTP error! status: ${response.status}`)
     }
 
+    // Handle 204 No Content (e.g., DELETE requests)
+    if (response.status === 204) {
+      return {} as T
+    }
+
     return response.json()
   }
 

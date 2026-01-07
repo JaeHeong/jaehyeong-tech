@@ -150,9 +150,13 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
       return formatted
     })
 
-    // Get total count
+    // Get total count (admin sees all, others see only public)
     const totalCount = await prisma.comment.count({
-      where: { postId },
+      where: {
+        postId,
+        isDeleted: false,
+        ...(isAdmin ? {} : { isPrivate: false }),
+      },
     })
 
     res.json({
@@ -196,6 +200,11 @@ export async function createComment(req: AuthRequest, res: Response, next: NextF
 
     if (content.length > 2000) {
       throw new AppError('댓글은 2000자를 초과할 수 없습니다.', 400)
+    }
+
+    // Private comments require login
+    if (isPrivate && !req.user) {
+      throw new AppError('비공개 댓글은 로그인 후 작성할 수 있습니다.', 401)
     }
 
     // Validate parent comment if replying

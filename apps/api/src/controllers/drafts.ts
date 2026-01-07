@@ -172,12 +172,17 @@ export async function publishDraft(req: AuthRequest, res: Response, next: NextFu
     }
 
     // Generate slug from title
-    const slug = slugify(draft.title, { lower: true, strict: true })
+    let slug = slugify(draft.title, { lower: true, strict: true })
 
-    // Check for duplicate slug
+    // If slug is empty (e.g., Korean-only title), use timestamp
+    if (!slug) {
+      slug = `post-${Date.now()}`
+    }
+
+    // Check for duplicate slug and make unique if needed
     const existingPost = await prisma.post.findUnique({ where: { slug } })
     if (existingPost) {
-      throw new AppError('이미 같은 제목의 게시글이 있습니다. 제목을 변경해주세요.', 400)
+      slug = `${slug}-${Date.now()}`
     }
 
     // Calculate reading time

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, type Post } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
@@ -9,9 +9,25 @@ import { useSEO } from '../hooks/useSEO'
 export default function PostDetailPage() {
   const { user } = useAuth()
   const { slug } = useParams<{ slug: string }>()
+  const navigate = useNavigate()
   const [post, setPost] = useState<Post | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    if (!post) return
+    if (!window.confirm('정말 이 게시글을 삭제하시겠습니까?\n삭제된 게시글은 복구할 수 없습니다.')) return
+
+    setIsDeleting(true)
+    try {
+      await api.deletePost(post.id)
+      navigate('/posts', { replace: true })
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '삭제에 실패했습니다.')
+      setIsDeleting(false)
+    }
+  }
 
   // SEO meta tags
   useSEO({
@@ -458,12 +474,35 @@ export default function PostDetailPage() {
 
               {/* Title */}
               <div className="mb-6">
-                {user?.role === 'ADMIN' && post.status === 'PRIVATE' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-4 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                    <span className="material-symbols-outlined text-[18px]">visibility_off</span>
-                    <span className="text-sm font-medium">비공개 게시글</span>
-                  </span>
-                )}
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  {user?.role === 'ADMIN' && post.status === 'PRIVATE' && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                      <span className="material-symbols-outlined text-[18px]">visibility_off</span>
+                      <span className="text-sm font-medium">비공개</span>
+                    </span>
+                  )}
+                  {user?.role === 'ADMIN' && (
+                    <div className="flex items-center gap-2 ml-auto">
+                      <Link
+                        to={`/admin/posts/${post.id}/edit`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">edit</span>
+                        수정
+                      </Link>
+                      <button
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">
+                          {isDeleting ? 'progress_activity' : 'delete'}
+                        </span>
+                        {isDeleting ? '삭제 중...' : '삭제'}
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white leading-tight">
                   {post.title}
                 </h1>

@@ -358,12 +358,17 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
       throw new AppError('인증이 필요합니다.', 401)
     }
 
-    const slug = slugify(title, { lower: true, strict: true })
+    let slug = slugify(title, { lower: true, strict: true })
 
-    // Check for duplicate slug
+    // If slug is empty (e.g., Korean-only title), use timestamp
+    if (!slug) {
+      slug = `post-${Date.now()}`
+    }
+
+    // Check for duplicate slug and make unique if needed
     const existing = await prisma.post.findUnique({ where: { slug } })
     if (existing) {
-      throw new AppError('이미 같은 제목의 게시글이 있습니다.', 400)
+      slug = `${slug}-${Date.now()}`
     }
 
     // Calculate reading time (average 200 words per minute)
