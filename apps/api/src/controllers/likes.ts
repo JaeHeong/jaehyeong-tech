@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express'
 import crypto from 'crypto'
 import { prisma } from '../services/prisma.js'
 import { AppError } from '../middleware/errorHandler.js'
+import type { AuthRequest } from '../middleware/auth.js'
 import { updateFeaturedPost } from './posts.js'
 
 // Hash IP address for privacy
@@ -23,6 +24,8 @@ function getClientIP(req: Request): string {
 export async function toggleLike(req: Request, res: Response, next: NextFunction) {
   try {
     const postId = req.params.id
+    const authReq = req as AuthRequest
+    const userId = authReq.user?.id
 
     if (!postId) {
       throw new AppError('게시글 ID가 필요합니다.', 400)
@@ -42,17 +45,30 @@ export async function toggleLike(req: Request, res: Response, next: NextFunction
       throw new AppError('비공개 게시글입니다.', 403)
     }
 
-    const ipHash = hashIP(getClientIP(req))
+    let existingLike
 
-    // Check if already liked
-    const existingLike = await prisma.like.findUnique({
-      where: {
-        postId_ipHash: {
-          postId,
-          ipHash,
+    if (userId) {
+      // Logged-in user: check by userId
+      existingLike = await prisma.like.findUnique({
+        where: {
+          postId_userId: {
+            postId,
+            userId,
+          },
         },
-      },
-    })
+      })
+    } else {
+      // Anonymous user: check by ipHash
+      const ipHash = hashIP(getClientIP(req))
+      existingLike = await prisma.like.findUnique({
+        where: {
+          postId_ipHash: {
+            postId,
+            ipHash,
+          },
+        },
+      })
+    }
 
     let liked: boolean
     let likeCount: number
@@ -72,13 +88,18 @@ export async function toggleLike(req: Request, res: Response, next: NextFunction
       likeCount = await prisma.like.count({ where: { postId } })
     } else {
       // Like: create like and increment counter
+      const likeData: { post: { connect: { id: string } }; user?: { connect: { id: string } }; ipHash?: string } = {
+        post: { connect: { id: postId } },
+      }
+
+      if (userId) {
+        likeData.user = { connect: { id: userId } }
+      } else {
+        likeData.ipHash = hashIP(getClientIP(req))
+      }
+
       await prisma.$transaction([
-        prisma.like.create({
-          data: {
-            post: { connect: { id: postId } },
-            ipHash,
-          },
-        }),
+        prisma.like.create({ data: likeData }),
         prisma.post.update({
           where: { id: postId },
           data: { likeCount: { increment: 1 } },
@@ -106,6 +127,8 @@ export async function toggleLike(req: Request, res: Response, next: NextFunction
 export async function checkLikeStatus(req: Request, res: Response, next: NextFunction) {
   try {
     const postId = req.params.id
+    const authReq = req as AuthRequest
+    const userId = authReq.user?.id
 
     if (!postId) {
       throw new AppError('게시글 ID가 필요합니다.', 400)
@@ -120,16 +143,30 @@ export async function checkLikeStatus(req: Request, res: Response, next: NextFun
       throw new AppError('게시글을 찾을 수 없습니다.', 404)
     }
 
-    const ipHash = hashIP(getClientIP(req))
+    let existingLike
 
-    const existingLike = await prisma.like.findUnique({
-      where: {
-        postId_ipHash: {
-          postId,
-          ipHash,
+    if (userId) {
+      // Logged-in user: check by userId
+      existingLike = await prisma.like.findUnique({
+        where: {
+          postId_userId: {
+            postId,
+            userId,
+          },
         },
-      },
-    })
+      })
+    } else {
+      // Anonymous user: check by ipHash
+      const ipHash = hashIP(getClientIP(req))
+      existingLike = await prisma.like.findUnique({
+        where: {
+          postId_ipHash: {
+            postId,
+            ipHash,
+          },
+        },
+      })
+    }
 
     res.json({
       data: {

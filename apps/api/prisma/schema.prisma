@@ -25,6 +25,7 @@ model User {
   drafts    Draft[]
   pages     Page[]
   comments  Comment[]
+  likes     Like[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -150,11 +151,15 @@ model Like {
   id        String   @id @default(cuid())
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    String
-  ipHash    String   // Hashed IP for anonymous like tracking
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?  // For logged-in users
+  ipHash    String?  // For anonymous users (hashed IP)
   createdAt DateTime @default(now())
 
-  @@unique([postId, ipHash])
+  @@unique([postId, userId])   // One like per user per post
+  @@unique([postId, ipHash])   // One like per IP per post (for anonymous)
   @@index([postId])
+  @@index([userId])
   @@map("likes")
 }
 
