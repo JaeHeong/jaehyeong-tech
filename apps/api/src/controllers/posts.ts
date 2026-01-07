@@ -117,6 +117,7 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
     const search = req.query.search as string
     const statusFilter = req.query.status as string
     const sortBy = req.query.sortBy as string
+    const featured = req.query.featured as string
 
     const authReq = req as AuthRequest
     const isAdmin = authReq.user?.role === 'ADMIN'
@@ -163,6 +164,11 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
         { category: { name: { contains: search, mode: 'insensitive' } } },
         { tags: { some: { name: { contains: search, mode: 'insensitive' } } } },
       ]
+    }
+
+    // Filter by featured (from all categories)
+    if (featured === 'true') {
+      where.featured = true
     }
 
     const [posts, total] = await Promise.all([
