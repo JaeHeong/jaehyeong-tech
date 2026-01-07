@@ -61,7 +61,7 @@ export default function Header() {
       <div className="container-wrapper">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="group flex items-center gap-3 shrink-0 cursor-pointer">
+          <Link to="/" onClick={() => window.scrollTo(0, 0)} className="group flex items-center gap-3 shrink-0 cursor-pointer">
             <div className="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
               <span className="material-symbols-outlined text-[24px] group-hover:animate-terminal-wiggle">terminal</span>
             </div>

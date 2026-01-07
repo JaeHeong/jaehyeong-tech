@@ -12,12 +12,12 @@ export async function getCategories(req: Request, res: Response, next: NextFunct
     const authReq = req as AuthRequest
     const isAdmin = authReq.user?.role === 'ADMIN'
 
-    // Always get public count
+    // Always get public count, ordered by post count descending, then by name
     const categories = await prisma.category.findMany({
       include: {
         _count: { select: { posts: { where: { status: 'PUBLIC' } } } },
       },
-      orderBy: { name: 'asc' },
+      orderBy: [{ posts: { _count: 'desc' } }, { name: 'asc' }],
     })
 
     // For admin, also get private count

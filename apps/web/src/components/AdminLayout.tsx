@@ -81,6 +81,11 @@ export default function AdminLayout() {
     fetchStats()
   }, [location.pathname, fetchStats])
 
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
+
   // Check if we're on the post editor page (full width mode)
   const isEditorPage = location.pathname.includes('/posts/new') ||
     /\/posts\/[^/]+\/edit/.test(location.pathname)
