@@ -611,6 +611,7 @@ export interface DashboardStats {
     draftPosts: number
     totalComments: number
     recentComments: number
+    newComments: number
     totalViews: number
     totalLikes: number
   }

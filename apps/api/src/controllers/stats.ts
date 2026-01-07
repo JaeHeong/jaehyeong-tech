@@ -23,6 +23,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
       draftPosts,
       totalComments,
       recentComments,
+      newComments,
       totalViews,
       totalLikes,
       categoryStats,
@@ -46,6 +47,10 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
       // Comments from last 7 days
       prisma.comment.count({
         where: { createdAt: { gte: weekAgo }, isDeleted: false },
+      }),
+      // Comments from last 24 hours (for "New" badge)
+      prisma.comment.count({
+        where: { createdAt: { gte: twentyFourHoursAgo }, isDeleted: false },
       }),
       // Total views
       prisma.post.aggregate({
@@ -180,6 +185,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
           draftPosts,
           totalComments,
           recentComments,
+          newComments,
           totalViews: totalViews._sum.viewCount || 0,
           totalLikes,
         },

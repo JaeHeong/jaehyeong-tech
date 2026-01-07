@@ -1,16 +1,36 @@
 import { Link, useLocation, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import Header from './Header'
 import Footer from './Footer'
+import api from '../services/api'
 
-const sidebarItems = [
+interface SidebarStats {
+  publishedPosts: number
+  draftPosts: number
+  totalCategories: number
+  totalTags: number
+  totalPages: number
+  newComments: number
+  totalComments: number
+}
+
+type BadgeKey = 'posts' | 'categories' | 'tags' | 'pages' | 'drafts' | 'comments'
+
+const baseSidebarItems: Array<{
+  path: string
+  icon: string
+  label: string
+  exact?: boolean
+  badgeKey?: BadgeKey
+}> = [
   { path: '/admin', icon: 'dashboard', label: '대시보드 홈', exact: true },
-  { path: '/admin/posts', icon: 'article', label: '게시물 관리' },
-  { path: '/admin/categories', icon: 'category', label: '카테고리 관리' },
-  { path: '/admin/tags', icon: 'sell', label: '태그 관리' },
-  { path: '/admin/pages', icon: 'description', label: '페이지 관리' },
-  { path: '/admin/drafts', icon: 'edit_note', label: '임시 저장 글', badge: '3' },
-  { path: '/admin/comments', icon: 'chat', label: '댓글 관리', badgeType: 'new' },
+  { path: '/admin/posts', icon: 'article', label: '게시물 관리', badgeKey: 'posts' },
+  { path: '/admin/categories', icon: 'category', label: '카테고리 관리', badgeKey: 'categories' },
+  { path: '/admin/tags', icon: 'sell', label: '태그 관리', badgeKey: 'tags' },
+  { path: '/admin/pages', icon: 'description', label: '페이지 관리', badgeKey: 'pages' },
+  { path: '/admin/drafts', icon: 'edit_note', label: '임시 저장 글', badgeKey: 'drafts' },
+  { path: '/admin/comments', icon: 'chat', label: '댓글 관리', badgeKey: 'comments' },
   { path: '/admin/management', icon: 'storage', label: '시스템 관리' },
   { path: '/admin/settings', icon: 'settings', label: '설정' },
 ]
@@ -18,6 +38,27 @@ const sidebarItems = [
 export default function AdminLayout() {
   const location = useLocation()
   const { logout, user } = useAuth()
+  const [stats, setStats] = useState<SidebarStats | null>(null)
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.getDashboardStats()
+        setStats({
+          publishedPosts: response.stats.publishedPosts,
+          draftPosts: response.stats.draftPosts,
+          totalCategories: response.categories.length,
+          totalTags: response.tags.length,
+          totalPages: response.pages.static + response.pages.notice,
+          newComments: response.stats.newComments,
+          totalComments: response.stats.totalComments,
+        })
+      } catch {
+        // Silently fail - badges just won't show
+      }
+    }
+    fetchStats()
+  }, [])
 
   // Check if we're on the post editor page (full width mode)
   const isEditorPage = location.pathname.includes('/posts/new') ||
@@ -48,7 +89,37 @@ export default function AdminLayout() {
                 </h2>
               </div>
               <nav className="flex flex-col p-2 gap-1">
-                {sidebarItems.map((item) => (
+                {baseSidebarItems.map((item) => {
+                  // Determine badge based on badgeKey and stats
+                  let badge: { text: string; isNew: boolean } | null = null
+                  if (stats && item.badgeKey) {
+                    switch (item.badgeKey) {
+                      case 'posts':
+                        if (stats.publishedPosts > 0) badge = { text: stats.publishedPosts.toString(), isNew: false }
+                        break
+                      case 'categories':
+                        if (stats.totalCategories > 0) badge = { text: stats.totalCategories.toString(), isNew: false }
+                        break
+                      case 'tags':
+                        if (stats.totalTags > 0) badge = { text: stats.totalTags.toString(), isNew: false }
+                        break
+                      case 'pages':
+                        if (stats.totalPages > 0) badge = { text: stats.totalPages.toString(), isNew: false }
+                        break
+                      case 'drafts':
+                        if (stats.draftPosts > 0) badge = { text: stats.draftPosts.toString(), isNew: false }
+                        break
+                      case 'comments':
+                        if (stats.newComments > 0) {
+                          badge = { text: 'New', isNew: true }
+                        } else if (stats.totalComments > 0) {
+                          badge = { text: stats.totalComments.toString(), isNew: false }
+                        }
+                        break
+                    }
+                  }
+
+                  return (
                   <Link
                     key={item.path}
                     to={item.path}
@@ -60,18 +131,18 @@ export default function AdminLayout() {
                   >
                     <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
                     {item.label}
-                    {item.badge && (
-                      <span className="ml-auto bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs py-0.5 px-2 rounded-full font-bold">
-                        {item.badge}
-                      </span>
-                    )}
-                    {item.badgeType === 'new' && (
-                      <span className="ml-auto bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs py-0.5 px-2 rounded-full font-bold">
-                        New
+                    {badge && (
+                      <span className={`ml-auto text-xs py-0.5 px-2 rounded-full font-bold ${
+                        badge.isNew
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}>
+                        {badge.text}
                       </span>
                     )}
                   </Link>
-                ))}
+                  )
+                })}
               </nav>
             </div>
 
