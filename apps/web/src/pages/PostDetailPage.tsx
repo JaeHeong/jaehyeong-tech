@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api, type Post } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
 import CommentSection from '../components/CommentSection'
 import { useSEO } from '../hooks/useSEO'
 
 export default function PostDetailPage() {
+  const { user } = useAuth()
   const { slug } = useParams<{ slug: string }>()
   const [post, setPost] = useState<Post | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -455,9 +457,17 @@ export default function PostDetailPage() {
               </div>
 
               {/* Title */}
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
-                {post.title}
-              </h1>
+              <div className="mb-6">
+                {user?.role === 'ADMIN' && post.status === 'PRIVATE' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-4 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                    <span className="material-symbols-outlined text-[18px]">visibility_off</span>
+                    <span className="text-sm font-medium">비공개 게시글</span>
+                  </span>
+                )}
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white leading-tight">
+                  {post.title}
+                </h1>
+              </div>
 
               {/* Meta */}
               <div className="flex flex-wrap items-center gap-6 pb-8 border-b border-slate-100 dark:border-slate-800 mb-8">

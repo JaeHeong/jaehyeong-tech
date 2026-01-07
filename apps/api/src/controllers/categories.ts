@@ -7,8 +7,12 @@ import slugifyLib from 'slugify'
 type SlugifyFn = (str: string, opts?: { lower?: boolean; strict?: boolean }) => string
 const slugify: SlugifyFn = (slugifyLib as unknown as { default?: SlugifyFn }).default || (slugifyLib as unknown as SlugifyFn)
 
-export async function getCategories(_req: Request, res: Response, next: NextFunction) {
+export async function getCategories(req: Request, res: Response, next: NextFunction) {
   try {
+    const authReq = req as AuthRequest
+    const isAdmin = authReq.user?.role === 'ADMIN'
+
+    // Always get public count
     const categories = await prisma.category.findMany({
       include: {
         _count: { select: { posts: { where: { status: 'PUBLIC' } } } },
@@ -16,9 +20,25 @@ export async function getCategories(_req: Request, res: Response, next: NextFunc
       orderBy: { name: 'asc' },
     })
 
+    // For admin, also get private count
+    let privateCounts: Record<string, number> = {}
+    if (isAdmin) {
+      const privateResults = await prisma.category.findMany({
+        select: {
+          id: true,
+          _count: { select: { posts: { where: { status: 'PRIVATE' } } } },
+        },
+      })
+      privateCounts = privateResults.reduce((acc, cat) => {
+        acc[cat.id] = cat._count.posts
+        return acc
+      }, {} as Record<string, number>)
+    }
+
     const data = categories.map((cat) => ({
       ...cat,
       postCount: cat._count.posts,
+      privateCount: isAdmin ? (privateCounts[cat.id] || 0) : undefined,
       _count: undefined,
     }))
 
@@ -31,6 +51,8 @@ export async function getCategories(_req: Request, res: Response, next: NextFunc
 export async function getCategoryBySlug(req: Request, res: Response, next: NextFunction) {
   try {
     const { slug } = req.params
+    const authReq = req as AuthRequest
+    const isAdmin = authReq.user?.role === 'ADMIN'
 
     const category = await prisma.category.findUnique({
       where: { slug },
@@ -43,10 +65,19 @@ export async function getCategoryBySlug(req: Request, res: Response, next: NextF
       throw new AppError('카테고리를 찾을 수 없습니다.', 404)
     }
 
+    // For admin, also get private count
+    let privateCount = 0
+    if (isAdmin) {
+      privateCount = await prisma.post.count({
+        where: { categoryId: category.id, status: 'PRIVATE' },
+      })
+    }
+
     res.json({
       data: {
         ...category,
         postCount: category._count.posts,
+        privateCount: isAdmin ? privateCount : undefined,
         _count: undefined,
       },
     })
@@ -60,13 +91,17 @@ export async function getCategoryPosts(req: Request, res: Response, next: NextFu
     const { slug } = req.params
     const page = parseInt(req.query.page as string) || 1
     const limit = parseInt(req.query.limit as string) || 10
+    const authReq = req as AuthRequest
+    const isAdmin = authReq.user?.role === 'ADMIN'
 
     const category = await prisma.category.findUnique({ where: { slug } })
     if (!category) {
       throw new AppError('카테고리를 찾을 수 없습니다.', 404)
     }
 
-    const where = { categoryId: category.id, status: 'PUBLIC' as const }
+    // Admin sees PUBLIC + PRIVATE, others see PUBLIC only
+    const statuses: ('PUBLIC' | 'PRIVATE')[] = isAdmin ? ['PUBLIC', 'PRIVATE'] : ['PUBLIC']
+    const where = { categoryId: category.id, status: { in: statuses } }
 
     const [posts, total] = await Promise.all([
       prisma.post.findMany({

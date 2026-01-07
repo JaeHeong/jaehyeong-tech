@@ -12,6 +12,7 @@ import { imageRouter } from './images.js'
 import { likeRouter } from './likes.js'
 import { commentRouter } from './comments.js'
 import { statsRouter } from './stats.js'
+import { draftRouter } from './drafts.js'
 
 export const apiRouter: IRouter = Router()
 
@@ -28,6 +29,7 @@ apiRouter.use('/images', imageRouter)
 apiRouter.use('/likes', likeRouter)
 apiRouter.use('/comments', commentRouter)
 apiRouter.use('/stats', statsRouter)
+apiRouter.use('/drafts', draftRouter)
 
 // API info
 apiRouter.get('/', (_req, res) => {
@@ -47,6 +49,7 @@ apiRouter.get('/', (_req, res) => {
       likes: '/api/likes',
       comments: '/api/comments',
       stats: '/api/stats',
+      drafts: '/api/drafts',
     },
   })
 })

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import api, { Post, Category } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
 
 export default function PostListPage() {
+  const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [posts, setPosts] = useState<Post[]>([])
   const [featuredPost, setFeaturedPost] = useState<Post | null>(null)
@@ -114,6 +116,12 @@ export default function PostListPage() {
                 <div className="md:w-3/5 p-6">
                   <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
                     <span className="font-bold text-primary">{featuredPost.category?.name}</span>
+                    {user?.role === 'ADMIN' && featuredPost.status === 'PRIVATE' && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                        <span className="material-symbols-outlined text-[14px]">visibility_off</span>
+                        <span className="text-[10px] font-medium">비공개</span>
+                      </span>
+                    )}
                     <span>•</span>
                     <span>{formatDate(featuredPost.publishedAt || featuredPost.createdAt)}</span>
                   </div>
@@ -204,6 +212,12 @@ export default function PostListPage() {
                       <span className="font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">
                         {post.category?.name || 'Uncategorized'}
                       </span>
+                      {user?.role === 'ADMIN' && post.status === 'PRIVATE' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                          <span className="material-symbols-outlined text-[14px]">visibility_off</span>
+                          <span className="text-[10px] font-medium">비공개</span>
+                        </span>
+                      )}
                       <span className="text-slate-400">
                         {formatDate(post.publishedAt || post.createdAt)}
                       </span>

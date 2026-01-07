@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express'
 import crypto from 'crypto'
 import { prisma } from '../services/prisma.js'
 import { AppError } from '../middleware/errorHandler.js'
+import { updateFeaturedPost } from './posts.js'
 
 // Hash IP address for privacy
 function hashIP(ip: string): string {
@@ -86,6 +87,9 @@ export async function toggleLike(req: Request, res: Response, next: NextFunction
       liked = true
       likeCount = await prisma.like.count({ where: { postId } })
     }
+
+    // Update featured post based on new like count
+    await updateFeaturedPost()
 
     res.json({
       data: {

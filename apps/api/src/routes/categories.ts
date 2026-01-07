@@ -1,15 +1,15 @@
 import { Router, type IRouter } from 'express'
 import * as categoryController from '../controllers/categories.js'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, optionalAuth } from '../middleware/auth.js'
 import { validateBody, validateParams } from '../validation/middleware.js'
 import { createCategorySchema, updateCategorySchema, idParamSchema } from '../validation/schemas.js'
 
 export const categoryRouter: IRouter = Router()
 
-// Public routes
-categoryRouter.get('/', categoryController.getCategories)
-categoryRouter.get('/:slug', categoryController.getCategoryBySlug)
-categoryRouter.get('/:slug/posts', categoryController.getCategoryPosts)
+// Public routes (with optional auth for admin features)
+categoryRouter.get('/', optionalAuth, categoryController.getCategories)
+categoryRouter.get('/:slug', optionalAuth, categoryController.getCategoryBySlug)
+categoryRouter.get('/:slug/posts', optionalAuth, categoryController.getCategoryPosts)
 
 // Protected routes
 categoryRouter.post('/', authenticate, validateBody(createCategorySchema), categoryController.createCategory)

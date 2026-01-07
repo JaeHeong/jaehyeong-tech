@@ -46,10 +46,10 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true }:
       }
     }
 
-    // Fetch popular posts
+    // Fetch popular posts (PUBLIC only - exclude private posts from ranking)
     const fetchPopularPosts = async () => {
       try {
-        const response = await api.getPosts({ limit: 4, sortBy: 'viewCount' })
+        const response = await api.getPosts({ limit: 4, sortBy: 'viewCount', status: 'PUBLIC' })
         setPopularPosts(response.posts)
       } catch {
         setPopularPosts([])

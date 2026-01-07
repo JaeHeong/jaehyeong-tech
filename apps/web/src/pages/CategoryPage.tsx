@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import api, { Category } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
 
 const defaultCategories = [
@@ -26,6 +27,7 @@ const categoryColorClasses: Record<string, { icon: string; hover: string }> = {
 }
 
 export default function CategoryPage() {
+  const { user } = useAuth()
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -72,6 +74,7 @@ export default function CategoryPage() {
                 const color = 'color' in category && category.color ? category.color : 'blue'
                 const description = 'description' in category && category.description ? category.description : ''
                 const postCount = 'postCount' in category ? category.postCount : ('posts' in category ? category.posts : 0)
+                const privateCount = 'privateCount' in category ? category.privateCount : 0
                 const colorClasses = categoryColorClasses[color] ?? { icon: 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500', hover: 'group-hover:border-blue-200 dark:group-hover:border-blue-900' }
 
                 return (
@@ -84,9 +87,17 @@ export default function CategoryPage() {
                       <div className={`p-3 rounded-lg ${colorClasses.icon} group-hover:text-white transition-colors`}>
                         <span className="material-symbols-outlined text-[28px]">{icon}</span>
                       </div>
-                      <span className={`px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold border border-slate-200 dark:border-slate-700 ${colorClasses.hover} transition-colors`}>
-                        {postCount} Posts
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold border border-slate-200 dark:border-slate-700 ${colorClasses.hover} transition-colors`}>
+                          {postCount} Posts
+                        </span>
+                        {user?.role === 'ADMIN' && privateCount !== undefined && privateCount > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-medium flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px]">visibility_off</span>
+                            +{privateCount} 비공개
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
                       {cat.name}

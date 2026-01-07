@@ -6,6 +6,41 @@ import type { AuthRequest } from '../middleware/auth.js'
 import slugifyLib from 'slugify'
 import { deleteFromOCI, isOCIConfigured } from '../services/oci.js'
 
+// Update featured post - sets featured=true on the post with highest likeCount, then viewCount
+// Only one post can be featured at a time
+export async function updateFeaturedPost() {
+  try {
+    // Find the post with highest likes, then highest views (PUBLIC only)
+    const topPost = await prisma.post.findFirst({
+      where: { status: 'PUBLIC' },
+      orderBy: [
+        { likeCount: 'desc' },
+        { viewCount: 'desc' },
+      ],
+      select: { id: true, featured: true },
+    })
+
+    if (!topPost) return
+
+    // Only update if the top post is not already featured
+    if (!topPost.featured) {
+      // Remove featured from all posts
+      await prisma.post.updateMany({
+        where: { featured: true },
+        data: { featured: false },
+      })
+
+      // Set featured on the top post
+      await prisma.post.update({
+        where: { id: topPost.id },
+        data: { featured: true },
+      })
+    }
+  } catch (error) {
+    console.error('Failed to update featured post:', error)
+  }
+}
+
 // Hash IP address for unique view tracking
 function hashIP(ip: string): string {
   const salt = process.env.IP_HASH_SALT || 'default-salt-change-in-production'
@@ -71,10 +106,8 @@ async function linkImagesToPost(postId: string, content: string, coverImage?: st
 // Public: Get posts
 // status filter:
 //   없음 or 'PUBLIC' → PUBLIC만 (공개 페이지용)
-//   'DRAFT' → admin만, DRAFT만 (임시저장)
-//   'PUBLISHED' → admin만, PUBLIC + PRIVATE (발행된 것)
+//   'PUBLISHED' or 'ALL' → admin만, PUBLIC + PRIVATE (발행된 모든 것)
 //   'PRIVATE' → admin만, PRIVATE만
-//   'ALL' → admin만, 모든 상태
 export async function getPosts(req: Request, res: Response, next: NextFunction) {
   try {
     const page = parseInt(req.query.page as string) || 1
@@ -96,24 +129,23 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
       orderByField = 'viewCount'
     }
 
-    if (statusFilter === 'DRAFT') {
-      if (!isAdmin) throw new AppError('권한이 없습니다.', 403)
-      where.status = 'DRAFT'
-      if (!sortBy) orderByField = 'updatedAt'
-    } else if (statusFilter === 'PUBLISHED') {
-      // 발행된 것: PUBLIC + PRIVATE
+    if (statusFilter === 'PUBLISHED' || statusFilter === 'ALL') {
+      // All published posts: PUBLIC + PRIVATE
       if (!isAdmin) throw new AppError('권한이 없습니다.', 403)
       where.status = { in: ['PUBLIC', 'PRIVATE'] }
     } else if (statusFilter === 'PRIVATE') {
       if (!isAdmin) throw new AppError('권한이 없습니다.', 403)
       where.status = 'PRIVATE'
-    } else if (statusFilter === 'ALL') {
-      if (!isAdmin) throw new AppError('권한이 없습니다.', 403)
-      // No filter
-      if (!sortBy) orderByField = 'updatedAt'
-    } else {
-      // Default: PUBLIC only (공개 페이지)
+    } else if (statusFilter === 'PUBLIC') {
+      // Explicit PUBLIC only filter
       where.status = 'PUBLIC'
+    } else {
+      // Default: Admin sees both PUBLIC + PRIVATE, others see PUBLIC only
+      if (isAdmin) {
+        where.status = { in: ['PUBLIC', 'PRIVATE'] }
+      } else {
+        where.status = 'PUBLIC'
+      }
     }
 
     if (category) {
@@ -278,6 +310,11 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
       viewIncremented = true
     }
 
+    // Update featured post if view count changed
+    if (viewIncremented) {
+      await updateFeaturedPost()
+    }
+
     res.json({ data: { ...post, viewCount: post.viewCount + (viewIncremented ? 1 : 0) } })
   } catch (error) {
     next(error)
@@ -333,12 +370,9 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
     const wordCount = content.split(/\s+/).length
     const readingTime = Math.ceil(wordCount / 200)
 
-    // Set publishedAt only when publishing (PUBLIC or PRIVATE)
-    let postPublishedAt: Date | null = null
-    const postStatus = status || 'DRAFT'
-    if (postStatus !== 'DRAFT') {
-      postPublishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : new Date()
-    }
+    // Post is always published (PUBLIC or PRIVATE)
+    const postStatus = status === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC'
+    const postPublishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : new Date()
 
     const post = await prisma.post.create({
       data: {
@@ -364,6 +398,9 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
 
     // Link images to the post
     await linkImagesToPost(post.id, content, coverImage)
+
+    // Update featured post
+    await updateFeaturedPost()
 
     res.status(201).json({ data: post })
   } catch (error) {
@@ -405,13 +442,11 @@ export async function updatePost(req: AuthRequest, res: Response, next: NextFunc
     if (coverImage !== undefined) updateData.coverImage = coverImage
     if (categoryId) updateData.category = { connect: { id: categoryId } }
     if (status !== undefined) {
-      updateData.status = status
-      // Set publishedAt when publishing for first time
-      if (status !== 'DRAFT' && !existing.publishedAt) {
-        updateData.publishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : new Date()
-      } else if (req.body.publishedAt !== undefined) {
-        updateData.publishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : null
-      }
+      // Post status can only be PUBLIC or PRIVATE
+      updateData.status = status === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC'
+    }
+    if (req.body.publishedAt !== undefined) {
+      updateData.publishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : new Date()
     }
     if (featured !== undefined) updateData.featured = featured
 

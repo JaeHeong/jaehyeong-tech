@@ -28,7 +28,7 @@ export default function AdminPostsPage() {
             page: currentPage,
             limit: 20,
             category: currentCategory || undefined,
-            status: (currentStatus || 'PUBLISHED') as 'DRAFT' | 'PUBLISHED' | 'PRIVATE' | 'ALL',
+            status: (currentStatus || 'PUBLISHED') as 'PUBLISHED' | 'PRIVATE' | 'ALL',
             search: searchQuery || undefined,
           }),
         ])

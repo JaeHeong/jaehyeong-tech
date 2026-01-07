@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import api, { Post, Category } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
 
 export default function HomePage() {
+  const { user } = useAuth()
   const [featuredPost, setFeaturedPost] = useState<Post | null>(null)
   const [latestPosts, setLatestPosts] = useState<Post[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -67,6 +69,12 @@ export default function HomePage() {
                   <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
                     Featured
                   </span>
+                  {user?.role === 'ADMIN' && featuredPost.status === 'PRIVATE' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                      <span className="material-symbols-outlined text-[14px]">visibility_off</span>
+                      <span className="text-xs font-medium">비공개</span>
+                    </span>
+                  )}
                   <span className="text-slate-500 dark:text-slate-400 text-sm">
                     {formatDate(featuredPost.publishedAt || featuredPost.createdAt)}
                   </span>
@@ -282,6 +290,12 @@ export default function HomePage() {
                         <span className="font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">
                           {post.category?.name || 'Uncategorized'}
                         </span>
+                        {user?.role === 'ADMIN' && post.status === 'PRIVATE' && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                            <span className="material-symbols-outlined text-[14px]">visibility_off</span>
+                            <span className="text-[10px] font-medium">비공개</span>
+                          </span>
+                        )}
                         <span className="text-slate-400">{formatDate(post.publishedAt || post.createdAt)}</span>
                       </div>
                       <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">

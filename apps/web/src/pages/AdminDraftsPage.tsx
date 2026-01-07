@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import api, { Post } from '../services/api'
+import api, { Draft } from '../services/api'
 
 export default function AdminDraftsPage() {
-  const [drafts, setDrafts] = useState<Post[]>([])
+  const [drafts, setDrafts] = useState<Draft[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; draft: Post | null }>({
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; draft: Draft | null }>({
     isOpen: false,
     draft: null,
   })
@@ -14,8 +14,8 @@ export default function AdminDraftsPage() {
     const fetchDrafts = async () => {
       setIsLoading(true)
       try {
-        const { posts } = await api.getPosts({ status: 'DRAFT', limit: 50 })
-        setDrafts(posts)
+        const { drafts: fetchedDrafts } = await api.getDrafts()
+        setDrafts(fetchedDrafts)
       } catch (error) {
         console.error('Failed to fetch drafts:', error)
       } finally {
@@ -30,7 +30,7 @@ export default function AdminDraftsPage() {
     if (!deleteModal.draft) return
 
     try {
-      await api.deletePost(deleteModal.draft.id)
+      await api.deleteDraft(deleteModal.draft.id)
       setDrafts(drafts.filter((d) => d.id !== deleteModal.draft?.id))
       setDeleteModal({ isOpen: false, draft: null })
     } catch (error) {
@@ -114,8 +114,6 @@ export default function AdminDraftsPage() {
               {/* Content */}
               <div className="p-4">
                 <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                  <span className="font-medium text-primary">{draft.category?.name || '미분류'}</span>
-                  <span>•</span>
                   <span>{formatDate(draft.updatedAt)}</span>
                 </div>
 
@@ -130,14 +128,13 @@ export default function AdminDraftsPage() {
                 {/* Meta */}
                 <div className="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <span>{getWordCount(draft.content)} 단어</span>
-                  <span>약 {draft.readingTime}분 읽기</span>
                 </div>
               </div>
 
               {/* Actions */}
               <div className="flex border-t border-slate-200 dark:border-slate-800">
                 <Link
-                  to={`/admin/posts/${draft.id}/edit`}
+                  to={`/admin/drafts/${draft.id}/edit`}
                   className="flex-1 py-3 text-center text-sm font-medium text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-1"
                 >
                   <span className="material-symbols-outlined text-[18px]">edit</span>

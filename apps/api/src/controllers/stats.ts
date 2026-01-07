@@ -20,7 +20,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
     const [
       totalPosts,
       publishedPosts,
-      draftPosts,
+      draftCount,
       totalComments,
       recentComments,
       newComments,
@@ -36,12 +36,12 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
       recentDrafts,
       latestComments,
     ] = await Promise.all([
-      // Total posts
+      // Total posts (all are published now - PUBLIC + PRIVATE)
       prisma.post.count(),
-      // Published posts (PUBLIC + PRIVATE)
+      // Published posts (PUBLIC + PRIVATE) - same as total now
       prisma.post.count({ where: { status: { in: ['PUBLIC', 'PRIVATE'] } } }),
-      // Draft posts
-      prisma.post.count({ where: { status: 'DRAFT' } }),
+      // Draft count (from Draft table)
+      prisma.draft.count(),
       // Total comments
       prisma.comment.count({ where: { isDeleted: false } }),
       // Comments from last 7 days
@@ -111,9 +111,8 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
         orderBy: { createdAt: 'desc' },
         take: 10,
       }),
-      // Recent drafts (last 10)
-      prisma.post.findMany({
-        where: { status: 'DRAFT' },
+      // Recent drafts (last 10 from Draft table)
+      prisma.draft.findMany({
         select: {
           id: true,
           title: true,
@@ -182,7 +181,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
         stats: {
           totalPosts,
           publishedPosts,
-          draftPosts,
+          draftPosts: draftCount,
           totalComments,
           recentComments,
           newComments,

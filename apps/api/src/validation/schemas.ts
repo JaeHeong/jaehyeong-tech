@@ -31,7 +31,7 @@ export const createPostSchema = z.object({
   coverImage: z.string().url('유효한 URL을 입력해주세요.').nullable().optional().or(z.literal('')),
   categoryId: z.string().cuid('유효한 카테고리 ID가 아닙니다.'),
   tagIds: z.array(z.string().cuid('유효한 태그 ID가 아닙니다.')).optional(),
-  status: z.enum(['DRAFT', 'PUBLIC', 'PRIVATE']).optional(),
+  status: z.enum(['PUBLIC', 'PRIVATE']).optional(),
   featured: z.boolean().optional(),
   publishedAt: datetimeLocalSchema,
 })
@@ -43,7 +43,7 @@ export const updatePostSchema = z.object({
   coverImage: z.string().url('유효한 URL을 입력해주세요.').nullable().optional().or(z.literal('')),
   categoryId: z.string().cuid('유효한 카테고리 ID가 아닙니다.').optional(),
   tagIds: z.array(z.string().cuid('유효한 태그 ID가 아닙니다.')).optional(),
-  status: z.enum(['DRAFT', 'PUBLIC', 'PRIVATE']).optional(),
+  status: z.enum(['PUBLIC', 'PRIVATE']).optional(),
   featured: z.boolean().optional(),
   publishedAt: datetimeLocalSchema,
 })
@@ -108,7 +108,7 @@ export const postQuerySchema = paginationSchema.extend({
   category: z.string().optional(),
   tag: z.string().optional(),
   search: z.string().max(100, '검색어는 100자를 초과할 수 없습니다.').optional(),
-  status: z.enum(['PUBLIC', 'DRAFT', 'PUBLISHED', 'PRIVATE', 'ALL']).optional(),
+  status: z.enum(['PUBLIC', 'PUBLISHED', 'PRIVATE', 'ALL']).optional(),
   sortBy: z.enum(['publishedAt', 'updatedAt', 'viewCount']).optional(),
 })
 

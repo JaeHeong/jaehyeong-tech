@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useParams, Link, useBlocker } from 'react-router-dom'
+import { useNavigate, useParams, Link, useBlocker } from 'react-router-dom'
 import { api, type Category, type Tag } from '../services/api'
 import TipTapEditor from '../components/TipTapEditor'
 import { common, createLowlight } from 'lowlight'
@@ -9,11 +9,9 @@ const lowlight = createLowlight(common)
 
 // Helper to apply syntax highlighting to HTML content
 function highlightCodeBlocks(html: string): string {
-  // Create a temporary div to parse HTML
   const div = document.createElement('div')
   div.innerHTML = html
 
-  // Find all code blocks and apply highlighting
   const codeBlocks = div.querySelectorAll('pre code')
   codeBlocks.forEach((codeElement) => {
     const code = codeElement.textContent || ''
@@ -27,7 +25,6 @@ function highlightCodeBlocks(html: string): string {
         highlighted = lowlight.highlightAuto(code)
       }
 
-      // Convert hast to HTML string
       const highlightedHtml = hastToHtml(highlighted)
       codeElement.innerHTML = highlightedHtml
       codeElement.classList.add('hljs')
@@ -63,56 +60,57 @@ function hastToHtml(tree: ReturnType<typeof lowlight.highlight>): string {
   return (tree.children || []).map(nodeToHtml).join('')
 }
 
+interface DraftFormData {
+  title: string
+  content: string
+  excerpt: string
+  categoryId: string
+  tagIds: string[]
+  coverImage: string
+  publishedAt: string
+  status: 'PUBLIC' | 'PRIVATE'
+}
+
 // Helper to compare form data for dirty checking
-function isFormDirty(current: PostFormData, initial: PostFormData): boolean {
+function isFormDirty(current: DraftFormData, initial: DraftFormData): boolean {
   return (
     current.title !== initial.title ||
     current.content !== initial.content ||
     current.excerpt !== initial.excerpt ||
     current.categoryId !== initial.categoryId ||
     current.coverImage !== initial.coverImage ||
-    current.publishedAt !== initial.publishedAt ||
-    current.status !== initial.status ||
     JSON.stringify(current.tagIds.sort()) !== JSON.stringify(initial.tagIds.sort())
   )
 }
 
-interface PostFormData {
-  title: string
-  content: string
-  excerpt: string
-  categoryId: string
-  tagIds: string[]
-  status: 'PUBLIC' | 'PRIVATE'
-  coverImage: string
-  publishedAt: string
-}
-
-const initialFormData: PostFormData = {
+const initialFormData: DraftFormData = {
   title: '',
   content: '',
   excerpt: '',
   categoryId: '',
   tagIds: [],
-  status: 'PUBLIC',
   coverImage: '',
   publishedAt: '',
+  status: 'PUBLIC',
 }
 
-export default function AdminPostEditorPage() {
+export default function AdminDraftEditorPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const isEditing = !!id
 
-  const [formData, setFormData] = useState<PostFormData>(initialFormData)
-  const [savedFormData, setSavedFormData] = useState<PostFormData>(initialFormData)
+  const [formData, setFormData] = useState<DraftFormData>(initialFormData)
+  const [savedFormData, setSavedFormData] = useState<DraftFormData>(initialFormData)
   const [categories, setCategories] = useState<Category[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isPublishing, setIsPublishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isUploadingCover, setIsUploadingCover] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [successToast, setSuccessToast] = useState<string | null>(null)
+  const [draftId, setDraftId] = useState<string | null>(id || null)
   const coverInputRef = useRef<HTMLInputElement>(null)
 
   // Close preview modal on ESC key
@@ -178,33 +176,28 @@ export default function AdminPostEditorPage() {
     fetchData()
   }, [])
 
-  // Fetch existing post if editing
+  // Fetch existing draft if editing
   useEffect(() => {
     if (isEditing && id) {
       setIsLoading(true)
-      api.getPostById(id)
-        .then(({ data: post }) => {
-          // Format publishedAt for datetime-local input (YYYY-MM-DDTHH:mm)
-          let publishedAtValue = ''
-          if (post.publishedAt) {
-            const date = new Date(post.publishedAt)
-            publishedAtValue = date.toISOString().slice(0, 16)
-          }
-          const loadedData: PostFormData = {
-            title: post.title,
-            content: post.content,
-            excerpt: post.excerpt,
-            categoryId: post.category.id,
-            tagIds: post.tags.map((t) => t.id),
-            status: post.status as 'PUBLIC' | 'PRIVATE',
-            coverImage: post.coverImage || '',
-            publishedAt: publishedAtValue,
+      api.getDraftById(id)
+        .then(({ draft }) => {
+          const loadedData: DraftFormData = {
+            title: draft.title || '',
+            content: draft.content || '',
+            excerpt: draft.excerpt || '',
+            categoryId: draft.categoryId || '',
+            tagIds: draft.tagIds || [],
+            coverImage: draft.coverImage || '',
+            publishedAt: '',
+            status: 'PUBLIC',
           }
           setFormData(loadedData)
           setSavedFormData(loadedData)
+          setDraftId(draft.id)
         })
         .catch((err) => {
-          setError('게시물을 불러오는데 실패했습니다.')
+          setError('임시 저장글을 불러오는데 실패했습니다.')
           console.error(err)
         })
         .finally(() => setIsLoading(false))
@@ -256,7 +249,46 @@ export default function AdminPostEditorPage() {
     setFormData((prev) => ({ ...prev, coverImage: '' }))
   }, [])
 
-  const handleSubmit = async () => {
+  // Save draft
+  const handleSaveDraft = async () => {
+    setIsSaving(true)
+    setError(null)
+
+    try {
+      const draftData = {
+        title: formData.title || undefined,
+        content: formData.content,
+        excerpt: formData.excerpt || undefined,
+        coverImage: formData.coverImage || undefined,
+        categoryId: formData.categoryId || undefined,
+        tagIds: formData.tagIds,
+      }
+
+      if (draftId) {
+        // Update existing draft
+        await api.updateDraft(draftId, draftData)
+      } else {
+        // Create new draft
+        const { draft } = await api.createDraft(draftData)
+        setDraftId(draft.id)
+        // Update URL without navigation
+        window.history.replaceState(null, '', `/admin/drafts/${draft.id}/edit`)
+      }
+
+      setSavedFormData(formData)
+      setSuccessToast('임시저장되었습니다.')
+      setTimeout(() => setSuccessToast(null), 3000)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '저장에 실패했습니다.'
+      setError(message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Publish draft
+  const handlePublish = async () => {
+    // Validate required fields
     if (!formData.title.trim()) {
       setError('제목을 입력해주세요.')
       return
@@ -270,7 +302,7 @@ export default function AdminPostEditorPage() {
       return
     }
 
-    setIsSaving(true)
+    setIsPublishing(true)
     setError(null)
 
     try {
@@ -279,27 +311,48 @@ export default function AdminPostEditorPage() {
       tempDiv.innerHTML = formData.content
       const textContent = tempDiv.textContent || tempDiv.innerText || ''
 
-      const data = {
-        ...formData,
-        excerpt: formData.excerpt || textContent.slice(0, 200),
+      // First, save the draft if needed
+      let currentDraftId = draftId
+      if (!currentDraftId) {
+        const { draft } = await api.createDraft({
+          title: formData.title,
+          content: formData.content,
+          excerpt: formData.excerpt || textContent.slice(0, 200),
+          coverImage: formData.coverImage || undefined,
+          categoryId: formData.categoryId,
+          tagIds: formData.tagIds,
+        })
+        currentDraftId = draft.id
+      } else {
+        // Update draft before publishing
+        await api.updateDraft(currentDraftId, {
+          title: formData.title,
+          content: formData.content,
+          excerpt: formData.excerpt || textContent.slice(0, 200),
+          coverImage: formData.coverImage || undefined,
+          categoryId: formData.categoryId,
+          tagIds: formData.tagIds,
+        })
       }
 
-      if (isEditing && id) {
-        await api.updatePost(id, data)
-      }
+      // Publish the draft
+      await api.publishDraft(currentDraftId, {
+        status: formData.status,
+        publishedAt: formData.publishedAt || undefined,
+      })
 
-      // Update form state to prevent navigation warning
-      setFormData(formData)
+      // Mark as saved to prevent navigation warning
       setSavedFormData(formData)
 
-      // Show success toast
-      setSuccessToast('수정되었습니다.')
-      setTimeout(() => setSuccessToast(null), 3000)
+      setSuccessToast('발행되었습니다.')
+      setTimeout(() => {
+        navigate('/admin/posts')
+      }, 1000)
     } catch (err) {
-      const message = err instanceof Error ? err.message : '저장에 실패했습니다.'
+      const message = err instanceof Error ? err.message : '발행에 실패했습니다.'
       setError(message)
     } finally {
-      setIsSaving(false)
+      setIsPublishing(false)
     }
   }
 
@@ -319,14 +372,19 @@ export default function AdminPostEditorPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link
-            to="/admin"
+            to="/admin/drafts"
             className="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </Link>
           <h1 className="text-2xl font-bold">
-            {isEditing ? '게시물 수정' : '새 글 작성'}
+            {isEditing ? '초안 수정' : '새 글 작성'}
           </h1>
+          {draftId && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+              임시저장
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -337,22 +395,30 @@ export default function AdminPostEditorPage() {
             미리보기
           </button>
           <button
-            onClick={handleSubmit}
-            disabled={isSaving}
+            onClick={handleSaveDraft}
+            disabled={isSaving || isPublishing}
+            className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[18px]">save</span>
+            {isSaving ? '저장 중...' : '임시저장'}
+            {isDirty && <span className="w-2 h-2 rounded-full bg-orange-500" title="저장하지 않은 변경사항" />}
+          </button>
+          <button
+            onClick={handlePublish}
+            disabled={isSaving || isPublishing}
             className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
           >
-            {isSaving ? (
+            {isPublishing ? (
               <>
                 <span className="material-symbols-outlined animate-spin text-[18px]">
                   progress_activity
                 </span>
-                저장 중...
+                발행 중...
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined text-[18px]">edit</span>
-                수정하기
-                {isDirty && <span className="w-2 h-2 rounded-full bg-orange-500 ml-1" title="저장하지 않은 변경사항" />}
+                <span className="material-symbols-outlined text-[18px]">publish</span>
+                발행하기
               </>
             )}
           </button>
@@ -466,7 +532,7 @@ export default function AdminPostEditorPage() {
           {/* Visibility */}
           <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-              공개 설정
+              발행 시 공개 설정
             </label>
             <div className="flex gap-2">
               <button
@@ -746,51 +812,18 @@ export default function AdminPostEditorPage() {
               margin-bottom: 0.5rem;
               line-height: 1.75;
             }
-            .preview-content li > ul,
-            .preview-content li > ol {
-              margin-top: 0.5rem;
-              margin-bottom: 0;
-            }
-            /* Horizontal Rule */
-            .preview-content hr {
-              border: none;
-              height: 1px;
-              background: linear-gradient(to right, transparent, #e2e8f0, transparent);
-              margin: 2rem 0;
-            }
-            .dark .preview-content hr {
-              background: linear-gradient(to right, transparent, #334155, transparent);
-            }
-            /* Links */
-            .preview-content a {
-              color: #3182f6;
-              text-decoration: underline;
-              text-underline-offset: 2px;
-              transition: color 0.15s;
-            }
-            .preview-content a:hover {
-              color: #1d4ed8;
-            }
-            .dark .preview-content a {
-              color: #60a5fa;
-            }
-            .dark .preview-content a:hover {
-              color: #93c5fd;
-            }
-            /* Code Block - Terminal Style */
+            /* Code Block */
             .preview-content pre {
               position: relative;
               margin: 1.5rem 0;
               border-radius: 0.75rem;
               overflow: hidden;
               border: 1px solid #e2e8f0;
-              box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
               background: linear-gradient(180deg, #f1f5f9 0%, #f1f5f9 32px, #f8fafc 32px);
               padding: 0;
             }
             .dark .preview-content pre {
               border-color: #30363d;
-              box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
               background: linear-gradient(180deg, #21262d 0%, #21262d 32px, #0d1117 32px);
             }
             .preview-content pre::before {
@@ -799,7 +832,6 @@ export default function AdminPostEditorPage() {
               height: 32px;
               background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
               border-bottom: 1px solid #e2e8f0;
-              position: relative;
             }
             .dark .preview-content pre::before {
               background: linear-gradient(180deg, #21262d 0%, #161b22 100%);
@@ -842,235 +874,23 @@ export default function AdminPostEditorPage() {
               background: #1e293b;
               color: #f87171;
             }
-            /* Syntax highlighting - Light */
-            .preview-content .hljs-keyword,
-            .preview-content .hljs-selector-tag,
-            .preview-content .hljs-built_in { color: #a855f7; }
-            .preview-content .hljs-string,
-            .preview-content .hljs-attr { color: #22c55e; }
+            /* Syntax highlighting */
+            .preview-content .hljs-keyword { color: #a855f7; }
+            .preview-content .hljs-string { color: #22c55e; }
             .preview-content .hljs-comment { color: #94a3b8; font-style: italic; }
-            .preview-content .hljs-function,
-            .preview-content .hljs-title { color: #3b82f6; }
+            .preview-content .hljs-function { color: #3b82f6; }
             .preview-content .hljs-number { color: #f59e0b; }
-            .preview-content .hljs-variable,
-            .preview-content .hljs-template-variable { color: #ef4444; }
-            .preview-content .hljs-property { color: #0891b2; }
-            .preview-content .hljs-operator { color: #64748b; }
-            /* Syntax highlighting - Dark */
-            .dark .preview-content .hljs-keyword,
-            .dark .preview-content .hljs-selector-tag,
-            .dark .preview-content .hljs-built_in { color: #c084fc; }
-            .dark .preview-content .hljs-string,
-            .dark .preview-content .hljs-attr { color: #4ade80; }
+            .dark .preview-content .hljs-keyword { color: #c084fc; }
+            .dark .preview-content .hljs-string { color: #4ade80; }
             .dark .preview-content .hljs-comment { color: #64748b; }
-            .dark .preview-content .hljs-function,
-            .dark .preview-content .hljs-title { color: #60a5fa; }
+            .dark .preview-content .hljs-function { color: #60a5fa; }
             .dark .preview-content .hljs-number { color: #fbbf24; }
-            .dark .preview-content .hljs-variable,
-            .dark .preview-content .hljs-template-variable { color: #f87171; }
-            .dark .preview-content .hljs-property { color: #22d3ee; }
-            .dark .preview-content .hljs-operator { color: #94a3b8; }
-            /* YouTube */
-            .preview-content div[data-youtube-video] {
-              width: 100%;
-              max-width: 640px;
-              margin: 1.5rem 0;
-              border-radius: 0.75rem;
-              overflow: hidden;
-              box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            }
-            .preview-content div[data-youtube-video] iframe {
-              width: 100%;
-              aspect-ratio: 16 / 9;
-              border: none;
-            }
             /* Images */
             .preview-content img {
               max-width: 100%;
               height: auto;
               border-radius: 0.5rem;
               margin: 1.5rem 0;
-              box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            }
-            /* Strong & Emphasis */
-            .preview-content strong {
-              font-weight: 700;
-              color: #0f172a;
-            }
-            .dark .preview-content strong {
-              color: #f1f5f9;
-            }
-            .preview-content em {
-              font-style: italic;
-            }
-            /* Strikethrough */
-            .preview-content s,
-            .preview-content del {
-              text-decoration: line-through;
-              color: #94a3b8;
-            }
-            /* Bookmark Card */
-            .preview-content .bookmark-card-static {
-              margin: 1.5rem 0;
-            }
-            .preview-content .bookmark-link {
-              display: flex;
-              text-decoration: none;
-              border: 1px solid #e2e8f0;
-              border-radius: 0.75rem;
-              overflow: hidden;
-              background: #fff;
-              transition: all 0.2s;
-            }
-            .preview-content .bookmark-link:hover {
-              border-color: #cbd5e1;
-              box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            }
-            .dark .preview-content .bookmark-link {
-              border-color: #334155;
-              background: #1e293b;
-            }
-            .dark .preview-content .bookmark-link:hover {
-              border-color: #475569;
-              box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
-            }
-            .preview-content .bookmark-content {
-              flex: 1;
-              padding: 1rem;
-              min-width: 0;
-              display: flex;
-              flex-direction: column;
-              gap: 0.375rem;
-            }
-            .preview-content .bookmark-title {
-              font-weight: 600;
-              font-size: 0.9375rem;
-              color: #0f172a;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              display: -webkit-box;
-              -webkit-line-clamp: 2;
-              -webkit-box-orient: vertical;
-              line-height: 1.4;
-            }
-            .dark .preview-content .bookmark-title {
-              color: #f1f5f9;
-            }
-            .preview-content .bookmark-description {
-              font-size: 0.8125rem;
-              color: #64748b;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              display: -webkit-box;
-              -webkit-line-clamp: 2;
-              -webkit-box-orient: vertical;
-              line-height: 1.5;
-            }
-            .dark .preview-content .bookmark-description {
-              color: #94a3b8;
-            }
-            .preview-content .bookmark-meta {
-              display: flex;
-              align-items: center;
-              gap: 0.5rem;
-              margin-top: auto;
-              padding-top: 0.25rem;
-            }
-            .preview-content .bookmark-favicon {
-              width: 16px;
-              height: 16px;
-              border-radius: 2px;
-              flex-shrink: 0;
-            }
-            .preview-content .bookmark-site {
-              font-size: 0.75rem;
-              color: #94a3b8;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-            }
-            .preview-content .bookmark-image {
-              width: 140px;
-              flex-shrink: 0;
-              background: #f1f5f9;
-              display: flex;
-              align-items: center;
-            }
-            .dark .preview-content .bookmark-image {
-              background: #0f172a;
-            }
-            .preview-content .bookmark-image img {
-              width: 100%;
-              height: 100%;
-              object-fit: cover;
-              margin: 0;
-              border-radius: 0;
-              box-shadow: none;
-            }
-            /* Callout Block */
-            .preview-content .callout-static {
-              display: flex;
-              align-items: flex-start;
-              gap: 0.75rem;
-              margin: 1.5rem 0;
-              padding: 1rem;
-              border-radius: 0.75rem;
-              border-left: 4px solid var(--callout-border);
-              background: var(--callout-bg-light);
-            }
-            .dark .preview-content .callout-static {
-              background: var(--callout-bg-dark);
-            }
-            .preview-content .callout-static-icon {
-              font-size: 1.25rem;
-              line-height: 1.5;
-              flex-shrink: 0;
-            }
-            .preview-content .callout-static-content {
-              flex: 1;
-              min-width: 0;
-            }
-            .preview-content .callout-static-content p {
-              margin: 0;
-            }
-            /* PullQuote Block */
-            .preview-content .pullquote-static {
-              position: relative;
-              margin: 2rem 0;
-              padding: 2rem 3rem;
-              text-align: center;
-            }
-            .preview-content .pullquote-static-mark-open,
-            .preview-content .pullquote-static-mark-close {
-              position: absolute;
-              font-family: Georgia, 'Times New Roman', serif;
-              font-size: 5rem;
-              line-height: 1;
-              color: #3182f6;
-              opacity: 0.3;
-            }
-            .preview-content .pullquote-static-mark-open {
-              top: 0;
-              left: 0;
-            }
-            .preview-content .pullquote-static-mark-close {
-              bottom: -0.5rem;
-              right: 0;
-            }
-            .preview-content .pullquote-static-content {
-              position: relative;
-              z-index: 1;
-            }
-            .preview-content .pullquote-static-content p {
-              margin: 0;
-              font-size: 1.5rem;
-              font-weight: 500;
-              font-style: italic;
-              line-height: 1.6;
-              color: #334155;
-            }
-            .dark .preview-content .pullquote-static-content p {
-              color: #e2e8f0;
             }
           `}</style>
           {/* Backdrop */}
@@ -1106,38 +926,10 @@ export default function AdminPostEditorPage() {
                     />
                   </div>
                 ) : (
-                  <div className="aspect-video rounded-xl overflow-hidden mb-8 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center relative">
-                    <div
-                      className="absolute inset-0 opacity-10"
-                      style={{
-                        backgroundImage: 'radial-gradient(circle at 2px 2px, gray 1px, transparent 0)',
-                        backgroundSize: '24px 24px',
-                      }}
-                    />
-                    <div className="p-6 bg-card-light dark:bg-card-dark rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-xs w-full mx-6 transform rotate-2">
-                      <div className="flex items-center gap-2 mb-3 border-b border-slate-100 dark:border-slate-700 pb-3">
-                        <div className="size-2.5 rounded-full bg-red-500" />
-                        <div className="size-2.5 rounded-full bg-amber-500" />
-                        <div className="size-2.5 rounded-full bg-green-500" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="h-2 w-2/3 bg-slate-200 dark:bg-slate-700 rounded" />
-                        <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded" />
-                        <div className="h-2 w-5/6 bg-slate-200 dark:bg-slate-700 rounded" />
-                        <div className="h-2 w-4/5 bg-slate-200 dark:bg-slate-700 rounded" />
-                      </div>
-                      <div className="mt-4 flex justify-between items-center">
-                        <div className="flex -space-x-2">
-                          <div className="size-6 rounded-full bg-primary border-2 border-white dark:border-slate-800" />
-                          <div className="size-6 rounded-full bg-indigo-500 border-2 border-white dark:border-slate-800" />
-                        </div>
-                        <div className={`px-2 py-0.5 rounded text-xs font-bold ${
-                          formData.status === 'PUBLIC' ? 'bg-green-500/10 text-green-600' : 'bg-slate-500/10 text-slate-600'
-                        }`}>
-                          {formData.status === 'PUBLIC' ? 'Public' : 'Private'}
-                        </div>
-                      </div>
-                    </div>
+                  <div className="aspect-video rounded-xl overflow-hidden mb-8 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[64px] text-slate-300 dark:text-slate-600">
+                      edit_note
+                    </span>
                   </div>
                 )}
                 {/* Category & Tags */}

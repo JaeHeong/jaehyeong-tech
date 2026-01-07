@@ -467,6 +467,47 @@ class ApiClient {
     })
     return response.data
   }
+
+  // Draft endpoints
+  async getDrafts() {
+    const response = await this.request<{ data: Draft[] }>('/drafts')
+    return { drafts: response.data }
+  }
+
+  async getDraftById(id: string) {
+    const response = await this.request<{ data: Draft }>(`/drafts/${id}`)
+    return { draft: response.data }
+  }
+
+  async createDraft(data: CreateDraftData) {
+    const response = await this.request<{ data: Draft }>('/drafts', {
+      method: 'POST',
+      body: data,
+    })
+    return { draft: response.data }
+  }
+
+  async updateDraft(id: string, data: UpdateDraftData) {
+    const response = await this.request<{ data: Draft }>(`/drafts/${id}`, {
+      method: 'PUT',
+      body: data,
+    })
+    return { draft: response.data }
+  }
+
+  async deleteDraft(id: string) {
+    return this.request<void>(`/drafts/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async publishDraft(id: string, data: PublishDraftData) {
+    const response = await this.request<{ data: Post }>(`/drafts/${id}/publish`, {
+      method: 'POST',
+      body: data,
+    })
+    return { post: response.data }
+  }
 }
 
 // Types
@@ -513,7 +554,7 @@ export interface Post {
   excerpt: string
   content: string
   coverImage?: string
-  status: 'DRAFT' | 'PUBLIC' | 'PRIVATE'
+  status: 'PUBLIC' | 'PRIVATE'
   featured: boolean
   category: Category
   tags: Tag[]
@@ -526,6 +567,19 @@ export interface Post {
   publishedAt?: string
 }
 
+export interface Draft {
+  id: string
+  title?: string
+  content: string
+  excerpt?: string
+  coverImage?: string
+  categoryId?: string
+  tagIds: string[]
+  authorId: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Category {
   id: string
   name: string
@@ -534,6 +588,7 @@ export interface Category {
   icon?: string
   color?: string
   postCount: number
+  privateCount?: number
 }
 
 export interface CreateCategoryData {
@@ -576,7 +631,7 @@ export interface PostsQueryParams {
   category?: string
   tag?: string
   search?: string
-  status?: 'DRAFT' | 'PUBLISHED' | 'PRIVATE' | 'ALL'
+  status?: 'PUBLISHED' | 'PRIVATE' | 'PUBLIC' | 'ALL'
   sortBy?: 'createdAt' | 'viewCount' | 'likeCount'
   featured?: boolean
 }
@@ -587,9 +642,27 @@ export interface CreatePostData {
   excerpt?: string
   categoryId: string
   tagIds?: string[]
-  status?: 'DRAFT' | 'PUBLIC' | 'PRIVATE'
+  status?: 'PUBLIC' | 'PRIVATE'
   featured?: boolean
   coverImage?: string
+  publishedAt?: string
+}
+
+export interface CreateDraftData {
+  title?: string
+  content?: string
+  excerpt?: string
+  coverImage?: string
+  categoryId?: string
+  tagIds?: string[]
+}
+
+export interface UpdateDraftData extends Partial<CreateDraftData> {}
+
+export interface PublishDraftData {
+  status?: 'PUBLIC' | 'PRIVATE'
+  categoryId?: string
+  tagIds?: string[]
   publishedAt?: string
 }
 

@@ -22,6 +22,7 @@ model User {
   website   String?
   role      Role      @default(USER)
   posts     Post[]
+  drafts    Draft[]
   pages     Page[]
   comments  Comment[]
   createdAt DateTime  @default(now())
@@ -40,7 +41,7 @@ model Post {
   viewCount   Int        @default(0)
   likeCount   Int        @default(0)
   readingTime Int        @default(0)
-  status      PostStatus @default(DRAFT)
+  status      PostStatus @default(PUBLIC)
   featured    Boolean    @default(false)
   author      User       @relation(fields: [authorId], references: [id])
   authorId    String
@@ -116,7 +117,6 @@ enum PageStatus {
 }
 
 enum PostStatus {
-  DRAFT
   PUBLIC
   PRIVATE
 }
@@ -197,4 +197,22 @@ model Comment {
   @@index([parentId])
   @@index([authorId])
   @@map("comments")
+}
+
+model Draft {
+  id         String    @id @default(cuid())
+  title      String?   // Optional - can save without title
+  content    String    @default("")
+  excerpt    String?
+  coverImage String?
+  categoryId String?   // Optional - select when publishing
+  tagIds     String[]  // Tag IDs array (simplified)
+  author     User      @relation(fields: [authorId], references: [id])
+  authorId   String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([authorId])
+  @@index([updatedAt])
+  @@map("drafts")
 }
