@@ -160,6 +160,8 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
         { excerpt: { contains: search, mode: 'insensitive' } },
+        { category: { name: { contains: search, mode: 'insensitive' } } },
+        { tags: { some: { name: { contains: search, mode: 'insensitive' } } } },
       ]
     }
 
@@ -436,7 +438,19 @@ export async function updatePost(req: AuthRequest, res: Response, next: NextFunc
 
     if (title && title !== existing.title) {
       updateData.title = title
-      updateData.slug = slugify(title, { lower: true, strict: true })
+      let newSlug = slugify(title, { lower: true, strict: true })
+      // If slug is empty (e.g., Korean-only title), use timestamp
+      if (!newSlug) {
+        newSlug = `post-${Date.now()}`
+      }
+      // Check for duplicate slug and make unique if needed
+      const duplicateSlug = await prisma.post.findFirst({
+        where: { slug: newSlug, id: { not: id } },
+      })
+      if (duplicateSlug) {
+        newSlug = `${newSlug}-${Date.now()}`
+      }
+      updateData.slug = newSlug
     }
     if (excerpt !== undefined) updateData.excerpt = excerpt
     if (content !== undefined) {
@@ -474,6 +488,56 @@ export async function updatePost(req: AuthRequest, res: Response, next: NextFunc
     await linkImagesToPost(post.id, finalContent, finalCoverImage)
 
     res.json({ data: post })
+  } catch (error) {
+    next(error)
+  }
+}
+
+// Public: Get adjacent posts (previous and next)
+export async function getAdjacentPosts(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { slug } = req.params
+
+    const currentPost = await prisma.post.findUnique({
+      where: { slug },
+      select: { id: true, publishedAt: true, status: true },
+    })
+
+    if (!currentPost) {
+      throw new AppError('게시글을 찾을 수 없습니다.', 404)
+    }
+
+    // Only show PUBLIC posts for navigation
+    const whereClause = { status: 'PUBLIC' as const }
+
+    // Get previous post (older, published before current)
+    const prevPost = await prisma.post.findFirst({
+      where: {
+        ...whereClause,
+        publishedAt: { lt: currentPost.publishedAt || new Date() },
+        id: { not: currentPost.id },
+      },
+      orderBy: { publishedAt: 'desc' },
+      select: { slug: true, title: true, coverImage: true },
+    })
+
+    // Get next post (newer, published after current)
+    const nextPost = await prisma.post.findFirst({
+      where: {
+        ...whereClause,
+        publishedAt: { gt: currentPost.publishedAt || new Date() },
+        id: { not: currentPost.id },
+      },
+      orderBy: { publishedAt: 'asc' },
+      select: { slug: true, title: true, coverImage: true },
+    })
+
+    res.json({
+      data: {
+        prev: prevPost,
+        next: nextPost,
+      },
+    })
   } catch (error) {
     next(error)
   }

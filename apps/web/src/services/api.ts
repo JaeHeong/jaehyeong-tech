@@ -126,6 +126,10 @@ class ApiClient {
     return this.request<{ data: Post }>(`/posts/${slug}`)
   }
 
+  async getAdjacentPosts(slug: string) {
+    return this.request<{ data: { prev: { slug: string; title: string; coverImage: string | null } | null; next: { slug: string; title: string; coverImage: string | null } | null } }>(`/posts/${slug}/adjacent`)
+  }
+
   // Admin: Get post by ID (for editing drafts and published posts)
   async getPostById(id: string) {
     return this.request<{ data: Post }>(`/posts/admin/${id}`)

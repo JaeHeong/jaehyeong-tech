@@ -45,12 +45,12 @@ export default function Footer() {
           </Link>
         </div>
         <div className="flex gap-6">
-          <Link
-            to="/rss.xml"
+          <a
+            href="/rss.xml"
             className="text-slate-400 hover:text-primary transition-colors"
           >
             <span className="material-symbols-outlined">rss_feed</span>
-          </Link>
+          </a>
           <a
             href={oldBlog}
             target="_blank"

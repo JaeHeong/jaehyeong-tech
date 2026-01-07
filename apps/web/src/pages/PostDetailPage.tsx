@@ -6,11 +6,18 @@ import Sidebar from '../components/Sidebar'
 import CommentSection from '../components/CommentSection'
 import { useSEO } from '../hooks/useSEO'
 
+interface AdjacentPost {
+  slug: string
+  title: string
+  coverImage: string | null
+}
+
 export default function PostDetailPage() {
   const { user } = useAuth()
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   const [post, setPost] = useState<Post | null>(null)
+  const [adjacentPosts, setAdjacentPosts] = useState<{ prev: AdjacentPost | null; next: AdjacentPost | null }>({ prev: null, next: null })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -44,9 +51,13 @@ export default function PostDetailPage() {
     if (!slug) return
 
     setIsLoading(true)
-    api.getPost(slug)
-      .then(({ data }) => {
-        setPost(data)
+    Promise.all([
+      api.getPost(slug),
+      api.getAdjacentPosts(slug),
+    ])
+      .then(([postRes, adjacentRes]) => {
+        setPost(postRes.data)
+        setAdjacentPosts(adjacentRes.data)
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : '게시글을 불러오는데 실패했습니다.')
@@ -575,17 +586,79 @@ export default function PostDetailPage() {
           </article>
 
           {/* Navigation */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid gap-3" style={{ gridTemplateColumns: '3fr 1fr 3fr' }}>
+            {/* 이전 글 */}
+            {adjacentPosts.prev ? (
+              <Link
+                to={`/posts/${adjacentPosts.prev.slug}`}
+                className="group flex items-center gap-3 p-4 bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all"
+              >
+                <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors shrink-0">
+                  arrow_back
+                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">이전 글</span>
+                  <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1 text-sm">
+                    {adjacentPosts.prev.title}
+                  </h4>
+                </div>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 opacity-50">
+                <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 shrink-0">
+                  arrow_back
+                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-1 block">이전 글</span>
+                  <h4 className="font-medium text-slate-400 dark:text-slate-500 text-sm">
+                    없음
+                  </h4>
+                </div>
+              </div>
+            )}
+
+            {/* 목록으로 */}
             <Link
               to="/posts"
-              className="group block p-6 bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all"
+              className="group flex flex-col items-center justify-center p-4 bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all"
             >
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 block">이전 글</span>
-              <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-2">
-                글 목록으로 돌아가기
-              </h4>
+              <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors mb-1">
+                list
+              </span>
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">
+                목록으로
+              </span>
             </Link>
-            <div className="hidden md:block" />
+
+            {/* 다음 글 */}
+            {adjacentPosts.next ? (
+              <Link
+                to={`/posts/${adjacentPosts.next.slug}`}
+                className="group flex items-center gap-3 p-4 bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all text-right"
+              >
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">다음 글</span>
+                  <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1 text-sm">
+                    {adjacentPosts.next.title}
+                  </h4>
+                </div>
+                <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors shrink-0">
+                  arrow_forward
+                </span>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 opacity-50 text-right">
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-1 block">다음 글</span>
+                  <h4 className="font-medium text-slate-400 dark:text-slate-500 text-sm">
+                    없음
+                  </h4>
+                </div>
+                <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 shrink-0">
+                  arrow_forward
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Comments Section */}

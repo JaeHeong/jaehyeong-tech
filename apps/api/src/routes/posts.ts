@@ -13,6 +13,7 @@ postRouter.get('/featured', postController.getFeaturedPosts)
 postRouter.get('/top-viewed', postController.getTopViewedPost)
 postRouter.get('/admin/:id', authenticate, validateParams(idParamSchema), postController.getPostById)
 postRouter.get('/:slug', optionalAuth, postController.getPostBySlug)
+postRouter.get('/:slug/adjacent', postController.getAdjacentPosts)
 
 // Protected routes
 postRouter.post('/', authenticate, validateBody(createPostSchema), postController.createPost)
