@@ -165,9 +165,9 @@ export default function SearchPage() {
                     <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-2">
                       <Link to={`/posts/${post.slug}`}>{post.title}</Link>
                     </h3>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3">
+                    <Link to={`/posts/${post.slug}`} className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-2 mb-3 block">
                       {post.excerpt}
-                    </p>
+                    </Link>
                     {post.tags && post.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         {post.tags.slice(0, 3).map((tag) => (
