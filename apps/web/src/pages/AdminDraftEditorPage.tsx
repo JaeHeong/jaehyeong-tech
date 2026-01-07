@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate, useParams, Link, useBlocker } from 'react-router-dom'
 import { api, type Category, type Tag } from '../services/api'
+import { useModal } from '../contexts/ModalContext'
 import TipTapEditor from '../components/TipTapEditor'
 import { common, createLowlight } from 'lowlight'
 
@@ -97,6 +98,7 @@ const initialFormData: DraftFormData = {
 export default function AdminDraftEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { confirm } = useModal()
   const isEditing = !!id
 
   const [formData, setFormData] = useState<DraftFormData>(initialFormData)
@@ -139,14 +141,22 @@ export default function AdminDraftEditorPage() {
   // Show confirmation dialog when navigation is blocked
   useEffect(() => {
     if (blocker.state === 'blocked') {
-      const confirmed = window.confirm('저장하지 않은 변경사항이 있습니다. 페이지를 떠나시겠습니까?')
-      if (confirmed) {
-        blocker.proceed()
-      } else {
-        blocker.reset()
-      }
+      (async () => {
+        const confirmed = await confirm({
+          title: '저장되지 않은 변경사항',
+          message: '저장하지 않은 변경사항이 있습니다.\n페이지를 떠나시겠습니까?',
+          confirmText: '나가기',
+          cancelText: '취소',
+          type: 'warning',
+        })
+        if (confirmed) {
+          blocker.proceed()
+        } else {
+          blocker.reset()
+        }
+      })()
     }
-  }, [blocker])
+  }, [blocker, confirm])
 
   // Warn user before browser refresh/close with unsaved changes
   useEffect(() => {
@@ -219,7 +229,7 @@ export default function AdminDraftEditorPage() {
       return
     }
 
-    // Set timer to auto-save after 5 seconds of inactivity
+    // Set timer to auto-save after 15 seconds of inactivity
     autoSaveTimerRef.current = setTimeout(async () => {
       setIsAutoSaving(true)
       try {
@@ -247,7 +257,7 @@ export default function AdminDraftEditorPage() {
       } finally {
         setIsAutoSaving(false)
       }
-    }, 5000)
+    }, 15000)
 
     return () => {
       if (autoSaveTimerRef.current) {

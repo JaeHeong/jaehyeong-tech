@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, type Post } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { useModal } from '../contexts/ModalContext'
 import Sidebar from '../components/Sidebar'
 import CommentSection from '../components/CommentSection'
 import { useSEO } from '../hooks/useSEO'
@@ -14,6 +15,7 @@ interface AdjacentPost {
 
 export default function PostDetailPage() {
   const { user } = useAuth()
+  const { confirm } = useModal()
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   const [post, setPost] = useState<Post | null>(null)
@@ -73,14 +75,23 @@ export default function PostDetailPage() {
 
   const handleDelete = async () => {
     if (!post) return
-    if (!window.confirm('정말 이 게시글을 삭제하시겠습니까?\n삭제된 게시글은 복구할 수 없습니다.')) return
+
+    const confirmed = await confirm({
+      title: '게시글 삭제',
+      message: '정말 이 게시글을 삭제하시겠습니까?\n삭제된 게시글은 복구할 수 없습니다.',
+      confirmText: '삭제',
+      cancelText: '취소',
+      type: 'danger',
+    })
+
+    if (!confirmed) return
 
     setIsDeleting(true)
     try {
       await api.deletePost(post.id)
       navigate('/posts', { replace: true })
     } catch (err) {
-      alert(err instanceof Error ? err.message : '삭제에 실패했습니다.')
+      setError(err instanceof Error ? err.message : '삭제에 실패했습니다.')
       setIsDeleting(false)
     }
   }

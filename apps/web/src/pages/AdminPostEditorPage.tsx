@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, Link, useBlocker, useNavigate } from 'react-router-dom'
 import { api, type Category, type Tag } from '../services/api'
+import { useModal } from '../contexts/ModalContext'
 import TipTapEditor from '../components/TipTapEditor'
 import { common, createLowlight } from 'lowlight'
 
@@ -102,6 +103,7 @@ const initialFormData: PostFormData = {
 export default function AdminPostEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { confirm } = useModal()
   const isEditing = !!id
 
   const [formData, setFormData] = useState<PostFormData>(initialFormData)
@@ -143,14 +145,22 @@ export default function AdminPostEditorPage() {
   // Show confirmation dialog when navigation is blocked
   useEffect(() => {
     if (blocker.state === 'blocked') {
-      const confirmed = window.confirm('저장하지 않은 변경사항이 있습니다. 페이지를 떠나시겠습니까?')
-      if (confirmed) {
-        blocker.proceed()
-      } else {
-        blocker.reset()
-      }
+      (async () => {
+        const confirmed = await confirm({
+          title: '저장되지 않은 변경사항',
+          message: '저장하지 않은 변경사항이 있습니다.\n페이지를 떠나시겠습니까?',
+          confirmText: '나가기',
+          cancelText: '취소',
+          type: 'warning',
+        })
+        if (confirmed) {
+          blocker.proceed()
+        } else {
+          blocker.reset()
+        }
+      })()
     }
-  }, [blocker])
+  }, [blocker, confirm])
 
   // Warn user before browser refresh/close with unsaved changes
   useEffect(() => {
@@ -228,7 +238,7 @@ export default function AdminPostEditorPage() {
       return
     }
 
-    // Set timer to auto-save after 5 seconds of inactivity
+    // Set timer to auto-save after 15 seconds of inactivity
     autoSaveTimerRef.current = setTimeout(async () => {
       setIsAutoSaving(true)
       try {
@@ -249,7 +259,7 @@ export default function AdminPostEditorPage() {
       } finally {
         setIsAutoSaving(false)
       }
-    }, 5000)
+    }, 15000)
 
     return () => {
       if (autoSaveTimerRef.current) {
@@ -352,7 +362,16 @@ export default function AdminPostEditorPage() {
 
   const handleDelete = async () => {
     if (!id) return
-    if (!window.confirm('정말 이 게시글을 삭제하시겠습니까?\n삭제된 게시글은 복구할 수 없습니다.')) return
+
+    const confirmed = await confirm({
+      title: '게시글 삭제',
+      message: '정말 이 게시글을 삭제하시겠습니까?\n삭제된 게시글은 복구할 수 없습니다.',
+      confirmText: '삭제',
+      cancelText: '취소',
+      type: 'danger',
+    })
+
+    if (!confirmed) return
 
     setIsDeleting(true)
     try {
