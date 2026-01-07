@@ -46,7 +46,7 @@ export default function AdminPagesPage() {
         api.getPageStats(),
         api.getAdminPages({
           page: currentPage,
-          limit: 20,
+          limit: 9,
           type: activeTab,
           status: currentStatus as 'DRAFT' | 'PUBLISHED' | undefined,
         }),

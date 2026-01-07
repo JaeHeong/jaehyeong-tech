@@ -26,7 +26,7 @@ export default function AdminPostsPage() {
           api.getCategories(),
           api.getPosts({
             page: currentPage,
-            limit: 20,
+            limit: 9,
             category: currentCategory || undefined,
             status: (currentStatus || 'PUBLISHED') as 'PUBLISHED' | 'PRIVATE' | 'ALL',
             search: searchQuery || undefined,

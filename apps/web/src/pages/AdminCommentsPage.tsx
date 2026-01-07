@@ -20,7 +20,7 @@ export default function AdminCommentsPage() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await api.getAdminComments({ page, limit: 20, includeDeleted })
+      const response = await api.getAdminComments({ page, limit: 7, includeDeleted })
       setComments(response.data)
       setTotalPages(response.meta.totalPages)
       setTotal(response.meta.total)

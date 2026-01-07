@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import api, { Category, CreateCategoryData } from '../services/api'
+
+const ITEMS_PER_PAGE = 9
 
 interface CategoryFormData {
   name: string
@@ -39,6 +41,14 @@ export default function AdminCategoriesPage() {
     icon: 'folder',
     color: 'blue',
   })
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // Client-side pagination
+  const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE)
+  const paginatedCategories = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE
+    return categories.slice(start, start + ITEMS_PER_PAGE)
+  }, [categories, currentPage])
 
   useEffect(() => {
     fetchCategories()
@@ -197,7 +207,7 @@ export default function AdminCategoriesPage() {
         </div>
       ) : categories.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map((category) => (
+          {paginatedCategories.map((category) => (
             <div
               key={category.id}
               className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 hover:border-primary/30 transition-colors"
@@ -249,6 +259,53 @@ export default function AdminCategoriesPage() {
             <span className="material-symbols-outlined text-[18px]">add</span>
             첫 번째 카테고리 만들기
           </button>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+            </button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let page: number
+              if (totalPages <= 5) {
+                page = i + 1
+              } else if (currentPage <= 3) {
+                page = i + 1
+              } else if (currentPage >= totalPages - 2) {
+                page = totalPages - 4 + i
+              } else {
+                page = currentPage - 2 + i
+              }
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    currentPage === page
+                      ? 'bg-primary text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            })}
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+            </button>
+          </div>
         </div>
       )}
 

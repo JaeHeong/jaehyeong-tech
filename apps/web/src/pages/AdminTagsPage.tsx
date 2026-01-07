@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import api, { Tag, CreateTagData } from '../services/api'
+
+const ITEMS_PER_PAGE = 9
 
 interface ApiError {
   message: string
@@ -18,6 +20,14 @@ export default function AdminTagsPage() {
   })
   const [isDeleting, setIsDeleting] = useState(false)
   const editInputRef = useRef<HTMLInputElement>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // Client-side pagination
+  const totalPages = Math.ceil(tags.length / ITEMS_PER_PAGE)
+  const paginatedTags = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE
+    return tags.slice(start, start + ITEMS_PER_PAGE)
+  }, [tags, currentPage])
 
   useEffect(() => {
     fetchTags()
@@ -194,7 +204,7 @@ export default function AdminTagsPage() {
           </div>
         ) : tags.length > 0 ? (
           <div className="divide-y divide-slate-200 dark:divide-slate-800">
-            {tags.map((tag) => (
+            {paginatedTags.map((tag) => (
               <div
                 key={tag.id}
                 className="p-4 flex items-center gap-4 group hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
@@ -262,6 +272,53 @@ export default function AdminTagsPage() {
             <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">
               위의 입력란에서 첫 번째 태그를 추가해보세요.
             </p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-center">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+              </button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let page: number
+                if (totalPages <= 5) {
+                  page = i + 1
+                } else if (currentPage <= 3) {
+                  page = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  page = totalPages - 4 + i
+                } else {
+                  page = currentPage - 2 + i
+                }
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      currentPage === page
+                        ? 'bg-primary text-white'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              })}
+              <button
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
