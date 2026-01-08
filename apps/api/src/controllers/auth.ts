@@ -7,9 +7,11 @@ import type { AuthRequest } from '../middleware/auth.js'
 import { deleteFromOCI, isOCIConfigured } from '../services/oci.js'
 
 // Admin email whitelist - only these emails get ADMIN role
-const ADMIN_EMAILS = [
-  'rlawogud970301@gmail.com',
-]
+// Read from environment variable (comma-separated list)
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map(email => email.trim())
+  .filter(email => email.length > 0)
 
 // Extract object name from OCI URL for deletion
 function extractOCIObjectName(url: string): string | null {
