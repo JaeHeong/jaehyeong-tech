@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useSearchParams } from 'react-router-dom'
 import api, { Post, Category } from '../services/api'
+import { useModal } from '../contexts/ModalContext'
 
 export default function AdminPostsPage() {
+  const { alert } = useModal()
   const [searchParams, setSearchParams] = useSearchParams()
   const [posts, setPosts] = useState<Post[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -99,7 +101,7 @@ export default function AdminPostsPage() {
       setBulkDeleteModal(false)
     } catch (error) {
       console.error('Failed to bulk delete posts:', error)
-      alert('게시글 삭제에 실패했습니다.')
+      await alert({ message: '게시글 삭제에 실패했습니다.', type: 'error' })
     }
   }
 
@@ -152,7 +154,7 @@ export default function AdminPostsPage() {
       setDeleteModal({ isOpen: false, post: null })
     } catch (error) {
       console.error('Failed to delete post:', error)
-      alert('게시글 삭제에 실패했습니다.')
+      await alert({ message: '게시글 삭제에 실패했습니다.', type: 'error' })
     }
   }
 

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import MobileProfileModal from '../components/MobileProfileModal'
 import api, { type Page } from '../services/api'
+import { useModal } from '../contexts/ModalContext'
 
 interface AdjacentNotice {
   slug: string
@@ -12,6 +13,7 @@ interface AdjacentNotice {
 export default function NoticeDetailPage() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
+  const { alert } = useModal()
   const [notice, setNotice] = useState<Page | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -71,7 +73,7 @@ export default function NoticeDetailPage() {
       }
     } else {
       await navigator.clipboard.writeText(window.location.href)
-      alert('링크가 복사되었습니다.')
+      await alert({ message: '링크가 복사되었습니다.', type: 'success' })
     }
   }
 

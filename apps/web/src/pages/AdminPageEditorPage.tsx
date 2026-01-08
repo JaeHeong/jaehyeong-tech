@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import api, { type Page } from '../services/api'
+import { useModal } from '../contexts/ModalContext'
 
 // Types for template content
 interface IntroduceContent {
@@ -276,6 +277,7 @@ const defaultPrivacyContent: PrivacyContent = {
 export default function AdminPageEditorPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { alert } = useModal()
   const [page, setPage] = useState<Page | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -306,7 +308,7 @@ export default function AdminPageEditorPage() {
       }
     } catch (error) {
       console.error('Failed to load page:', error)
-      alert('페이지를 불러오는데 실패했습니다.')
+      await alert({ message: '페이지를 불러오는데 실패했습니다.', type: 'error' })
       navigate('/admin/pages?tab=STATIC')
     } finally {
       setLoading(false)
@@ -327,7 +329,7 @@ export default function AdminPageEditorPage() {
 
   const handleSave = async () => {
     if (!page || !parsedContent) {
-      alert('JSON 형식이 올바르지 않습니다.')
+      await alert({ message: 'JSON 형식이 올바르지 않습니다.', type: 'error' })
       return
     }
 
@@ -338,10 +340,10 @@ export default function AdminPageEditorPage() {
         content: JSON.stringify(parsedContent),
         status,
       })
-      alert('저장되었습니다.')
+      await alert({ message: '저장되었습니다.', type: 'success' })
     } catch (error) {
       console.error('Failed to save page:', error)
-      alert('저장에 실패했습니다.')
+      await alert({ message: '저장에 실패했습니다.', type: 'error' })
     } finally {
       setSaving(false)
     }

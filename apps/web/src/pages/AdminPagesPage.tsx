@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import api, { type Page, type PageStats } from '../services/api'
 import TipTapEditor from '../components/TipTapEditor'
+import { useModal } from '../contexts/ModalContext'
 
 type PageTab = 'NOTICE' | 'STATIC'
 
 export default function AdminPagesPage() {
+  const { alert } = useModal()
   const [searchParams, setSearchParams] = useSearchParams()
   const [pages, setPages] = useState<Page[]>([])
   const [stats, setStats] = useState<PageStats | null>(null)
@@ -99,7 +101,7 @@ export default function AdminPagesPage() {
       fetchData() // Refresh stats
     } catch (error) {
       console.error('Failed to delete page:', error)
-      alert('페이지 삭제에 실패했습니다.')
+      await alert({ message: '페이지 삭제에 실패했습니다.', type: 'error' })
     }
   }
 
@@ -143,7 +145,7 @@ export default function AdminPagesPage() {
       fetchData()
     } catch (error) {
       console.error('Failed to save page:', error)
-      alert('저장에 실패했습니다.')
+      await alert({ message: '저장에 실패했습니다.', type: 'error' })
     }
   }
 

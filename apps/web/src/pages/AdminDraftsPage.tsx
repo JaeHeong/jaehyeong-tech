@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import api, { Draft } from '../services/api'
+import { useModal } from '../contexts/ModalContext'
 
 const ITEMS_PER_PAGE = 9
 
 export default function AdminDraftsPage() {
+  const { alert } = useModal()
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; draft: Draft | null }>({
@@ -45,7 +47,7 @@ export default function AdminDraftsPage() {
       setDeleteModal({ isOpen: false, draft: null })
     } catch (error) {
       console.error('Failed to delete draft:', error)
-      alert('삭제에 실패했습니다.')
+      await alert({ message: '삭제에 실패했습니다.', type: 'error' })
     }
   }
 

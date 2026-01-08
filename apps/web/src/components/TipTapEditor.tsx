@@ -10,6 +10,7 @@ import { InputRule } from '@tiptap/core'
 import { common, createLowlight } from 'lowlight'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../services/api'
+import { useModal } from '../contexts/ModalContext'
 
 const lowlight = createLowlight(common)
 
@@ -583,6 +584,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
   const [isLoadingBookmark, setIsLoadingBookmark] = useState(false)
   const [showYoutubeModal, setShowYoutubeModal] = useState(false)
   const [youtubeUrl, setYoutubeUrl] = useState('')
+  const { alert } = useModal()
 
   const editor = useEditor({
     extensions: [
@@ -644,11 +646,11 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
       editor.chain().focus().setImage({ src: url }).run()
     } catch (error) {
       console.error('Image upload failed:', error)
-      alert(error instanceof Error ? error.message : '이미지 업로드에 실패했습니다.')
+      await alert({ message: error instanceof Error ? error.message : '이미지 업로드에 실패했습니다.', type: 'error' })
     } finally {
       setIsUploading(false)
     }
-  }, [editor])
+  }, [editor, alert])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -719,11 +721,11 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
       closeLinkModal()
     } catch (error) {
       console.error('Failed to fetch bookmark metadata:', error)
-      alert('북마크 정보를 가져오는데 실패했습니다.')
+      await alert({ message: '북마크 정보를 가져오는데 실패했습니다.', type: 'error' })
     } finally {
       setIsLoadingBookmark(false)
     }
-  }, [editor, linkUrl, closeLinkModal])
+  }, [editor, linkUrl, closeLinkModal, alert])
 
   // YouTube modal handlers
   const openYoutubeModal = useCallback(() => {

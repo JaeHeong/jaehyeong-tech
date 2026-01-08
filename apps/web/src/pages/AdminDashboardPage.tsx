@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api, { type DashboardStats } from '../services/api'
+import { useModal } from '../contexts/ModalContext'
 
 const categoryColorMap: Record<string, string> = {
   blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
@@ -45,6 +46,7 @@ function formatBytes(bytes: number) {
 }
 
 export default function AdminDashboardPage() {
+  const { alert, confirm } = useModal()
   const [data, setData] = useState<DashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -67,14 +69,28 @@ export default function AdminDashboardPage() {
   }, [])
 
   const handleCleanOrphanImages = async () => {
-    if (!confirm('고아 이미지를 정리하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return
+    const confirmed = await confirm({
+      title: '고아 이미지 정리',
+      message: '고아 이미지를 정리하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+      confirmText: '정리',
+      cancelText: '취소',
+      type: 'warning',
+    })
+    if (!confirmed) return
     setIsCleaningImages(true)
     try {
       const result = await api.deleteOrphanImages()
-      alert(`${result.deleted}개 이미지 삭제 완료 (${formatBytes(result.freedSpace)} 확보)`)
+      await alert({
+        title: '정리 완료',
+        message: `${result.deleted}개 이미지 삭제 완료\n(${formatBytes(result.freedSpace)} 확보)`,
+        type: 'success',
+      })
       fetchData()
     } catch (err) {
-      alert(err instanceof Error ? err.message : '이미지 정리에 실패했습니다.')
+      await alert({
+        message: err instanceof Error ? err.message : '이미지 정리에 실패했습니다.',
+        type: 'error',
+      })
     } finally {
       setIsCleaningImages(false)
     }
@@ -84,10 +100,17 @@ export default function AdminDashboardPage() {
     setIsCreatingBackup(true)
     try {
       await api.createBackup()
-      alert('백업이 생성되었습니다.')
+      await alert({
+        title: '백업 완료',
+        message: '백업이 생성되었습니다.',
+        type: 'success',
+      })
       fetchData()
     } catch (err) {
-      alert(err instanceof Error ? err.message : '백업 생성에 실패했습니다.')
+      await alert({
+        message: err instanceof Error ? err.message : '백업 생성에 실패했습니다.',
+        type: 'error',
+      })
     } finally {
       setIsCreatingBackup(false)
     }

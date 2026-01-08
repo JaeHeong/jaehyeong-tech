@@ -10,6 +10,8 @@ export default function Header() {
   const { isAdmin, isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Close user menu when clicking outside
@@ -22,6 +24,29 @@ export default function Header() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    if (!isMobileMenuOpen) return
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(target) &&
+        mobileMenuButtonRef.current &&
+        !mobileMenuButtonRef.current.contains(target)
+      ) {
+        setIsMobileMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [isMobileMenuOpen])
 
   // Alt + / shortcut to focus search
   useEffect(() => {
@@ -51,10 +76,13 @@ export default function Header() {
   const navLinks = [
     { to: '/', label: '홈' },
     { to: '/notices', label: '공지사항' },
-    { to: '/introduce', label: '소개' },
+    { to: '/introduce', label: '소개', hideOnMobile: true },
     { to: '/posts', label: '글 목록' },
     { to: '/categories', label: '카테고리' },
   ]
+
+  // Filter out hidden items for mobile
+  const mobileNavLinks = navLinks.filter((link) => !link.hideOnMobile)
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
@@ -227,6 +255,7 @@ export default function Header() {
               )
             )}
             <button
+              ref={mobileMenuButtonRef}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 text-slate-500"
             >
@@ -238,10 +267,15 @@ export default function Header() {
         </div>
 
         {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <nav className="tablet:hidden py-4 border-t border-slate-200 dark:border-slate-800">
+        <div
+          ref={mobileMenuRef}
+          className={`tablet:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+            isMobileMenuOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <nav className="py-4 border-t border-slate-200 dark:border-slate-800">
             <div className="flex flex-col gap-2">
-              {navLinks.map((link) => (
+              {mobileNavLinks.map((link) => (
                 <NavLink
                   key={link.to}
                   to={link.to}
@@ -333,7 +367,7 @@ export default function Header() {
               )}
             </div>
           </nav>
-        )}
+        </div>
       </div>
     </header>
   )

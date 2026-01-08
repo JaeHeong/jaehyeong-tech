@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api, type BackupInfo, type BackupInfoDetail } from '../services/api'
+import { useModal } from '../contexts/ModalContext'
 
 interface OrphanImage {
   id: string
@@ -18,6 +19,7 @@ interface ImageStats {
 }
 
 export default function AdminManagementPage() {
+  const { confirm } = useModal()
   // Backup state
   const [backups, setBackups] = useState<BackupInfo[]>([])
   const [isLoadingBackups, setIsLoadingBackups] = useState(false)
@@ -75,9 +77,14 @@ export default function AdminManagementPage() {
   }
 
   const handleRestoreBackup = async (fileName: string) => {
-    if (!confirm('정말 이 백업으로 복원하시겠습니까? 현재 데이터가 모두 삭제됩니다.')) {
-      return
-    }
+    const confirmed = await confirm({
+      title: '백업 복원',
+      message: '정말 이 백업으로 복원하시겠습니까?\n현재 데이터가 모두 삭제됩니다.',
+      confirmText: '복원',
+      cancelText: '취소',
+      type: 'danger',
+    })
+    if (!confirmed) return
 
     setIsRestoringBackup(fileName)
     setBackupMessage(null)
@@ -95,9 +102,14 @@ export default function AdminManagementPage() {
   }
 
   const handleDeleteBackup = async (fileName: string) => {
-    if (!confirm('이 백업을 삭제하시겠습니까?')) {
-      return
-    }
+    const confirmed = await confirm({
+      title: '백업 삭제',
+      message: '이 백업을 삭제하시겠습니까?',
+      confirmText: '삭제',
+      cancelText: '취소',
+      type: 'danger',
+    })
+    if (!confirmed) return
 
     try {
       await api.deleteBackup(fileName)
@@ -138,9 +150,14 @@ export default function AdminManagementPage() {
   const handleDeleteOrphans = async () => {
     if (orphanImages.length === 0) return
 
-    if (!confirm(`${orphanImages.length}개의 고아 이미지를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
-      return
-    }
+    const confirmed = await confirm({
+      title: '고아 이미지 삭제',
+      message: `${orphanImages.length}개의 고아 이미지를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`,
+      confirmText: '삭제',
+      cancelText: '취소',
+      type: 'danger',
+    })
+    if (!confirmed) return
 
     setIsDeletingOrphans(true)
     setImageMessage(null)
