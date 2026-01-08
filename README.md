@@ -280,12 +280,24 @@ docker compose logs -f tech-web tech-api
 새 DB로 이전할 때는 **스키마 생성 → 데이터 복원** 순서로 진행합니다.
 
 ```bash
+# Docker Compose 환경에서 (프로덕션)
+cd /home/ubuntu/n8n
+
+# 서비스 빌드 및 실행
+docker compose build tech-web tech-api
+docker compose up -d tech-web tech-api
+
 # 1단계: 테이블 스키마 생성 (필수)
-npx prisma migrate deploy
+docker compose exec tech-api npx prisma migrate deploy
 
 # 2단계: 데이터 복원 (관리자 페이지에서)
 # - 기존 사이트: 시스템 관리 > 백업 생성 > 다운로드
 # - 새 사이트: 시스템 관리 > 백업 업로드 > 복원
+```
+
+```bash
+# 로컬 개발 환경에서
+npx prisma migrate deploy
 ```
 
 > **참고**: 백업 파일은 JSON 데이터만 포함하므로, 테이블이 먼저 생성되어 있어야 복원할 수 있습니다.
