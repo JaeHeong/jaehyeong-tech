@@ -140,7 +140,7 @@ export default function MobileProfileModal() {
           {/* Modal Content */}
           <div
             ref={modalRef}
-            className={`relative bg-card-light dark:bg-card-dark rounded-2xl shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto border border-slate-200 dark:border-slate-800 transition-all duration-200 ${
+            className={`relative bg-card-light dark:bg-card-dark rounded-2xl shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto scrollbar-hide border border-slate-200 dark:border-slate-800 transition-all duration-200 ${
               isClosing
                 ? 'opacity-0 scale-95'
                 : 'opacity-100 scale-100'
