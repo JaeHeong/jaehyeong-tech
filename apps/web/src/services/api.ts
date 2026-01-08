@@ -554,6 +554,11 @@ class ApiClient {
     const response = await this.request<{ data: WeeklyVisitorsResponse }>('/analytics/weekly')
     return response.data
   }
+
+  async getDetailedAnalytics(period: string = '7d') {
+    const response = await this.request<DetailedAnalyticsResponse>(`/analytics/detailed?period=${period}`)
+    return response
+  }
 }
 
 // Types
@@ -1025,6 +1030,34 @@ export interface WeeklyVisitorsResponse {
   configured: boolean
   cached?: boolean
   stale?: boolean
+  error?: string
+}
+
+export interface DetailedAnalyticsData {
+  overview: {
+    visitors: number
+    pageViews: number
+    avgSessionDuration: number
+    bounceRate: number
+    newUsers: number
+    returningUsers: number
+  }
+  topPages: { path: string; title: string; views: number; avgTime: number }[]
+  locations: { country: string; city: string; visitors: number }[]
+  devices: { category: string; visitors: number }[]
+  browsers: { name: string; visitors: number }[]
+  trafficSources: { source: string; visitors: number }[]
+  hourlyStats: { hour: number; visitors: number }[]
+  dailyStats: { date: string; visitors: number; pageViews: number }[]
+  updatedAt: string
+}
+
+export interface DetailedAnalyticsResponse {
+  data: DetailedAnalyticsData | null
+  configured: boolean
+  cached?: boolean
+  stale?: boolean
+  period?: string
   error?: string
 }
 

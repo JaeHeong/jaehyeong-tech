@@ -26,6 +26,7 @@ const baseSidebarItems: Array<{
   badgeKey?: BadgeKey
 }> = [
   { path: '/admin', icon: 'dashboard', label: '대시보드 홈', exact: true },
+  { path: '/admin/analytics', icon: 'analytics', label: '보고서 개요' },
   { path: '/admin/posts', icon: 'article', label: '게시물 관리', badgeKey: 'posts' },
   { path: '/admin/categories', icon: 'category', label: '카테고리 관리', badgeKey: 'categories' },
   { path: '/admin/tags', icon: 'sell', label: '태그 관리', badgeKey: 'tags' },

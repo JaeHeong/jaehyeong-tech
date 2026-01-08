@@ -12,6 +12,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { path: '/admin', icon: 'dashboard', label: '대시보드', exact: true },
+  { path: '/admin/analytics', icon: 'analytics', label: '보고서' },
   { path: '/admin/posts', icon: 'article', label: '게시물' },
   { path: '/admin/categories', icon: 'category', label: '카테고리' },
   { path: '/admin/tags', icon: 'sell', label: '태그' },

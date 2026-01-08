@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import api, { type DashboardStats } from '../services/api'
+import api, { type DashboardStats, type WeeklyVisitorsResponse } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
 
 const categoryColorMap: Record<string, string> = {
@@ -48,6 +48,7 @@ function formatBytes(bytes: number) {
 export default function AdminDashboardPage() {
   const { alert, confirm } = useModal()
   const [data, setData] = useState<DashboardStats | null>(null)
+  const [visitors, setVisitors] = useState<WeeklyVisitorsResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isCleaningImages, setIsCleaningImages] = useState(false)
@@ -55,8 +56,12 @@ export default function AdminDashboardPage() {
 
   const fetchData = async () => {
     try {
-      const stats = await api.getDashboardStats()
+      const [stats, visitorsData] = await Promise.all([
+        api.getDashboardStats(),
+        api.getWeeklyVisitors().catch(() => null),
+      ])
       setData(stats)
+      setVisitors(visitorsData)
     } catch (err) {
       setError(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다.')
     } finally {
@@ -180,6 +185,68 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Weekly Visitors Card */}
+      {visitors && visitors.configured && visitors.daily.length > 0 && (
+        <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-3 md:p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg text-primary">
+                <span className="material-symbols-outlined text-[18px] md:text-[24px]">analytics</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-sm md:text-base">주간 방문자</h3>
+                <p className="text-[10px] md:text-xs text-slate-400">최근 7일 • 총 {visitors.total.toLocaleString()}명</p>
+              </div>
+            </div>
+            <Link to="/admin/analytics" className="text-[10px] md:text-xs font-bold text-primary hover:text-primary/80 flex items-center gap-1">
+              전체보기
+              <span className="material-symbols-outlined text-[14px] md:text-[16px]">arrow_forward</span>
+            </Link>
+          </div>
+          <div className="p-3 md:p-6">
+            <div className="flex items-end justify-between gap-1 h-20 md:h-24">
+              {visitors.daily.map((day, index) => {
+                const maxVisitors = Math.max(...visitors.daily.map((d) => d.visitors), 1)
+                const heightPercent = (day.visitors / maxVisitors) * 100
+                const opacity = 0.3 + (index / (visitors.daily.length - 1)) * 0.7
+                const isToday = index === visitors.daily.length - 1
+                const dayLabel = new Date(day.date).toLocaleDateString('ko-KR', { weekday: 'short' }).charAt(0)
+
+                return (
+                  <div key={day.date} className="flex-1 flex flex-col items-center gap-1 group">
+                    <span className="text-[8px] md:text-[9px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {day.visitors}
+                    </span>
+                    <div className="w-full flex items-end justify-center h-12 md:h-16">
+                      <div
+                        className="w-full max-w-[20px] md:max-w-[28px] rounded-t transition-all"
+                        style={{
+                          height: `${Math.max(heightPercent, 4)}%`,
+                          backgroundColor: `rgba(49, 130, 246, ${opacity})`,
+                        }}
+                        title={`${day.date}: ${day.visitors}명`}
+                      />
+                    </div>
+                    <span className={`text-[9px] md:text-[10px] ${isToday ? 'text-primary font-bold' : 'text-slate-400'}`}>
+                      {dayLabel}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex items-center justify-between text-xs md:text-sm border-t border-slate-100 dark:border-slate-800 mt-3 md:mt-4 pt-3 md:pt-4">
+              <span className="text-slate-500">오늘 {visitors.daily[visitors.daily.length - 1]?.visitors || 0}명 방문</span>
+              {visitors.updatedAt && (
+                <span className="text-[10px] text-slate-400">
+                  {visitors.stale && '⚠️ '}
+                  {new Date(visitors.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 기준
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Posts Management Table - 최근 게시글 */}
       <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col md:h-[360px]">

@@ -28,6 +28,7 @@ import AdminDraftsPage from './pages/AdminDraftsPage'
 import AdminPagesPage from './pages/AdminPagesPage'
 import AdminPageEditorPage from './pages/AdminPageEditorPage'
 import AdminManagementPage from './pages/AdminManagementPage'
+import AdminAnalyticsPage from './pages/AdminAnalyticsPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import NotFoundPage from './pages/NotFoundPage'
 import './styles/index.css'
@@ -67,6 +68,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <AdminDashboardPage /> },
+      { path: 'analytics', element: <AdminAnalyticsPage /> },
       { path: 'posts', element: <AdminPostsPage /> },
       { path: 'posts/new', element: <AdminDraftEditorPage /> },
       { path: 'posts/:id/edit', element: <AdminPostEditorPage /> },
