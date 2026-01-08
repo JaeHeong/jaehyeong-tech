@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useSearchParams } from 'react-router-dom'
 import api, { Post, Category } from '../services/api'
 
@@ -16,6 +17,8 @@ export default function AdminPostsPage() {
   })
   const [bulkDeleteModal, setBulkDeleteModal] = useState(false)
   const [expandedTagsId, setExpandedTagsId] = useState<string | null>(null)
+  const [tagModalPosition, setTagModalPosition] = useState<{ top: number; left: number } | null>(null)
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const currentPage = parseInt(searchParams.get('page') || '1', 10)
   const currentCategory = searchParams.get('category') || ''
@@ -243,6 +246,11 @@ export default function AdminPostsPage() {
         ) : posts.length > 0 ? (
           <>
             {/* Mobile: Card List */}
+            <div className="md:hidden">
+              <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800/50 text-[10px] text-slate-400 dark:text-slate-500">
+                제목을 터치하면 태그가 표시됩니다
+              </div>
+            </div>
             <div className="md:hidden divide-y divide-slate-200 dark:divide-slate-800">
               {posts.map((post) => (
                 <div
@@ -354,7 +362,12 @@ export default function AdminPostsPage() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium uppercase text-xs">
                   <tr>
-                    <th className="px-6 py-4">제목</th>
+                    <th className="px-6 py-4">
+                      <span>제목</span>
+                      <span className="ml-2 text-[10px] font-normal normal-case text-slate-400">
+                        (마우스 올리면 태그 표시)
+                      </span>
+                    </th>
                     <th className="px-6 py-4 w-32">카테고리</th>
                     <th className="px-6 py-4 w-28">상태</th>
                     <th className="px-6 py-4 w-24 text-center">조회수</th>
@@ -392,8 +405,26 @@ export default function AdminPostsPage() {
                               <span className="material-symbols-outlined text-slate-400">{post.category?.icon || 'article'}</span>
                             </div>
                           )}
-                          <div className="min-w-0 relative group/title">
-                            <div className="font-bold text-slate-900 dark:text-white line-clamp-1 cursor-default">
+                          <div className="min-w-0">
+                            <div
+                              className="font-bold text-slate-900 dark:text-white line-clamp-1 cursor-default"
+                              onMouseEnter={(e) => {
+                                if (post.tags && post.tags.length > 0) {
+                                  const rect = e.currentTarget.getBoundingClientRect()
+                                  hoverTimeoutRef.current = setTimeout(() => {
+                                    setExpandedTagsId(post.id)
+                                    setTagModalPosition({ top: rect.bottom + 8, left: rect.left })
+                                  }, 100)
+                                }
+                              }}
+                              onMouseLeave={() => {
+                                if (hoverTimeoutRef.current) {
+                                  clearTimeout(hoverTimeoutRef.current)
+                                }
+                                setExpandedTagsId(null)
+                                setTagModalPosition(null)
+                              }}
+                            >
                               {post.title}
                               {post.tags && post.tags.length > 0 && (
                                 <span className="ml-1.5 text-xs text-primary font-normal">
@@ -404,27 +435,6 @@ export default function AdminPostsPage() {
                             <div className="text-xs text-slate-500 line-clamp-1">
                               {post.excerpt}
                             </div>
-                            {/* Tags Modal - Show on hover */}
-                            {post.tags && post.tags.length > 0 && (
-                              <div className="absolute left-0 top-full mt-2 z-50 bg-card-light dark:bg-card-dark rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-lg min-w-[240px] max-w-[320px] opacity-0 invisible group-hover/title:opacity-100 group-hover/title:visible transition-all duration-200 animate-fade-in">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-500">
-                                    <span className="material-symbols-outlined text-[16px]">sell</span>
-                                  </div>
-                                  <h4 className="text-sm font-bold">태그</h4>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {post.tags.map((tag) => (
-                                    <span
-                                      key={tag.id}
-                                      className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-400"
-                                    >
-                                      #{tag.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </div>
                       </td>
@@ -614,6 +624,42 @@ export default function AdminPostsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Tag Modal Portal - Desktop hover */}
+      {expandedTagsId && tagModalPosition && createPortal(
+        <div
+          data-tag-modal
+          className="fixed z-[100] bg-card-light dark:bg-card-dark rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-xl min-w-[240px] max-w-[320px] animate-fade-in"
+          style={{ top: tagModalPosition.top, left: tagModalPosition.left }}
+          onMouseEnter={() => {
+            if (hoverTimeoutRef.current) {
+              clearTimeout(hoverTimeoutRef.current)
+            }
+          }}
+          onMouseLeave={() => {
+            setExpandedTagsId(null)
+            setTagModalPosition(null)
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-500">
+              <span className="material-symbols-outlined text-[16px]">sell</span>
+            </div>
+            <h4 className="text-sm font-bold">태그</h4>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {posts.find(p => p.id === expandedTagsId)?.tags?.map((tag) => (
+              <span
+                key={tag.id}
+                className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-400"
+              >
+                #{tag.name}
+              </span>
+            ))}
+          </div>
+        </div>,
+        document.body
       )}
     </>
   )
