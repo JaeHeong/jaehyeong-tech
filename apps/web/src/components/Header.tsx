@@ -71,7 +71,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex flex-1 items-center justify-end gap-6">
+          <div className="hidden tablet:flex flex-1 items-center justify-end gap-6">
             <nav className="flex gap-6 mr-4">
               {navLinks.map((link) => (
                 <NavLink
@@ -206,7 +206,7 @@ export default function Header() {
           </div>
 
           {/* Mobile Navigation */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex tablet:hidden items-center gap-2">
             <button
               onClick={() => navigate('/search')}
               className="p-2 text-slate-500 hover:text-primary transition-colors"
@@ -239,7 +239,7 @@ export default function Header() {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <nav className="md:hidden py-4 border-t border-slate-200 dark:border-slate-800">
+          <nav className="tablet:hidden py-4 border-t border-slate-200 dark:border-slate-800">
             <div className="flex flex-col gap-2">
               {navLinks.map((link) => (
                 <NavLink
