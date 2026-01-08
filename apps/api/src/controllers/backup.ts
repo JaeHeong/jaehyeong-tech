@@ -73,7 +73,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           id: true,
           content: true,
           guestName: true,
-          // guestPassword excluded for security
+          guestPassword: true,
           isPrivate: true,
           isDeleted: true,
           postId: true,
