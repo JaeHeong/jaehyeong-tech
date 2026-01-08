@@ -4,6 +4,7 @@ interface RequestOptions {
   method?: string
   headers?: Record<string, string>
   body?: unknown
+  noCache?: boolean // Disable browser caching for view count tracking
 }
 
 class ApiClient {
@@ -29,7 +30,7 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { method = 'GET', headers = {}, body } = options
+    const { method = 'GET', headers = {}, body, noCache } = options
 
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -44,6 +45,7 @@ class ApiClient {
       method,
       headers: requestHeaders,
       body: body ? JSON.stringify(body) : undefined,
+      ...(noCache && { cache: 'no-store' as RequestCache }),
     })
 
     if (!response.ok) {
@@ -123,7 +125,7 @@ class ApiClient {
   }
 
   async getPost(slug: string) {
-    return this.request<{ data: Post }>(`/posts/${slug}`)
+    return this.request<{ data: Post }>(`/posts/${slug}`, { noCache: true })
   }
 
   async getAdjacentPosts(slug: string) {
