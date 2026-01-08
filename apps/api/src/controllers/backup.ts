@@ -21,6 +21,7 @@ interface BackupData {
     tags: unknown[]
     posts: unknown[]
     pages: unknown[]
+    comments: unknown[]
   }
 }
 
@@ -36,7 +37,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
     }
 
     // Fetch all data
-    const [users, categories, tags, posts, pages] = await Promise.all([
+    const [users, categories, tags, posts, pages, comments] = await Promise.all([
       prisma.user.findMany({
         select: {
           id: true,
@@ -61,10 +62,25 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
         },
       }),
       prisma.page.findMany(),
+      prisma.comment.findMany({
+        select: {
+          id: true,
+          content: true,
+          guestName: true,
+          // guestPassword excluded for security
+          isPrivate: true,
+          isDeleted: true,
+          postId: true,
+          authorId: true,
+          parentId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
     ])
 
     const backupData: BackupData = {
-      version: '1.0',
+      version: '1.1',
       createdAt: new Date().toISOString(),
       data: {
         users,
@@ -76,6 +92,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           tags: undefined,
         })),
         pages,
+        comments,
       },
     }
 
@@ -99,6 +116,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           tags: tags.length,
           posts: posts.length,
           pages: pages.length,
+          comments: comments.length,
         },
       },
     })
@@ -213,6 +231,8 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
     // Restore data in transaction
     await prisma.$transaction(async (tx) => {
       // Clear existing data (except current admin user)
+      // Delete in order respecting foreign key constraints
+      await tx.comment.deleteMany({})
       await tx.post.deleteMany({})
       await tx.page.deleteMany({})
       await tx.tag.deleteMany({})
@@ -251,6 +271,22 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
           })
         }
       }
+
+      // Restore comments (parent comments first, then replies)
+      if (backupData.data.comments?.length) {
+        const comments = backupData.data.comments as Array<{ parentId?: string | null } & Record<string, unknown>>
+        // First, create parent comments (no parentId)
+        const parentComments = comments.filter(c => !c.parentId)
+        const replyComments = comments.filter(c => c.parentId)
+
+        for (const comment of parentComments) {
+          await tx.comment.create({ data: comment as never })
+        }
+        // Then, create reply comments
+        for (const comment of replyComments) {
+          await tx.comment.create({ data: comment as never })
+        }
+      }
     })
 
     res.json({
@@ -263,6 +299,7 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
           tags: backupData.data.tags?.length || 0,
           posts: backupData.data.posts?.length || 0,
           pages: backupData.data.pages?.length || 0,
+          comments: backupData.data.comments?.length || 0,
         },
       },
     })
