@@ -188,15 +188,41 @@ export async function downloadFromBackupBucket(objectName: string): Promise<Buff
     objectName,
   })
 
-  // Read stream to buffer
-  const chunks: Buffer[] = []
-  const stream = response.value as NodeJS.ReadableStream
+  const value = response.value
 
-  return new Promise((resolve, reject) => {
-    stream.on('data', (chunk: Buffer) => chunks.push(chunk))
-    stream.on('end', () => resolve(Buffer.concat(chunks)))
-    stream.on('error', reject)
-  })
+  // Handle different response types
+  if (Buffer.isBuffer(value)) {
+    return value
+  }
+
+  if (value instanceof Uint8Array) {
+    return Buffer.from(value)
+  }
+
+  // Handle ReadableStream (Node.js stream)
+  if (typeof (value as NodeJS.ReadableStream)?.on === 'function') {
+    const stream = value as NodeJS.ReadableStream
+    const chunks: Buffer[] = []
+    return new Promise((resolve, reject) => {
+      stream.on('data', (chunk: Buffer) => chunks.push(chunk))
+      stream.on('end', () => resolve(Buffer.concat(chunks)))
+      stream.on('error', reject)
+    })
+  }
+
+  // Handle Web ReadableStream
+  if (typeof (value as ReadableStream)?.getReader === 'function') {
+    const reader = (value as ReadableStream).getReader()
+    const chunks: Uint8Array[] = []
+    while (true) {
+      const { done, value: chunk } = await reader.read()
+      if (done) break
+      if (chunk) chunks.push(chunk)
+    }
+    return Buffer.concat(chunks.map(c => Buffer.from(c)))
+  }
+
+  throw new Error(`Unexpected response type from OCI: ${typeof value}`)
 }
 
 // List objects in Backup Bucket

@@ -183,6 +183,46 @@ export async function listBackups(req: AuthRequest, res: Response, next: NextFun
   }
 }
 
+// Get backup info (preview)
+export async function getBackupInfo(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    if (!req.user || req.user.role !== 'ADMIN') {
+      throw new AppError('관리자 권한이 필요합니다.', 403)
+    }
+
+    if (!isOCIConfigured()) {
+      throw new AppError('OCI Object Storage가 설정되지 않았습니다.', 500)
+    }
+
+    const { fileName } = req.params
+    if (!fileName) {
+      throw new AppError('파일명이 필요합니다.', 400)
+    }
+
+    const objectName = `${BACKUP_FOLDER}/${fileName}`
+    const buffer = await downloadFromBackupBucket(objectName)
+    const backupData: BackupData = JSON.parse(buffer.toString('utf-8'))
+
+    res.json({
+      data: {
+        fileName,
+        version: backupData.version,
+        createdAt: backupData.createdAt,
+        stats: {
+          users: backupData.data.users?.length || 0,
+          categories: backupData.data.categories?.length || 0,
+          tags: backupData.data.tags?.length || 0,
+          posts: backupData.data.posts?.length || 0,
+          pages: backupData.data.pages?.length || 0,
+          comments: backupData.data.comments?.length || 0,
+        },
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 // Download backup
 export async function downloadBackup(req: AuthRequest, res: Response, next: NextFunction) {
   try {

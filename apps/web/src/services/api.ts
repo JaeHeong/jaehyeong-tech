@@ -417,6 +417,10 @@ class ApiClient {
     document.body.removeChild(a)
   }
 
+  async getBackupInfo(fileName: string) {
+    return this.request<{ data: BackupInfoDetail }>(`/backups/${fileName}/info`)
+  }
+
   async restoreBackup(fileName: string) {
     return this.request<{ data: RestoreResult }>(`/backups/${fileName}/restore`, {
       method: 'POST',
@@ -865,7 +869,7 @@ export interface BackupInfo {
 export interface BackupResult {
   success: boolean
   fileName: string
-  url: string
+  objectPath: string
   createdAt: string
   stats: {
     users: number
@@ -873,6 +877,21 @@ export interface BackupResult {
     tags: number
     posts: number
     pages: number
+    comments: number
+  }
+}
+
+export interface BackupInfoDetail {
+  fileName: string
+  version: string
+  createdAt: string
+  stats: {
+    users: number
+    categories: number
+    tags: number
+    posts: number
+    pages: number
+    comments: number
   }
 }
 
@@ -885,6 +904,7 @@ export interface RestoreResult {
     tags: number
     posts: number
     pages: number
+    comments: number
   }
 }
 

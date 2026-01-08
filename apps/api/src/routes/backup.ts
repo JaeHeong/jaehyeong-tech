@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth.js'
 import {
   createBackup,
   listBackups,
+  getBackupInfo,
   downloadBackup,
   restoreBackup,
   deleteBackup,
@@ -16,6 +17,7 @@ router.use(authenticate)
 // Backup routes
 router.post('/', createBackup)
 router.get('/', listBackups)
+router.get('/:fileName/info', getBackupInfo)
 router.get('/:fileName', downloadBackup)
 router.post('/:fileName/restore', restoreBackup)
 router.delete('/:fileName', deleteBackup)

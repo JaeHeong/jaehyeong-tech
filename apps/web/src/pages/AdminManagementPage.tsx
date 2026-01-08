@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api, type BackupInfo } from '../services/api'
+import { api, type BackupInfo, type BackupInfoDetail } from '../services/api'
 
 interface OrphanImage {
   id: string
@@ -24,6 +24,10 @@ export default function AdminManagementPage() {
   const [isCreatingBackup, setIsCreatingBackup] = useState(false)
   const [isRestoringBackup, setIsRestoringBackup] = useState<string | null>(null)
   const [backupMessage, setBackupMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Preview modal state
+  const [previewBackup, setPreviewBackup] = useState<BackupInfoDetail | null>(null)
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false)
 
   // Image cleanup state
   const [orphanImages, setOrphanImages] = useState<OrphanImage[]>([])
@@ -52,7 +56,7 @@ export default function AdminManagementPage() {
       const result = await api.createBackup()
       setBackupMessage({
         type: 'success',
-        text: `백업이 생성되었습니다. (게시물: ${result.data.stats.posts}, 페이지: ${result.data.stats.pages})`,
+        text: `백업이 생성되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 페이지: ${result.data.stats.pages})`,
       })
       fetchBackups()
     } catch {
@@ -81,7 +85,7 @@ export default function AdminManagementPage() {
       const result = await api.restoreBackup(fileName)
       setBackupMessage({
         type: 'success',
-        text: `백업이 복원되었습니다. (게시물: ${result.data.stats.posts}, 페이지: ${result.data.stats.pages})`,
+        text: `백업이 복원되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 페이지: ${result.data.stats.pages})`,
       })
     } catch {
       setBackupMessage({ type: 'error', text: '백업 복원에 실패했습니다.' })
@@ -101,6 +105,18 @@ export default function AdminManagementPage() {
       fetchBackups()
     } catch {
       setBackupMessage({ type: 'error', text: '백업 삭제에 실패했습니다.' })
+    }
+  }
+
+  const handlePreviewBackup = async (fileName: string) => {
+    setIsLoadingPreview(true)
+    try {
+      const result = await api.getBackupInfo(fileName)
+      setPreviewBackup(result.data)
+    } catch {
+      setBackupMessage({ type: 'error', text: '백업 정보를 불러오는데 실패했습니다.' })
+    } finally {
+      setIsLoadingPreview(false)
     }
   }
 
@@ -260,6 +276,14 @@ export default function AdminManagementPage() {
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <button
+                            onClick={() => backup.name && handlePreviewBackup(backup.name)}
+                            disabled={isLoadingPreview}
+                            className="p-1 text-slate-400 hover:text-primary transition-colors rounded disabled:opacity-50"
+                            title="미리보기"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">info</span>
+                          </button>
+                          <button
                             onClick={() => backup.name && handleDownloadBackup(backup.name)}
                             className="p-1 text-slate-400 hover:text-blue-500 transition-colors rounded"
                             title="다운로드"
@@ -308,6 +332,14 @@ export default function AdminManagementPage() {
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => backup.name && handlePreviewBackup(backup.name)}
+                                disabled={isLoadingPreview}
+                                className="p-1.5 text-slate-400 hover:text-primary transition-colors rounded disabled:opacity-50"
+                                title="미리보기"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">info</span>
+                              </button>
                               <button
                                 onClick={() => backup.name && handleDownloadBackup(backup.name)}
                                 className="p-1.5 text-slate-400 hover:text-blue-500 transition-colors rounded"
@@ -502,6 +534,78 @@ export default function AdminManagementPage() {
           )}
         </div>
       </div>
+
+      {/* Backup Preview Modal */}
+      {previewBackup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setPreviewBackup(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">backup</span>
+                백업 정보
+              </h3>
+              <button
+                onClick={() => setPreviewBackup(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500 dark:text-slate-400">파일명</span>
+                <span className="font-mono text-xs">{previewBackup.fileName}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500 dark:text-slate-400">버전</span>
+                <span>{previewBackup.version}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500 dark:text-slate-400">생성일시</span>
+                <span>{formatBackupDate(previewBackup.createdAt)}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+              <h4 className="text-sm font-medium mb-3">저장된 데이터</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                  <p className="text-xl font-bold">{previewBackup.stats.posts}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">게시물</p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                  <p className="text-xl font-bold">{previewBackup.stats.comments}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">댓글</p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                  <p className="text-xl font-bold">{previewBackup.stats.pages}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">페이지</p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                  <p className="text-xl font-bold">{previewBackup.stats.categories}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">카테고리</p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                  <p className="text-xl font-bold">{previewBackup.stats.tags}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">태그</p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                  <p className="text-xl font-bold">{previewBackup.stats.users}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">사용자</p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setPreviewBackup(null)}
+              className="w-full mt-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-colors"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
