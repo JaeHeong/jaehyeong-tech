@@ -146,10 +146,10 @@ export default function CategoryPage() {
 
   const displayCategories = categories.length > 0 ? categories : defaultCategories
 
-  // Split categories for two rows
-  const midPoint = Math.ceil(displayCategories.length / 2)
-  const topCategories = displayCategories.slice(0, midPoint)
-  const bottomCategories = [...displayCategories.slice(midPoint)].reverse()
+  // Both rows show all categories, bottom row is fully reversed
+  // Top: [1,2,3,4,5,6,7,8], Bottom: [8,7,6,5,4,3,2,1]
+  const topCategories = displayCategories
+  const bottomCategories = [...displayCategories].reverse()
 
   // Triple the arrays for infinite loop effect
   const topLoop = [...topCategories, ...topCategories, ...topCategories]
