@@ -261,6 +261,24 @@ export default function AdminPostsPage() {
                         <span>조회 {post.viewCount.toLocaleString()}</span>
                         <span>{formatDate(post.createdAt)}</span>
                       </div>
+                      {/* Tags */}
+                      {post.tags && post.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {post.tags.slice(0, 3).map((tag) => (
+                            <span
+                              key={tag.id}
+                              className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-[9px] text-slate-500 dark:text-slate-400"
+                            >
+                              #{tag.name}
+                            </span>
+                          ))}
+                          {post.tags.length > 3 && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-[9px] text-slate-400">
+                              +{post.tags.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <div className="flex items-center gap-1 mt-2">
                         <Link
                           to={`/posts/${post.slug}`}
@@ -338,6 +356,24 @@ export default function AdminPostsPage() {
                           <div className="min-w-0">
                             <div className="font-bold text-slate-900 dark:text-white line-clamp-1">{post.title}</div>
                             <div className="text-xs text-slate-500 line-clamp-1">{post.excerpt}</div>
+                            {/* Tags */}
+                            {post.tags && post.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {post.tags.slice(0, 4).map((tag) => (
+                                  <span
+                                    key={tag.id}
+                                    className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-[10px] text-slate-500 dark:text-slate-400"
+                                  >
+                                    #{tag.name}
+                                  </span>
+                                ))}
+                                {post.tags.length > 4 && (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-[10px] text-slate-400">
+                                    +{post.tags.length - 4}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>

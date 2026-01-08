@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import api from '../services/api'
+import api, { Tag } from '../services/api'
 
 interface Author {
   name: string
@@ -22,7 +22,7 @@ interface PopularPost {
   likeCount: number
 }
 
-const LIKE_WEIGHT = 10
+const LIKE_WEIGHT = 5
 const calculateScore = (post: PopularPost) => (post.likeCount * LIKE_WEIGHT) + post.viewCount
 
 export default function MobileProfileModal() {
@@ -30,6 +30,7 @@ export default function MobileProfileModal() {
   const [isClosing, setIsClosing] = useState(false)
   const [author, setAuthor] = useState<Author | null>(null)
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
   const modalRef = useRef<HTMLDivElement>(null)
 
   const handleClose = () => {
@@ -70,8 +71,21 @@ export default function MobileProfileModal() {
       }
     }
 
+    const fetchTags = async () => {
+      try {
+        const response = await api.getTags()
+        const sortedTags = response.tags
+          .filter((tag) => tag.postCount > 0)
+          .sort((a, b) => b.postCount - a.postCount)
+        setTags(sortedTags)
+      } catch {
+        setTags([])
+      }
+    }
+
     fetchAuthor()
     fetchPopularPosts()
+    fetchTags()
   }, [])
 
   const formatViewCount = (count: number) => {
@@ -258,6 +272,33 @@ export default function MobileProfileModal() {
                   )}
                 </div>
               </div>
+
+              {/* Tags */}
+              {tags.length > 0 && (
+                <>
+                  <div className="border-t border-slate-200 dark:border-slate-800" />
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
+                        <span className="material-symbols-outlined">sell</span>
+                      </div>
+                      <h3 className="text-lg font-bold">태그</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <Link
+                          key={tag.id}
+                          to={`/search?q=${encodeURIComponent(tag.name)}`}
+                          onClick={handleClose}
+                          className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+                        >
+                          #{tag.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
