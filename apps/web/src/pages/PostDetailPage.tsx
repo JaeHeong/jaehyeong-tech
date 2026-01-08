@@ -1012,6 +1012,10 @@ export default function PostDetailPage() {
               {/* Actions */}
               <div className="mt-8 flex items-center justify-between">
                 <div className="flex gap-4">
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <span className="material-symbols-outlined text-[20px]">visibility</span>
+                    <span className="text-sm font-medium">{post.viewCount.toLocaleString()}</span>
+                  </div>
                   <button
                     onClick={handleLike}
                     disabled={isLiking}
