@@ -548,6 +548,12 @@ class ApiClient {
     const response = await this.request<{ data: LikeResponse }>(`/likes/${postId}`)
     return response.data
   }
+
+  // Analytics endpoints
+  async getWeeklyVisitors() {
+    const response = await this.request<{ data: WeeklyVisitorsResponse }>('/analytics/weekly')
+    return response.data
+  }
 }
 
 // Types
@@ -1010,6 +1016,16 @@ export interface AdminCommentsResponse {
 export interface LikeResponse {
   liked: boolean
   likeCount: number
+}
+
+export interface WeeklyVisitorsResponse {
+  daily: { date: string; visitors: number }[]
+  total: number
+  updatedAt?: string
+  configured: boolean
+  cached?: boolean
+  stale?: boolean
+  error?: string
 }
 
 export const api = new ApiClient(API_BASE_URL)

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import api, { Tag } from '../services/api'
+import api, { Tag, WeeklyVisitorsResponse } from '../services/api'
 
 interface Author {
   name: string
@@ -30,12 +30,14 @@ interface SidebarProps {
   showAuthor?: boolean
   showPopularTopics?: boolean
   showTags?: boolean
+  showVisitors?: boolean
 }
 
-export default function Sidebar({ showAuthor = true, showPopularTopics = true, showTags = true }: SidebarProps) {
+export default function Sidebar({ showAuthor = true, showPopularTopics = true, showTags = true, showVisitors = true }: SidebarProps) {
   const [author, setAuthor] = useState<Author | null>(null)
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([])
   const [tags, setTags] = useState<Tag[]>([])
+  const [visitors, setVisitors] = useState<WeeklyVisitorsResponse | null>(null)
 
   useEffect(() => {
     // Fetch author info
@@ -81,10 +83,21 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true, s
       }
     }
 
+    // Fetch weekly visitors
+    const fetchVisitors = async () => {
+      try {
+        const data = await api.getWeeklyVisitors()
+        setVisitors(data)
+      } catch {
+        setVisitors(null)
+      }
+    }
+
     if (showAuthor) fetchAuthor()
     if (showPopularTopics) fetchPopularPosts()
     if (showTags) fetchTags()
-  }, [showAuthor, showPopularTopics, showTags])
+    if (showVisitors) fetchVisitors()
+  }, [showAuthor, showPopularTopics, showTags, showVisitors])
 
   const formatViewCount = (count: number) => {
     if (count >= 1000) {
@@ -235,6 +248,77 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true, s
               </Link>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Weekly Visitors */}
+      {showVisitors && visitors && visitors.configured && visitors.daily.length > 0 && (
+        <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                <span className="material-symbols-outlined">analytics</span>
+              </div>
+              <h3 className="text-lg font-bold">주간 방문자</h3>
+            </div>
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              최근 7일
+            </span>
+          </div>
+
+          {/* Bar Chart */}
+          <div className="flex items-end justify-between gap-1 h-28 mb-4">
+            {visitors.daily.map((day, index) => {
+              const maxVisitors = Math.max(...visitors.daily.map((d) => d.visitors), 1)
+              const heightPercent = (day.visitors / maxVisitors) * 100
+              const opacity = 0.2 + (index / (visitors.daily.length - 1)) * 0.8
+              const isToday = index === visitors.daily.length - 1
+              const dayLabel = new Date(day.date).toLocaleDateString('ko-KR', { weekday: 'short' }).charAt(0)
+
+              return (
+                <div key={day.date} className="flex-1 flex flex-col items-center gap-1 group">
+                  <span className="text-[9px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {day.visitors}
+                  </span>
+                  <div className="w-full flex items-end justify-center h-16">
+                    <div
+                      className="w-full max-w-[24px] rounded-t transition-all duration-300 group-hover:opacity-100 cursor-default"
+                      style={{
+                        height: `${Math.max(heightPercent, 4)}%`,
+                        backgroundColor: `rgba(49, 130, 246, ${opacity})`,
+                      }}
+                      title={`${day.date}: ${day.visitors}명`}
+                    />
+                  </div>
+                  <span className={`text-[10px] ${isToday ? 'text-primary font-bold' : 'text-slate-400'}`}>
+                    {dayLabel}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Stats */}
+          <div className="flex items-center justify-between text-sm border-t border-slate-100 dark:border-slate-800 pt-4">
+            <div>
+              <span className="text-slate-500 dark:text-slate-400">총 </span>
+              <span className="font-bold text-primary">{visitors.total.toLocaleString()}</span>
+              <span className="text-slate-500 dark:text-slate-400">명</span>
+            </div>
+            {visitors.daily.length > 0 && (
+              <div className="text-slate-400 dark:text-slate-500 text-xs">
+                오늘 {visitors.daily[visitors.daily.length - 1]?.visitors || 0}명
+              </div>
+            )}
+          </div>
+
+          {/* Update time */}
+          {visitors.updatedAt && (
+            <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 text-right">
+              {visitors.stale && '⚠️ '}
+              업데이트: {new Date(visitors.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          )}
         </div>
       )}
     </aside>
