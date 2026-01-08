@@ -131,11 +131,13 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
     const isAdmin = authReq.user?.role === 'ADMIN'
 
     const where: Record<string, unknown> = {}
-    let orderByField: 'publishedAt' | 'updatedAt' | 'viewCount' = 'publishedAt'
+    let orderByField: 'publishedAt' | 'updatedAt' | 'viewCount' | 'likeCount' = 'publishedAt'
 
-    // Support sorting by viewCount for popular posts
+    // Support sorting by viewCount or likeCount
     if (sortBy === 'viewCount') {
       orderByField = 'viewCount'
+    } else if (sortBy === 'likeCount') {
+      orderByField = 'likeCount'
     }
 
     if (statusFilter === 'PUBLISHED' || statusFilter === 'ALL') {

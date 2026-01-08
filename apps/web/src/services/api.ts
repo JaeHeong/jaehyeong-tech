@@ -667,7 +667,7 @@ export interface PostsQueryParams {
   tag?: string
   search?: string
   status?: 'PUBLISHED' | 'PRIVATE' | 'PUBLIC' | 'ALL'
-  sortBy?: 'createdAt' | 'viewCount' | 'likeCount'
+  sortBy?: 'publishedAt' | 'viewCount' | 'likeCount'
   featured?: boolean
 }
 

@@ -23,7 +23,7 @@ export default function AdminPostsPage() {
   const currentPage = parseInt(searchParams.get('page') || '1', 10)
   const currentCategory = searchParams.get('category') || ''
   const currentStatus = searchParams.get('status') || ''
-  const currentSort = (searchParams.get('sort') || '') as '' | 'viewCount' | 'likeCount' | 'createdAt'
+  const currentSort = (searchParams.get('sort') || '') as '' | 'viewCount' | 'likeCount' | 'publishedAt'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -120,7 +120,7 @@ export default function AdminPostsPage() {
     setSearchParams(params)
   }
 
-  const handleSort = (sortKey: 'viewCount' | 'likeCount' | 'createdAt') => {
+  const handleSort = (sortKey: 'viewCount' | 'likeCount' | 'publishedAt') => {
     const params = new URLSearchParams(searchParams)
     if (currentSort === sortKey) {
       params.delete('sort') // 같은 정렬 클릭 시 해제
@@ -298,13 +298,20 @@ export default function AdminPostsPage() {
                     {/* 콘텐츠 */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="relative">
+                        <div>
                           <button
                             data-tag-trigger
                             onClick={(e) => {
                               e.stopPropagation()
                               if (post.tags && post.tags.length > 0) {
-                                setExpandedTagsId(expandedTagsId === post.id ? null : post.id)
+                                if (expandedTagsId === post.id) {
+                                  setExpandedTagsId(null)
+                                  setTagModalPosition(null)
+                                } else {
+                                  const rect = e.currentTarget.getBoundingClientRect()
+                                  setExpandedTagsId(post.id)
+                                  setTagModalPosition({ top: rect.bottom + 8, left: Math.min(rect.left, window.innerWidth - 260) })
+                                }
                               }
                             }}
                             className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1 text-left"
@@ -316,27 +323,6 @@ export default function AdminPostsPage() {
                               </span>
                             )}
                           </button>
-                          {/* Tags Modal */}
-                          {expandedTagsId === post.id && post.tags && post.tags.length > 0 && (
-                            <div data-tag-modal className="absolute left-0 top-full mt-2 z-50 bg-card-light dark:bg-card-dark rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-lg animate-fade-in min-w-[200px] max-w-[280px]">
-                              <div className="flex items-center gap-2 mb-3">
-                                <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-500">
-                                  <span className="material-symbols-outlined text-[16px]">sell</span>
-                                </div>
-                                <h4 className="text-sm font-bold">태그</h4>
-                              </div>
-                              <div className="flex flex-wrap gap-1.5">
-                                {post.tags.map((tag) => (
-                                  <span
-                                    key={tag.id}
-                                    className="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-600 dark:text-slate-400"
-                                  >
-                                    #{tag.name}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                         </div>
                         {/* 상태 마크 (오른쪽) */}
                         {post.status === 'PUBLIC' ? (
@@ -419,11 +405,11 @@ export default function AdminPostsPage() {
                     </th>
                     <th className="px-6 py-4 w-32">
                       <button
-                        onClick={() => handleSort('createdAt')}
-                        className={`inline-flex items-center gap-1 hover:text-primary transition-colors ${currentSort === 'createdAt' ? 'text-primary' : ''}`}
+                        onClick={() => handleSort('publishedAt')}
+                        className={`inline-flex items-center gap-1 hover:text-primary transition-colors ${currentSort === 'publishedAt' ? 'text-primary' : ''}`}
                       >
                         작성일
-                        <span className={`material-symbols-outlined text-[14px] ${currentSort === 'createdAt' ? 'opacity-100' : 'opacity-0'}`}>
+                        <span className={`material-symbols-outlined text-[14px] ${currentSort === 'publishedAt' ? 'opacity-100' : 'opacity-0'}`}>
                           arrow_downward
                         </span>
                       </button>
