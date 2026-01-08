@@ -678,3 +678,52 @@ export async function deletePost(req: AuthRequest, res: Response, next: NextFunc
     next(error)
   }
 }
+
+// Admin: Bulk delete posts
+export async function bulkDeletePosts(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const { ids } = req.body
+
+    if (!req.user || req.user.role !== 'ADMIN') {
+      throw new AppError('관리자 권한이 필요합니다.', 403)
+    }
+
+    // Get all posts to delete
+    const posts = await prisma.post.findMany({
+      where: { id: { in: ids } },
+      select: { id: true },
+    })
+
+    if (posts.length === 0) {
+      throw new AppError('삭제할 게시글을 찾을 수 없습니다.', 404)
+    }
+
+    const postIds = posts.map(p => p.id)
+
+    // Get all images linked to these posts
+    const images = await prisma.image.findMany({
+      where: { postId: { in: postIds } },
+    })
+
+    // Delete images from OCI
+    if (isOCIConfigured() && images.length > 0) {
+      for (const image of images) {
+        try {
+          await deleteFromOCI(image.objectName)
+        } catch (error) {
+          console.error(`Failed to delete image from OCI: ${image.objectName}`, error)
+        }
+      }
+    }
+
+    // Delete image records from database
+    await prisma.image.deleteMany({ where: { postId: { in: postIds } } })
+
+    // Delete the posts
+    const result = await prisma.post.deleteMany({ where: { id: { in: postIds } } })
+
+    res.json({ data: { deletedCount: result.count } })
+  } catch (error) {
+    next(error)
+  }
+}

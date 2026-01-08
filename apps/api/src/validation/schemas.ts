@@ -117,6 +117,11 @@ export const idParamSchema = z.object({
   id: z.string().cuid('유효한 ID가 아닙니다.'),
 })
 
+// Bulk delete schema
+export const bulkDeleteSchema = z.object({
+  ids: z.array(z.string().cuid('유효한 ID가 아닙니다.')).min(1, '삭제할 항목을 선택해주세요.'),
+})
+
 export const slugParamSchema = z.object({
   slug: z.string().min(1, 'Slug가 필요합니다.'),
 })

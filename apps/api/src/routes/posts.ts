@@ -3,7 +3,7 @@ import * as postController from '../controllers/posts.js'
 import { toggleLike, checkLikeStatus } from '../controllers/likes.js'
 import { authenticate, optionalAuth } from '../middleware/auth.js'
 import { validateBody, validateQuery, validateParams } from '../validation/middleware.js'
-import { createPostSchema, updatePostSchema, postQuerySchema, idParamSchema } from '../validation/schemas.js'
+import { createPostSchema, updatePostSchema, postQuerySchema, idParamSchema, bulkDeleteSchema } from '../validation/schemas.js'
 
 export const postRouter: IRouter = Router()
 
@@ -18,6 +18,7 @@ postRouter.get('/:slug/related', postController.getRelatedPosts)
 
 // Protected routes
 postRouter.post('/', authenticate, validateBody(createPostSchema), postController.createPost)
+postRouter.post('/bulk-delete', authenticate, validateBody(bulkDeleteSchema), postController.bulkDeletePosts)
 postRouter.put('/:id', authenticate, validateParams(idParamSchema), validateBody(updatePostSchema), postController.updatePost)
 postRouter.delete('/:id', authenticate, validateParams(idParamSchema), postController.deletePost)
 

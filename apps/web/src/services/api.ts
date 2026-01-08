@@ -168,6 +168,13 @@ class ApiClient {
     })
   }
 
+  async bulkDeletePosts(ids: string[]) {
+    return this.request<{ data: { deletedCount: number } }>('/posts/bulk-delete', {
+      method: 'POST',
+      body: { ids },
+    })
+  }
+
   // Categories endpoints
   async getCategories() {
     const response = await this.request<{ data: Category[] }>('/categories')

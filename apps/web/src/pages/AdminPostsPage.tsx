@@ -9,10 +9,12 @@ export default function AdminPostsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [totalPages, setTotalPages] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; post: Post | null }>({
     isOpen: false,
     post: null,
   })
+  const [bulkDeleteModal, setBulkDeleteModal] = useState(false)
 
   const currentPage = parseInt(searchParams.get('page') || '1', 10)
   const currentCategory = searchParams.get('category') || ''
@@ -44,6 +46,39 @@ export default function AdminPostsPage() {
 
     fetchData()
   }, [currentPage, currentCategory, currentStatus, searchQuery])
+
+  // 페이지/필터 변경 시 선택 초기화
+  useEffect(() => {
+    setSelectedIds([])
+  }, [currentPage, currentCategory, currentStatus])
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === posts.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(posts.map((p) => p.id))
+    }
+  }
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    )
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return
+
+    try {
+      await api.bulkDeletePosts(selectedIds)
+      setPosts(posts.filter((p) => !selectedIds.includes(p.id)))
+      setSelectedIds([])
+      setBulkDeleteModal(false)
+    } catch (error) {
+      console.error('Failed to bulk delete posts:', error)
+      alert('게시글 삭제에 실패했습니다.')
+    }
+  }
 
   const handleFilterChange = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams)
@@ -160,6 +195,22 @@ export default function AdminPostsPage() {
               <option value="PRIVATE">비공개</option>
             </select>
           </div>
+
+          {/* Bulk Delete */}
+          {selectedIds.length > 0 && (
+            <div className="flex items-center gap-2 md:ml-auto md:pl-4 md:border-l border-slate-200 dark:border-slate-700">
+              <span className="text-xs md:text-sm text-slate-600 dark:text-slate-400">
+                {selectedIds.length}개 선택됨
+              </span>
+              <button
+                onClick={() => setBulkDeleteModal(true)}
+                className="inline-flex items-center gap-1 px-2.5 md:px-3 py-1.5 md:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs md:text-sm font-medium transition-colors"
+              >
+                <span className="material-symbols-outlined text-[16px] md:text-[18px]">delete</span>
+                삭제
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -176,8 +227,17 @@ export default function AdminPostsPage() {
             {/* Mobile: Card List */}
             <div className="md:hidden divide-y divide-slate-200 dark:divide-slate-800">
               {posts.map((post) => (
-                <div key={post.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                <div
+                  key={post.id}
+                  onClick={() => handleSelectOne(post.id)}
+                  className={`p-3 cursor-pointer transition-colors ${
+                    selectedIds.includes(post.id)
+                      ? 'bg-slate-50 dark:bg-slate-800/30'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'
+                  }`}
+                >
                   <div className="flex items-start gap-3">
+                    {/* 썸네일 */}
                     {post.coverImage ? (
                       <img src={post.coverImage} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
                     ) : (
@@ -185,15 +245,15 @@ export default function AdminPostsPage() {
                         <span className="material-symbols-outlined text-slate-400 text-[20px]">{post.category?.icon || 'article'}</span>
                       </div>
                     )}
+                    {/* 콘텐츠 */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1">{post.title}</div>
+                        {/* 상태 마크 (오른쪽) */}
                         {post.status === 'PUBLIC' ? (
                           <span className="shrink-0 size-2 rounded-full bg-green-500" />
-                        ) : post.status === 'PRIVATE' ? (
-                          <span className="shrink-0 size-2 rounded-full bg-slate-400" />
                         ) : (
-                          <span className="shrink-0 size-2 rounded-full bg-yellow-500" />
+                          <span className="shrink-0 size-2 rounded-full bg-slate-400" />
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
@@ -202,13 +262,28 @@ export default function AdminPostsPage() {
                         <span>{formatDate(post.createdAt)}</span>
                       </div>
                       <div className="flex items-center gap-1 mt-2">
-                        <Link to={`/posts/${post.slug}`} target="_blank" className="p-1.5 text-slate-400 hover:text-primary">
+                        <Link
+                          to={`/posts/${post.slug}`}
+                          target="_blank"
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-1.5 text-slate-400 hover:text-primary"
+                        >
                           <span className="material-symbols-outlined text-[18px]">visibility</span>
                         </Link>
-                        <Link to={`/admin/posts/${post.id}/edit`} className="p-1.5 text-slate-400 hover:text-blue-500">
+                        <Link
+                          to={`/admin/posts/${post.id}/edit`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-1.5 text-slate-400 hover:text-blue-500"
+                        >
                           <span className="material-symbols-outlined text-[18px]">edit</span>
                         </Link>
-                        <button onClick={() => setDeleteModal({ isOpen: true, post })} className="p-1.5 text-slate-400 hover:text-red-500">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteModal({ isOpen: true, post })
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-red-500"
+                        >
                           <span className="material-symbols-outlined text-[18px]">delete</span>
                         </button>
                       </div>
@@ -227,12 +302,30 @@ export default function AdminPostsPage() {
                     <th className="px-6 py-4 w-28">상태</th>
                     <th className="px-6 py-4 w-24 text-center">조회수</th>
                     <th className="px-6 py-4 w-32">작성일</th>
-                    <th className="px-6 py-4 w-32 text-right">관리</th>
+                    <th className="px-6 py-4 w-40">
+                      <div className="flex items-center justify-between">
+                        <span>관리</span>
+                        <button
+                          onClick={handleSelectAll}
+                          className="text-[10px] font-medium text-primary hover:text-primary/80 normal-case"
+                        >
+                          {selectedIds.length === posts.length && posts.length > 0 ? '전체 해제' : '전체 선택'}
+                        </button>
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {posts.map((post) => (
-                    <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    <tr
+                      key={post.id}
+                      onClick={() => handleSelectOne(post.id)}
+                      className={`cursor-pointer transition-colors ${
+                        selectedIds.includes(post.id)
+                          ? 'bg-slate-50 dark:bg-slate-800/30'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'
+                      }`}
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {post.coverImage ? (
@@ -275,13 +368,31 @@ export default function AdminPostsPage() {
                       <td className="px-6 py-4 text-slate-500">{formatDate(post.createdAt)}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Link to={`/posts/${post.slug}`} target="_blank" className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="미리보기">
+                          <Link
+                            to={`/posts/${post.slug}`}
+                            target="_blank"
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                            title="미리보기"
+                          >
                             <span className="material-symbols-outlined text-[20px]">visibility</span>
                           </Link>
-                          <Link to={`/admin/posts/${post.id}/edit`} className="p-2 text-slate-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="수정">
+                          <Link
+                            to={`/admin/posts/${post.id}/edit`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-2 text-slate-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                            title="수정"
+                          >
                             <span className="material-symbols-outlined text-[20px]">edit</span>
                           </Link>
-                          <button onClick={() => setDeleteModal({ isOpen: true, post })} className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="삭제">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteModal({ isOpen: true, post })
+                            }}
+                            className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                            title="삭제"
+                          >
                             <span className="material-symbols-outlined text-[20px]">delete</span>
                           </button>
                         </div>
@@ -377,6 +488,41 @@ export default function AdminPostsPage() {
                 className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold transition-colors"
               >
                 삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Modal */}
+      {bulkDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setBulkDeleteModal(false)}
+          />
+          <div className="relative bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl shadow-2xl p-4 md:p-6 max-w-md w-full border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <div className="p-1.5 md:p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600">
+                <span className="material-symbols-outlined text-[20px] md:text-[24px]">warning</span>
+              </div>
+              <h3 className="text-base md:text-lg font-bold">게시글 일괄 삭제</h3>
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 mb-4 md:mb-6 text-sm md:text-base">
+              선택한 <strong className="text-slate-900 dark:text-white">{selectedIds.length}개</strong>의 게시글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="flex gap-2 md:gap-3 justify-end">
+              <button
+                onClick={() => setBulkDeleteModal(false)}
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs md:text-sm font-medium transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold transition-colors"
+              >
+                {selectedIds.length}개 삭제
               </button>
             </div>
           </div>
