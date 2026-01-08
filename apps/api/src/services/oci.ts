@@ -48,8 +48,9 @@ async function getNamespace(): Promise<string> {
   return namespace
 }
 
-// Bucket name from environment
+// Bucket names from environment
 const BUCKET_NAME = process.env.OCI_BUCKET_NAME || 'jaehyeong-tech-uploads'
+const BACKUP_BUCKET_NAME = process.env.OCI_BACKUP_BUCKET_NAME || BUCKET_NAME
 
 // Upload file to Object Storage
 export async function uploadToOCI(
@@ -140,4 +141,94 @@ export function isOCIConfigured(): boolean {
   return objectStorageClient !== null
 }
 
-export { objectStorageClient, BUCKET_NAME }
+// Check if backup bucket is configured (separate from main bucket)
+export function isBackupBucketConfigured(): boolean {
+  return objectStorageClient !== null && !!process.env.OCI_BACKUP_BUCKET_NAME
+}
+
+// ===== Backup Bucket Functions (Private Bucket) =====
+
+// Upload file to Backup Bucket
+export async function uploadToBackupBucket(
+  fileName: string,
+  fileBuffer: Buffer,
+  contentType: string,
+  folder: string = 'backups'
+): Promise<string> {
+  if (!objectStorageClient) {
+    throw new Error('OCI Object Storage is not configured')
+  }
+
+  const ns = await getNamespace()
+  const objectName = `${folder}/${fileName}`
+
+  await objectStorageClient.putObject({
+    namespaceName: ns,
+    bucketName: BACKUP_BUCKET_NAME,
+    objectName,
+    contentType,
+    putObjectBody: fileBuffer,
+  })
+
+  // Return object path (not public URL since bucket is private)
+  return objectName
+}
+
+// Download file from Backup Bucket
+export async function downloadFromBackupBucket(objectName: string): Promise<Buffer> {
+  if (!objectStorageClient) {
+    throw new Error('OCI Object Storage is not configured')
+  }
+
+  const ns = await getNamespace()
+
+  const response = await objectStorageClient.getObject({
+    namespaceName: ns,
+    bucketName: BACKUP_BUCKET_NAME,
+    objectName,
+  })
+
+  // Read stream to buffer
+  const chunks: Buffer[] = []
+  const stream = response.value as NodeJS.ReadableStream
+
+  return new Promise((resolve, reject) => {
+    stream.on('data', (chunk: Buffer) => chunks.push(chunk))
+    stream.on('end', () => resolve(Buffer.concat(chunks)))
+    stream.on('error', reject)
+  })
+}
+
+// List objects in Backup Bucket
+export async function listBackupObjects(folder: string = ''): Promise<string[]> {
+  if (!objectStorageClient) {
+    throw new Error('OCI Object Storage is not configured')
+  }
+
+  const ns = await getNamespace()
+
+  const response = await objectStorageClient.listObjects({
+    namespaceName: ns,
+    bucketName: BACKUP_BUCKET_NAME,
+    prefix: folder,
+  })
+
+  return response.listObjects.objects?.map((obj) => obj.name || '') || []
+}
+
+// Delete file from Backup Bucket
+export async function deleteFromBackupBucket(objectName: string): Promise<void> {
+  if (!objectStorageClient) {
+    throw new Error('OCI Object Storage is not configured')
+  }
+
+  const ns = await getNamespace()
+
+  await objectStorageClient.deleteObject({
+    namespaceName: ns,
+    bucketName: BACKUP_BUCKET_NAME,
+    objectName,
+  })
+}
+
+export { objectStorageClient, BUCKET_NAME, BACKUP_BUCKET_NAME }

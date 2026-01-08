@@ -2,7 +2,13 @@ import type { Response, NextFunction } from 'express'
 import type { AuthRequest } from '../middleware/auth.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { prisma } from '../services/prisma.js'
-import { uploadToOCI, downloadFromOCI, listObjects, deleteFromOCI, isOCIConfigured } from '../services/oci.js'
+import {
+  uploadToBackupBucket,
+  downloadFromBackupBucket,
+  listBackupObjects,
+  deleteFromBackupBucket,
+  isOCIConfigured,
+} from '../services/oci.js'
 
 const BACKUP_FOLDER = 'backups'
 
@@ -100,15 +106,15 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const fileName = `backup_${timestamp}.json`
 
-    // Upload to OCI
+    // Upload to backup bucket
     const buffer = Buffer.from(JSON.stringify(backupData, null, 2), 'utf-8')
-    const url = await uploadToOCI(fileName, buffer, 'application/json', BACKUP_FOLDER)
+    const objectPath = await uploadToBackupBucket(fileName, buffer, 'application/json', BACKUP_FOLDER)
 
     res.json({
       data: {
         success: true,
         fileName,
-        url,
+        objectPath,
         createdAt: backupData.createdAt,
         stats: {
           users: users.length,
@@ -136,7 +142,7 @@ export async function listBackups(req: AuthRequest, res: Response, next: NextFun
       throw new AppError('OCI Object Storage가 설정되지 않았습니다.', 500)
     }
 
-    const objects = await listObjects(BACKUP_FOLDER)
+    const objects = await listBackupObjects(BACKUP_FOLDER)
     const backups = objects
       .filter((name) => name.endsWith('.json'))
       .map((name) => {
@@ -194,7 +200,7 @@ export async function downloadBackup(req: AuthRequest, res: Response, next: Next
     }
 
     const objectName = `${BACKUP_FOLDER}/${fileName}`
-    const buffer = await downloadFromOCI(objectName)
+    const buffer = await downloadFromBackupBucket(objectName)
 
     res.setHeader('Content-Type', 'application/json')
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
@@ -221,7 +227,7 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
     }
 
     const objectName = `${BACKUP_FOLDER}/${fileName}`
-    const buffer = await downloadFromOCI(objectName)
+    const buffer = await downloadFromBackupBucket(objectName)
     const backupData: BackupData = JSON.parse(buffer.toString('utf-8'))
 
     if (!backupData.version || !backupData.data) {
@@ -325,7 +331,7 @@ export async function deleteBackup(req: AuthRequest, res: Response, next: NextFu
     }
 
     const objectName = `${BACKUP_FOLDER}/${fileName}`
-    await deleteFromOCI(objectName)
+    await deleteFromBackupBucket(objectName)
 
     res.json({
       data: {
