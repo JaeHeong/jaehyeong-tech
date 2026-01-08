@@ -33,6 +33,19 @@ interface IntroduceContent {
   }
 }
 
+// Color mapping for skill badges (Tailwind requires explicit class names)
+const skillColorMap: Record<string, string> = {
+  'primary': 'bg-primary',
+  'blue-500': 'bg-blue-500',
+  'purple-500': 'bg-purple-500',
+  'green-500': 'bg-green-500',
+  'red-500': 'bg-red-500',
+  'yellow-500': 'bg-yellow-500',
+  'orange-500': 'bg-orange-500',
+  'pink-500': 'bg-pink-500',
+  'cyan-500': 'bg-cyan-500',
+}
+
 // Default content (fallback)
 const defaultContent: IntroduceContent = {
   profile: {
@@ -207,7 +220,7 @@ export default function IntroducePage() {
                       className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-primary/30 transition-colors"
                     >
                       <div className="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                        <span className={`size-2 rounded-full ${skill.color === 'primary' ? 'bg-primary' : `bg-${skill.color}`}`} />
+                        <span className={`size-2 rounded-full ${skillColorMap[skill.color] || 'bg-slate-500'}`} />
                         {skill.name}
                       </div>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
