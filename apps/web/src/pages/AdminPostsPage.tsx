@@ -15,6 +15,7 @@ export default function AdminPostsPage() {
     post: null,
   })
   const [bulkDeleteModal, setBulkDeleteModal] = useState(false)
+  const [expandedTagsId, setExpandedTagsId] = useState<string | null>(null)
 
   const currentPage = parseInt(searchParams.get('page') || '1', 10)
   const currentCategory = searchParams.get('category') || ''
@@ -248,7 +249,20 @@ export default function AdminPostsPage() {
                     {/* 콘텐츠 */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1">{post.title}</div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setExpandedTagsId(expandedTagsId === post.id ? null : post.id)
+                          }}
+                          className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1 text-left"
+                        >
+                          {post.title}
+                          {post.tags && post.tags.length > 0 && (
+                            <span className="ml-1 text-[10px] text-primary font-normal">
+                              ({post.tags.length})
+                            </span>
+                          )}
+                        </button>
                         {/* 상태 마크 (오른쪽) */}
                         {post.status === 'PUBLIC' ? (
                           <span className="shrink-0 size-2 rounded-full bg-green-500" />
@@ -256,29 +270,30 @@ export default function AdminPostsPage() {
                           <span className="shrink-0 size-2 rounded-full bg-slate-400" />
                         )}
                       </div>
+                      {/* Tags - Expandable */}
+                      <div
+                        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                          expandedTagsId === post.id ? 'max-h-24 opacity-100 mt-1.5' : 'max-h-0 opacity-0'
+                        }`}
+                      >
+                        {post.tags && post.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {post.tags.map((tag) => (
+                              <span
+                                key={tag.id}
+                                className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-[9px] text-slate-500 dark:text-slate-400"
+                              >
+                                #{tag.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
                         <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{post.category?.name}</span>
                         <span>조회 {post.viewCount.toLocaleString()}</span>
                         <span>{formatDate(post.createdAt)}</span>
                       </div>
-                      {/* Tags */}
-                      {post.tags && post.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {post.tags.slice(0, 3).map((tag) => (
-                            <span
-                              key={tag.id}
-                              className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-[9px] text-slate-500 dark:text-slate-400"
-                            >
-                              #{tag.name}
-                            </span>
-                          ))}
-                          {post.tags.length > 3 && (
-                            <span className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-[9px] text-slate-400">
-                              +{post.tags.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
                       <div className="flex items-center gap-1 mt-2">
                         <Link
                           to={`/posts/${post.slug}`}
@@ -353,13 +368,22 @@ export default function AdminPostsPage() {
                               <span className="material-symbols-outlined text-slate-400">{post.category?.icon || 'article'}</span>
                             </div>
                           )}
-                          <div className="min-w-0">
-                            <div className="font-bold text-slate-900 dark:text-white line-clamp-1">{post.title}</div>
-                            <div className="text-xs text-slate-500 line-clamp-1">{post.excerpt}</div>
-                            {/* Tags */}
+                          <div className="min-w-0 group/title">
+                            <div className="font-bold text-slate-900 dark:text-white line-clamp-1">
+                              {post.title}
+                              {post.tags && post.tags.length > 0 && (
+                                <span className="ml-1.5 text-xs text-primary font-normal">
+                                  ({post.tags.length})
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-500 line-clamp-1 group-hover/title:hidden transition-opacity">
+                              {post.excerpt}
+                            </div>
+                            {/* Tags - Show on hover */}
                             {post.tags && post.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {post.tags.slice(0, 4).map((tag) => (
+                              <div className="hidden group-hover/title:flex flex-wrap gap-1 mt-1 animate-fade-in">
+                                {post.tags.map((tag) => (
                                   <span
                                     key={tag.id}
                                     className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-[10px] text-slate-500 dark:text-slate-400"
@@ -367,11 +391,6 @@ export default function AdminPostsPage() {
                                     #{tag.name}
                                   </span>
                                 ))}
-                                {post.tags.length > 4 && (
-                                  <span className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-[10px] text-slate-400">
-                                    +{post.tags.length - 4}
-                                  </span>
-                                )}
                               </div>
                             )}
                           </div>
