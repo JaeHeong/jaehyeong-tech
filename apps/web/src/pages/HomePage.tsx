@@ -299,7 +299,31 @@ export default function HomePage() {
                           <span className="material-symbols-outlined text-[14px] md:text-[16px]">schedule</span>
                           {post.readingTime} min
                         </div>
+                        <div className="flex items-center gap-1 text-slate-400 text-[10px] md:text-xs">
+                          <span className="material-symbols-outlined text-[14px] md:text-[16px]">favorite</span>
+                          {post.likeCount}
+                        </div>
                       </div>
+                      {/* Tags */}
+                      {post.tags && post.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 md:gap-1.5 mt-2">
+                          {post.tags.slice(0, 3).map((tag) => (
+                            <Link
+                              key={tag.id}
+                              to={`/search?q=${encodeURIComponent(tag.name)}`}
+                              className="px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] md:text-xs text-slate-500 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              #{tag.name}
+                            </Link>
+                          ))}
+                          {post.tags.length > 3 && (
+                            <span className="px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] md:text-xs text-slate-400 dark:text-slate-500">
+                              +{post.tags.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </article>
                 ))}
