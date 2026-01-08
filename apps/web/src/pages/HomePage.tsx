@@ -11,6 +11,7 @@ export default function HomePage() {
   const [latestPosts, setLatestPosts] = useState<Post[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const fetchData = async () => {
@@ -307,7 +308,7 @@ export default function HomePage() {
                       {/* Tags */}
                       {post.tags && post.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 md:gap-1.5 mt-2">
-                          {post.tags.slice(0, 3).map((tag) => (
+                          {(expandedTags.has(post.id) ? post.tags : post.tags.slice(0, 3)).map((tag) => (
                             <Link
                               key={tag.id}
                               to={`/search?q=${encodeURIComponent(tag.name)}`}
@@ -317,10 +318,17 @@ export default function HomePage() {
                               #{tag.name}
                             </Link>
                           ))}
-                          {post.tags.length > 3 && (
-                            <span className="px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] md:text-xs text-slate-400 dark:text-slate-500">
+                          {post.tags.length > 3 && !expandedTags.has(post.id) && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setExpandedTags(prev => new Set(prev).add(post.id))
+                              }}
+                              className="px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] md:text-xs text-slate-400 dark:text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                            >
                               +{post.tags.length - 3}
-                            </span>
+                            </button>
                           )}
                         </div>
                       )}

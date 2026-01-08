@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import api from '../services/api'
+import api, { Tag } from '../services/api'
 
 interface Author {
   name: string
@@ -29,11 +29,13 @@ const calculateScore = (post: PopularPost) => (post.likeCount * LIKE_WEIGHT) + p
 interface SidebarProps {
   showAuthor?: boolean
   showPopularTopics?: boolean
+  showTags?: boolean
 }
 
-export default function Sidebar({ showAuthor = true, showPopularTopics = true }: SidebarProps) {
+export default function Sidebar({ showAuthor = true, showPopularTopics = true, showTags = true }: SidebarProps) {
   const [author, setAuthor] = useState<Author | null>(null)
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
 
   useEffect(() => {
     // Fetch author info
@@ -65,9 +67,24 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true }:
       }
     }
 
+    // Fetch all tags sorted by post count
+    const fetchTags = async () => {
+      try {
+        const response = await api.getTags()
+        // Sort by post count (descending) and filter out tags with no posts
+        const sortedTags = response.tags
+          .filter((tag) => tag.postCount > 0)
+          .sort((a, b) => b.postCount - a.postCount)
+        setTags(sortedTags)
+      } catch {
+        setTags([])
+      }
+    }
+
     if (showAuthor) fetchAuthor()
     if (showPopularTopics) fetchPopularPosts()
-  }, [showAuthor, showPopularTopics])
+    if (showTags) fetchTags()
+  }, [showAuthor, showPopularTopics, showTags])
 
   const formatViewCount = (count: number) => {
     if (count >= 1000) {
@@ -194,6 +211,29 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true }:
                 아직 인기 게시글이 없습니다.
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Tags */}
+      {showTags && tags.length > 0 && (
+        <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
+              <span className="material-symbols-outlined">sell</span>
+            </div>
+            <h3 className="text-lg font-bold">태그</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <Link
+                key={tag.id}
+                to={`/search?q=${encodeURIComponent(tag.name)}`}
+                className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+              >
+                #{tag.name}
+              </Link>
+            ))}
           </div>
         </div>
       )}
