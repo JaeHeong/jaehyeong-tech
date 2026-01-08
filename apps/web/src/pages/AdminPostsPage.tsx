@@ -324,6 +324,7 @@ export default function AdminPostsPage() {
                       <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
                         <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{post.category?.name}</span>
                         <span>조회 {post.viewCount.toLocaleString()}</span>
+                        <span>좋아요 {post.likeCount.toLocaleString()}</span>
                         <span>{formatDate(post.createdAt)}</span>
                       </div>
                       <div className="flex items-center gap-1 mt-2">
@@ -371,6 +372,7 @@ export default function AdminPostsPage() {
                     <th className="px-6 py-4 w-32">카테고리</th>
                     <th className="px-6 py-4 w-28">상태</th>
                     <th className="px-6 py-4 w-24 text-center">조회수</th>
+                    <th className="px-6 py-4 w-24 text-center">좋아요</th>
                     <th className="px-6 py-4 w-32">작성일</th>
                     <th className="px-6 py-4 w-40">
                       <div className="flex items-center justify-between">
@@ -462,6 +464,7 @@ export default function AdminPostsPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-center text-slate-500">{post.viewCount.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-center text-slate-500">{post.likeCount.toLocaleString()}</td>
                       <td className="px-6 py-4 text-slate-500">{formatDate(post.createdAt)}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
