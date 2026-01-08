@@ -23,6 +23,7 @@ export default function AdminPostsPage() {
   const currentPage = parseInt(searchParams.get('page') || '1', 10)
   const currentCategory = searchParams.get('category') || ''
   const currentStatus = searchParams.get('status') || ''
+  const currentSort = (searchParams.get('sort') || '') as '' | 'viewCount' | 'likeCount' | 'createdAt'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,6 +37,7 @@ export default function AdminPostsPage() {
             category: currentCategory || undefined,
             status: (currentStatus || 'PUBLISHED') as 'PUBLISHED' | 'PRIVATE' | 'ALL',
             search: searchQuery || undefined,
+            sortBy: currentSort || undefined,
           }),
         ])
         setCategories(catRes.categories)
@@ -49,7 +51,7 @@ export default function AdminPostsPage() {
     }
 
     fetchData()
-  }, [currentPage, currentCategory, currentStatus, searchQuery])
+  }, [currentPage, currentCategory, currentStatus, currentSort, searchQuery])
 
   // 페이지/필터 변경 시 선택 초기화
   useEffect(() => {
@@ -115,6 +117,17 @@ export default function AdminPostsPage() {
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams)
     params.set('page', page.toString())
+    setSearchParams(params)
+  }
+
+  const handleSort = (sortKey: 'viewCount' | 'likeCount' | 'createdAt') => {
+    const params = new URLSearchParams(searchParams)
+    if (currentSort === sortKey) {
+      params.delete('sort') // 같은 정렬 클릭 시 해제
+    } else {
+      params.set('sort', sortKey)
+    }
+    params.delete('page')
     setSearchParams(params)
   }
 
@@ -214,6 +227,17 @@ export default function AdminPostsPage() {
               <option value="PUBLISHED">발행됨</option>
               <option value="PUBLIC">공개</option>
               <option value="PRIVATE">비공개</option>
+            </select>
+
+            {/* Sort Filter */}
+            <select
+              value={currentSort}
+              onChange={(e) => handleFilterChange('sort', e.target.value)}
+              className="flex-1 md:flex-none px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="">최신순</option>
+              <option value="viewCount">조회수순</option>
+              <option value="likeCount">좋아요순</option>
             </select>
           </div>
 
@@ -371,9 +395,39 @@ export default function AdminPostsPage() {
                     </th>
                     <th className="px-6 py-4 w-32">카테고리</th>
                     <th className="px-6 py-4 w-28">상태</th>
-                    <th className="px-6 py-4 w-24 text-center">조회수</th>
-                    <th className="px-6 py-4 w-24 text-center">좋아요</th>
-                    <th className="px-6 py-4 w-32">작성일</th>
+                    <th className="px-6 py-4 w-24 text-center">
+                      <button
+                        onClick={() => handleSort('viewCount')}
+                        className={`inline-flex items-center gap-1 hover:text-primary transition-colors ${currentSort === 'viewCount' ? 'text-primary' : ''}`}
+                      >
+                        조회수
+                        <span className={`material-symbols-outlined text-[14px] ${currentSort === 'viewCount' ? 'opacity-100' : 'opacity-0'}`}>
+                          arrow_downward
+                        </span>
+                      </button>
+                    </th>
+                    <th className="px-6 py-4 w-24 text-center">
+                      <button
+                        onClick={() => handleSort('likeCount')}
+                        className={`inline-flex items-center gap-1 hover:text-primary transition-colors ${currentSort === 'likeCount' ? 'text-primary' : ''}`}
+                      >
+                        좋아요
+                        <span className={`material-symbols-outlined text-[14px] ${currentSort === 'likeCount' ? 'opacity-100' : 'opacity-0'}`}>
+                          arrow_downward
+                        </span>
+                      </button>
+                    </th>
+                    <th className="px-6 py-4 w-32">
+                      <button
+                        onClick={() => handleSort('createdAt')}
+                        className={`inline-flex items-center gap-1 hover:text-primary transition-colors ${currentSort === 'createdAt' ? 'text-primary' : ''}`}
+                      >
+                        작성일
+                        <span className={`material-symbols-outlined text-[14px] ${currentSort === 'createdAt' ? 'opacity-100' : 'opacity-0'}`}>
+                          arrow_downward
+                        </span>
+                      </button>
+                    </th>
                     <th className="px-6 py-4 w-40">
                       <div className="flex items-center justify-between">
                         <span>관리</span>
