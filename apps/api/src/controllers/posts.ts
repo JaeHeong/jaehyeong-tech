@@ -11,7 +11,7 @@ import { calculateReadingTime } from '../utils/readingTime.js'
 // Score = (likeCount * LIKE_WEIGHT) + viewCount
 // Likes are weighted more heavily since they're harder to get
 // Only one post can be featured at a time
-const LIKE_WEIGHT = 10 // 1 like = 10 views worth
+const LIKE_WEIGHT = 5 // 1 like = 5 views worth
 
 export async function updateFeaturedPost() {
   try {
@@ -227,7 +227,8 @@ export async function getFeaturedPosts(_req: Request, res: Response, next: NextF
   }
 }
 
-// Public: Get top post by view count for a category (or overall if no category)
+// Public: Get top post by popularity score for a category (or overall if no category)
+// Score formula: (likeCount * LIKE_WEIGHT) + viewCount (same as Sidebar popular topics)
 export async function getTopViewedPost(req: Request, res: Response, next: NextFunction) {
   try {
     const categorySlug = req.query.category as string
@@ -237,17 +238,24 @@ export async function getTopViewedPost(req: Request, res: Response, next: NextFu
       where.category = { slug: categorySlug }
     }
 
-    const post = await prisma.post.findFirst({
+    const posts = await prisma.post.findMany({
       where,
       include: {
         author: { select: { id: true, name: true, avatar: true } },
         category: true,
         tags: true,
       },
-      orderBy: { viewCount: 'desc' },
+      take: 20, // Fetch enough posts to find the top one by score
     })
 
-    res.json({ data: post })
+    // Sort by popularity score: (likeCount * 5) + viewCount
+    const sorted = posts.sort((a, b) => {
+      const scoreA = (a.likeCount * LIKE_WEIGHT) + a.viewCount
+      const scoreB = (b.likeCount * LIKE_WEIGHT) + b.viewCount
+      return scoreB - scoreA
+    })
+
+    res.json({ data: sorted[0] || null })
   } catch (error) {
     next(error)
   }

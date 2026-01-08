@@ -74,13 +74,40 @@ export default function HomePage() {
                   />
                 ) : (
                   <div className="w-full h-full min-h-[120px] md:min-h-[200px] lg:min-h-[320px] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center relative overflow-hidden">
-                    <span className="material-symbols-outlined text-3xl md:text-5xl text-slate-400">
-                      article
-                    </span>
+                    <div
+                      className="absolute inset-0 opacity-10"
+                      style={{
+                        backgroundImage: 'radial-gradient(circle at 2px 2px, gray 1px, transparent 0)',
+                        backgroundSize: '24px 24px',
+                      }}
+                    />
+                    <div className="p-3 md:p-6 bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-[140px] md:max-w-xs w-full mx-4 md:mx-6 transform rotate-2 hover:rotate-0 transition-transform duration-500">
+                      <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3 border-b border-slate-100 dark:border-slate-700 pb-2 md:pb-3">
+                        <div className="size-1.5 md:size-2.5 rounded-full bg-red-500" />
+                        <div className="size-1.5 md:size-2.5 rounded-full bg-amber-500" />
+                        <div className="size-1.5 md:size-2.5 rounded-full bg-green-500" />
+                      </div>
+                      <div className="space-y-1 md:space-y-2">
+                        <div className="h-1.5 md:h-2 w-2/3 bg-slate-200 dark:bg-slate-700 rounded" />
+                        <div className="h-1.5 md:h-2 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+                        <div className="h-1.5 md:h-2 w-5/6 bg-slate-200 dark:bg-slate-700 rounded" />
+                        <div className="h-1.5 md:h-2 w-4/5 bg-slate-200 dark:bg-slate-700 rounded" />
+                      </div>
+                      <div className="mt-2 md:mt-4 flex justify-between items-center">
+                        <div className="flex -space-x-1 md:-space-x-2">
+                          <div className="size-4 md:size-6 rounded-full bg-primary border-2 border-white dark:border-slate-800" />
+                          <div className="size-4 md:size-6 rounded-full bg-indigo-500 border-2 border-white dark:border-slate-800" />
+                        </div>
+                        <div className="px-1.5 md:px-2 py-0.5 bg-green-500/10 text-green-600 rounded text-[8px] md:text-xs font-bold">
+                          Published
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
-                <span className="absolute top-2 left-2 md:top-3 md:left-3 px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-primary/90 text-white text-[10px] md:text-xs font-bold uppercase tracking-wider">
-                  Featured
+                <span className="absolute top-2 left-2 md:top-3 md:left-3 px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-xs font-bold flex items-center gap-1 animate-pulse" style={{ backgroundColor: '#fdecf5', color: '#db2777' }}>
+                  <span className="material-symbols-outlined text-[12px] md:text-[14px]">local_fire_department</span>
+                  인기
                 </span>
               </div>
               <div className="w-2/3 lg:w-auto p-3 md:p-6 lg:p-12 flex flex-col justify-center h-full order-2 lg:order-1">
@@ -117,8 +144,9 @@ export default function HomePage() {
                 <span className="material-symbols-outlined text-3xl md:text-5xl text-slate-400">
                   article
                 </span>
-                <span className="absolute top-2 left-2 md:top-3 md:left-3 px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-primary/90 text-white text-[10px] md:text-xs font-bold uppercase tracking-wider">
-                  Featured
+                <span className="absolute top-2 left-2 md:top-3 md:left-3 px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-xs font-bold flex items-center gap-1" style={{ backgroundColor: '#fdecf5', color: '#db2777' }}>
+                  <span className="material-symbols-outlined text-[12px] md:text-[14px]">local_fire_department</span>
+                  인기
                 </span>
               </div>
               <div className="w-2/3 lg:w-auto p-3 md:p-6 lg:p-12 flex flex-col justify-center h-full order-2 lg:order-1">

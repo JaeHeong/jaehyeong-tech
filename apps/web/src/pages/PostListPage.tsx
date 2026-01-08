@@ -168,8 +168,9 @@ export default function PostListPage() {
                       </span>
                     </div>
                   )}
-                  <span className="absolute top-2 left-2 md:top-3 md:left-3 px-2 py-0.5 md:px-2.5 md:py-1 bg-primary text-white text-[10px] md:text-xs font-bold rounded-full shadow">
-                    {currentCategory ? 'Top' : 'Featured'}
+                  <span className="absolute top-2 left-2 md:top-3 md:left-3 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold shadow flex items-center gap-1 animate-pulse" style={{ backgroundColor: '#fdecf5', color: '#db2777' }}>
+                    <span className="material-symbols-outlined text-[12px] md:text-[14px]">local_fire_department</span>
+                    인기
                   </span>
                 </div>
                 <div className="w-2/3 md:w-3/5 p-3 md:p-6 flex flex-col justify-center">

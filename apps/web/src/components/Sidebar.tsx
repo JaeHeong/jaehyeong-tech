@@ -22,8 +22,8 @@ interface PopularPost {
   likeCount: number
 }
 
-// Same scoring formula as featured post: 1 like = 10 views
-const LIKE_WEIGHT = 10
+// Same scoring formula as featured post: 1 like = 5 views
+const LIKE_WEIGHT = 5
 const calculateScore = (post: PopularPost) => (post.likeCount * LIKE_WEIGHT) + post.viewCount
 
 interface SidebarProps {
@@ -184,7 +184,7 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true }:
                       {post.title}
                     </h4>
                     <span className="text-xs text-slate-500 dark:text-slate-500">
-                      {post.category.name} • {formatViewCount(post.viewCount)} 읽음
+                      {post.category.name} • {formatViewCount(post.viewCount)} 읽음 • {post.likeCount} 좋아요
                     </span>
                   </div>
                 </Link>
