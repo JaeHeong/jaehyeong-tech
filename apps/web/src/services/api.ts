@@ -386,9 +386,10 @@ class ApiClient {
   }
 
   // Backup endpoints
-  async createBackup() {
+  async createBackup(description?: string) {
     return this.request<{ data: BackupResult }>('/backups', {
       method: 'POST',
+      body: { description },
     })
   }
 
@@ -884,6 +885,7 @@ export interface BackupResult {
 export interface BackupInfoDetail {
   fileName: string
   version: string
+  description: string | null
   createdAt: string
   stats: {
     users: number

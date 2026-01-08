@@ -31,6 +31,10 @@ export default function AdminManagementPage() {
   const [previewBackup, setPreviewBackup] = useState<BackupInfoDetail | null>(null)
   const [isLoadingPreview, setIsLoadingPreview] = useState(false)
 
+  // Backup create modal state
+  const [showBackupModal, setShowBackupModal] = useState(false)
+  const [backupDescription, setBackupDescription] = useState('')
+
   // Image cleanup state
   const [orphanImages, setOrphanImages] = useState<OrphanImage[]>([])
   const [imageStats, setImageStats] = useState<ImageStats | null>(null)
@@ -55,11 +59,13 @@ export default function AdminManagementPage() {
     setIsCreatingBackup(true)
     setBackupMessage(null)
     try {
-      const result = await api.createBackup()
+      const result = await api.createBackup(backupDescription.trim() || undefined)
       setBackupMessage({
         type: 'success',
         text: `백업이 생성되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 페이지: ${result.data.stats.pages})`,
       })
+      setShowBackupModal(false)
+      setBackupDescription('')
       fetchBackups()
     } catch {
       setBackupMessage({ type: 'error', text: '백업 생성에 실패했습니다.' })
@@ -218,21 +224,11 @@ export default function AdminManagementPage() {
               </p>
             </div>
             <button
-              onClick={handleCreateBackup}
-              disabled={isCreatingBackup}
-              className="px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white text-xs md:text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 md:gap-2"
+              onClick={() => setShowBackupModal(true)}
+              className="px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white text-xs md:text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 md:gap-2"
             >
-              {isCreatingBackup ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin text-[16px] md:text-[18px]">progress_activity</span>
-                  백업 중...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-[16px] md:text-[18px]">cloud_upload</span>
-                  즉시 백업
-                </>
-              )}
+              <span className="material-symbols-outlined text-[16px] md:text-[18px]">cloud_upload</span>
+              새 백업
             </button>
           </div>
 
@@ -582,6 +578,14 @@ export default function AdminManagementPage() {
                 <span className="text-slate-500 dark:text-slate-400">생성일시</span>
                 <span>{formatBackupDate(previewBackup.createdAt)}</span>
               </div>
+              {previewBackup.description && (
+                <div className="text-sm">
+                  <span className="text-slate-500 dark:text-slate-400 block mb-1">설명</span>
+                  <p className="text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 rounded-lg p-2 text-xs">
+                    {previewBackup.description}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
@@ -620,6 +624,74 @@ export default function AdminManagementPage() {
             >
               닫기
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Backup Create Modal */}
+      {showBackupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => !isCreatingBackup && setShowBackupModal(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">cloud_upload</span>
+                새 백업 생성
+              </h3>
+              <button
+                onClick={() => !isCreatingBackup && setShowBackupModal(false)}
+                disabled={isCreatingBackup}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                백업 설명 <span className="text-slate-400 font-normal">(선택)</span>
+              </label>
+              <textarea
+                value={backupDescription}
+                onChange={(e) => setBackupDescription(e.target.value)}
+                placeholder="예: v2.0 배포 전 백업, 마이그레이션 전 백업"
+                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                rows={3}
+                disabled={isCreatingBackup}
+              />
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                나중에 백업을 구분하기 위한 메모를 남겨두세요.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowBackupModal(false)
+                  setBackupDescription('')
+                }}
+                disabled={isCreatingBackup}
+                className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-colors disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleCreateBackup}
+                disabled={isCreatingBackup}
+                className="flex-1 py-2 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isCreatingBackup ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                    백업 중...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[18px]">backup</span>
+                    백업 생성
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

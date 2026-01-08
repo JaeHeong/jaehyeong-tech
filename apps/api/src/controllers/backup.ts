@@ -20,6 +20,7 @@ interface PostWithTags {
 
 interface BackupData {
   version: string
+  description?: string
   createdAt: string
   data: {
     users: unknown[]
@@ -85,8 +86,11 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
       }),
     ])
 
+    const { description } = req.body as { description?: string }
+
     const backupData: BackupData = {
       version: '1.1',
+      description: description || undefined,
       createdAt: new Date().toISOString(),
       data: {
         users,
@@ -207,6 +211,7 @@ export async function getBackupInfo(req: AuthRequest, res: Response, next: NextF
       data: {
         fileName,
         version: backupData.version,
+        description: backupData.description || null,
         createdAt: backupData.createdAt,
         stats: {
           users: backupData.data.users?.length || 0,
