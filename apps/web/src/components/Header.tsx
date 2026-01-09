@@ -205,14 +205,32 @@ export default function Header() {
                           </Link>
                         </>
                       ) : (
-                        <Link
-                          to="/my/comments"
-                          onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">chat</span>
-                          내 댓글
-                        </Link>
+                        <>
+                          <Link
+                            to="/my/bookmarks"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">bookmark</span>
+                            내 북마크
+                          </Link>
+                          <Link
+                            to="/my/comments"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chat</span>
+                            내 댓글
+                          </Link>
+                          <Link
+                            to="/my/settings"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">settings</span>
+                            설정
+                          </Link>
+                        </>
                       )}
                       <div className="border-t border-slate-200 dark:border-slate-700 mt-1 pt-1">
                         <button
@@ -352,14 +370,32 @@ export default function Header() {
                       </Link>
                     </>
                   ) : (
-                    <Link
-                      to="/my/comments"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">chat</span>
-                      내 댓글
-                    </Link>
+                    <>
+                      <Link
+                        to="/my/bookmarks"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">bookmark</span>
+                        내 북마크
+                      </Link>
+                      <Link
+                        to="/my/comments"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">chat</span>
+                        내 댓글
+                      </Link>
+                      <Link
+                        to="/my/settings"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">settings</span>
+                        설정
+                      </Link>
+                    </>
                   )}
                   <button
                     onClick={() => {

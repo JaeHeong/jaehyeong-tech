@@ -588,6 +588,49 @@ class ApiClient {
     return response.data
   }
 
+  // Bookmark endpoints
+  async toggleBookmark(postId: string) {
+    const response = await this.request<{ data: BookmarkResponse }>(`/bookmarks/${postId}`, {
+      method: 'POST',
+    })
+    return response.data
+  }
+
+  async checkBookmarkStatus(postId: string) {
+    const response = await this.request<{ data: BookmarkResponse }>(`/bookmarks/${postId}`)
+    return response.data
+  }
+
+  async getMyBookmarks(params?: { page?: number; limit?: number }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+
+    const query = searchParams.toString()
+    const response = await this.request<MyBookmarksResponse>(`/bookmarks${query ? `?${query}` : ''}`)
+    return response.data
+  }
+
+  async removeBookmark(postId: string) {
+    return this.request<{ message: string }>(`/bookmarks/${postId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // User profile endpoints
+  async getMyProfile() {
+    const response = await this.request<{ data: UserProfile }>('/users/me')
+    return response.data
+  }
+
+  async updateMyProfile(data: { name?: string; avatar?: string | null; bio?: string | null }) {
+    const response = await this.request<{ data: UserProfile }>('/users/me', {
+      method: 'PUT',
+      body: data,
+    })
+    return response.data
+  }
+
   // Analytics endpoints
   async getWeeklyVisitors() {
     const response = await this.request<{ data: WeeklyVisitorsResponse }>('/analytics/weekly')
@@ -660,6 +703,7 @@ export interface AuthUser {
   website?: string
   role: 'ADMIN' | 'USER'
   status?: 'ACTIVE' | 'SUSPENDED'
+  createdAt: string
 }
 
 export interface AuthorInfo {
@@ -1150,6 +1194,62 @@ export interface MyCommentsResponse {
 export interface LikeResponse {
   liked: boolean
   likeCount: number
+}
+
+export interface BookmarkResponse {
+  bookmarked: boolean
+}
+
+export interface BookmarkedPost {
+  id: string
+  slug: string
+  title: string
+  excerpt: string
+  coverImage: string | null
+  viewCount: number
+  likeCount: number
+  readingTime: number
+  createdAt: string
+  publishedAt: string | null
+  category: {
+    id: string
+    name: string
+    slug: string
+  }
+  tags: {
+    id: string
+    name: string
+    slug: string
+  }[]
+  commentCount: number
+  bookmarkedAt: string
+}
+
+export interface MyBookmarksResponse {
+  data: {
+    posts: BookmarkedPost[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+    }
+  }
+}
+
+export interface UserProfile {
+  id: string
+  email: string
+  name: string
+  avatar: string | null
+  bio: string | null
+  title: string | null
+  github: string | null
+  twitter: string | null
+  linkedin: string | null
+  website: string | null
+  role: string
+  createdAt: string
 }
 
 export interface WeeklyVisitorsResponse {

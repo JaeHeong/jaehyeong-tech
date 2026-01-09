@@ -34,6 +34,8 @@ import AdminManagementPage from './pages/AdminManagementPage'
 import AdminAnalyticsPage from './pages/AdminAnalyticsPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import MyCommentsPage from './pages/MyCommentsPage'
+import MyBookmarksPage from './pages/MyBookmarksPage'
+import MySettingsPage from './pages/MySettingsPage'
 import SuspendedPage from './pages/SuspendedPage'
 import NotFoundPage from './pages/NotFoundPage'
 import './styles/index.css'
@@ -61,10 +63,26 @@ const router = createBrowserRouter([
     element: <Layout />,
     children: [
       {
+        path: 'bookmarks',
+        element: (
+          <UserProtectedRoute>
+            <MyBookmarksPage />
+          </UserProtectedRoute>
+        ),
+      },
+      {
         path: 'comments',
         element: (
           <UserProtectedRoute>
             <MyCommentsPage />
+          </UserProtectedRoute>
+        ),
+      },
+      {
+        path: 'settings',
+        element: (
+          <UserProtectedRoute>
+            <MySettingsPage />
           </UserProtectedRoute>
         ),
       },

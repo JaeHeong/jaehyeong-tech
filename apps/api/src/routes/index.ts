@@ -10,6 +10,7 @@ import { pageRouter } from './pages.js'
 import { backupRouter } from './backup.js'
 import { imageRouter } from './images.js'
 import { likeRouter } from './likes.js'
+import { bookmarkRouter } from './bookmarks.js'
 import { commentRouter } from './comments.js'
 import { statsRouter } from './stats.js'
 import { draftRouter } from './drafts.js'
@@ -29,6 +30,7 @@ apiRouter.use('/pages', pageRouter)
 apiRouter.use('/backups', backupRouter)
 apiRouter.use('/images', imageRouter)
 apiRouter.use('/likes', likeRouter)
+apiRouter.use('/bookmarks', bookmarkRouter)
 apiRouter.use('/comments', commentRouter)
 apiRouter.use('/stats', statsRouter)
 apiRouter.use('/drafts', draftRouter)
@@ -51,6 +53,7 @@ apiRouter.get('/', (_req, res) => {
       backups: '/api/backups',
       images: '/api/images',
       likes: '/api/likes',
+      bookmarks: '/api/bookmarks',
       comments: '/api/comments',
       stats: '/api/stats',
       drafts: '/api/drafts',

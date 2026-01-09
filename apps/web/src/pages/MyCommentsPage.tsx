@@ -1,15 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { api, type MyComment } from '../services/api'
+import LimitSelector from '../components/LimitSelector'
+
+const FIXED_LIMIT = 5
 
 export default function MyCommentsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [comments, setComments] = useState<MyComment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
-  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest')
+  const [sortOrder, setSortOrderState] = useState<'latest' | 'oldest'>('latest')
+  const [isAllMode, setIsAllMode] = useState(false)
+
+  const currentPage = parseInt(searchParams.get('page') || '1', 10)
 
   // Edit modal state
   const [editModal, setEditModal] = useState<{ isOpen: boolean; comment: MyComment | null }>({
@@ -26,7 +32,7 @@ export default function MyCommentsPage() {
   })
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // Keyboard handler for modals (ESC to close, Enter to confirm)
+  // Keyboard handler for modals (ESC to close)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -37,22 +43,11 @@ export default function MyCommentsPage() {
         if (deleteModal.isOpen) {
           setDeleteModal({ isOpen: false, comment: null })
         }
-      } else if (e.key === 'Enter') {
-        // Delete modal: Enter to confirm
-        if (deleteModal.isOpen && !isDeleting) {
-          e.preventDefault()
-          handleDelete()
-        }
-        // Edit modal: Ctrl+Enter or Cmd+Enter to save (since textarea needs Enter for newlines)
-        if (editModal.isOpen && (e.ctrlKey || e.metaKey) && !isEditing && editContent.trim()) {
-          e.preventDefault()
-          handleEdit()
-        }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [editModal.isOpen, deleteModal.isOpen, isDeleting, isEditing, editContent])
+  }, [editModal.isOpen, deleteModal.isOpen])
 
   const fetchComments = useCallback(async (pageNum: number) => {
     setIsLoading(true)
@@ -60,7 +55,7 @@ export default function MyCommentsPage() {
     try {
       const response = await api.getMyComments({
         page: pageNum,
-        limit: 5,
+        limit: isAllMode ? 9999 : FIXED_LIMIT,
         order: sortOrder === 'latest' ? 'desc' : 'asc'
       })
       setComments(response.data)
@@ -71,19 +66,36 @@ export default function MyCommentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [sortOrder])
+  }, [sortOrder, isAllMode])
+
+  const handleToggleAll = () => {
+    setIsAllMode((prev) => !prev)
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev)
+      params.set('page', '1')
+      return params
+    })
+  }
 
   useEffect(() => {
     fetchComments(currentPage)
   }, [currentPage, fetchComments])
 
-  // Reset to page 1 when sort order changes
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [sortOrder])
+  const handleSortOrderChange = (newOrder: 'latest' | 'oldest') => {
+    setSortOrderState(newOrder)
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev)
+      params.set('page', '1')
+      return params
+    })
+  }
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page)
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev)
+      params.set('page', String(page))
+      return params
+    })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -141,7 +153,7 @@ export default function MyCommentsPage() {
     ? formatDate(firstComment.createdAt)
     : '-'
 
-  // Pagination logic (same as PostListPage)
+  // Pagination logic
   const renderPagination = () => {
     if (totalPages <= 1) return null
 
@@ -193,6 +205,7 @@ export default function MyCommentsPage() {
         }
         return (
           <button
+            type="button"
             key={`${isMobile ? 'm' : 'd'}-${idx}`}
             onClick={() => handlePageChange(page)}
             className={`min-w-[32px] h-8 px-2 md:px-3 rounded-lg text-sm font-medium transition-colors ${
@@ -209,6 +222,7 @@ export default function MyCommentsPage() {
     return (
       <div className="flex justify-center items-center gap-1 pt-6">
         <button
+          type="button"
           onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1}
           className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -224,6 +238,7 @@ export default function MyCommentsPage() {
           {renderPages(pagesMobile, true)}
         </div>
         <button
+          type="button"
           onClick={() => handlePageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -258,6 +273,37 @@ export default function MyCommentsPage() {
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8">
+        {/* Activity Summary - Mobile Only (Top) */}
+        <aside className="lg:hidden space-y-4">
+          <div className="bg-card-light dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+              <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                내 활동 요약
+              </h2>
+            </div>
+            <div className="p-3 flex gap-6">
+              <div className="flex items-center gap-2">
+                <div className="size-7 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[16px]">forum</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-slate-500">총 댓글</span>
+                  <span className="font-bold text-sm">{total}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="size-7 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[16px]">history</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-slate-500">최근 활동</span>
+                  <span className="font-bold text-xs">{lastActivityDate}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
         {/* Main Content */}
         <main className="lg:col-span-8 space-y-4 md:space-y-6">
           {/* Filter Bar */}
@@ -265,15 +311,20 @@ export default function MyCommentsPage() {
             <div className="text-xs md:text-sm font-medium">
               전체 <span className="text-primary">{total}</span>건
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <select
                 value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as 'latest' | 'oldest')}
+                onChange={(e) => handleSortOrderChange(e.target.value as 'latest' | 'oldest')}
                 className="text-[10px] md:text-xs bg-slate-50 dark:bg-slate-800 border-none rounded-lg focus:ring-1 focus:ring-primary/20 cursor-pointer py-1 px-2"
               >
                 <option value="latest">최신순</option>
                 <option value="oldest">오래된순</option>
               </select>
+              <LimitSelector
+                defaultLimit={FIXED_LIMIT}
+                isAll={isAllMode}
+                onToggle={handleToggleAll}
+              />
             </div>
           </div>
 
@@ -311,6 +362,7 @@ export default function MyCommentsPage() {
                           </div>
                           <div className="flex gap-0.5 md:gap-1 shrink-0 ml-2">
                             <button
+                              type="button"
                               onClick={() => openEditModal(comment)}
                               className="p-1.5 md:p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                               title="수정"
@@ -318,6 +370,7 @@ export default function MyCommentsPage() {
                               <span className="material-symbols-outlined text-[16px] md:text-[18px]">edit</span>
                             </button>
                             <button
+                              type="button"
                               onClick={() => setDeleteModal({ isOpen: true, comment })}
                               className="p-1.5 md:p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                               title="삭제"
@@ -377,8 +430,8 @@ export default function MyCommentsPage() {
           )}
         </main>
 
-        {/* Sidebar */}
-        <aside className="lg:col-span-4 space-y-4 md:space-y-6">
+        {/* Sidebar - Desktop Only */}
+        <aside className="hidden lg:block lg:col-span-4 space-y-4 md:space-y-6">
           {/* Activity Summary */}
           <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
@@ -445,12 +498,14 @@ export default function MyCommentsPage() {
             />
             <div className="flex gap-2 md:gap-3 justify-end mt-3 md:mt-4">
               <button
+                type="button"
                 onClick={() => setEditModal({ isOpen: false, comment: null })}
                 className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs md:text-sm font-medium transition-colors"
               >
                 취소
               </button>
               <button
+                type="button"
                 onClick={handleEdit}
                 disabled={isEditing || !editContent.trim()}
                 className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs md:text-sm font-bold transition-colors disabled:opacity-50"
@@ -481,12 +536,14 @@ export default function MyCommentsPage() {
             </p>
             <div className="flex gap-2 md:gap-3 justify-end">
               <button
+                type="button"
                 onClick={() => setDeleteModal({ isOpen: false, comment: null })}
                 className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs md:text-sm font-medium transition-colors"
               >
                 취소
               </button>
               <button
+                type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
                 className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold transition-colors disabled:opacity-50"

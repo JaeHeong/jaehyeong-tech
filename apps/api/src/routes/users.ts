@@ -4,7 +4,11 @@ import * as usersController from '../controllers/users.js'
 
 export const usersRouter: IRouter = Router()
 
-// All routes require authentication
+// User's own profile routes (non-admin)
+usersRouter.get('/me', authenticate, usersController.getMyProfile)
+usersRouter.put('/me', authenticate, usersController.updateMyProfile)
+
+// Admin routes
 usersRouter.get('/', authenticate, usersController.getUsers)
 usersRouter.get('/stats', authenticate, usersController.getUserStats)
 usersRouter.get('/signup-trend', authenticate, usersController.getSignupTrend)

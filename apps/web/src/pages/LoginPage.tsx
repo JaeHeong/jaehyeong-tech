@@ -166,6 +166,10 @@ export default function LoginPage() {
                   <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">check_circle</span>
                   <span>내가 작성한 댓글을 한눈에 관리할 수 있습니다</span>
                 </div>
+                <div className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400">
+                  <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">check_circle</span>
+                  <span>마음에 드는 글을 북마크하고 관리할 수 있습니다</span>
+                </div>
               </div>
             </div>
           )}

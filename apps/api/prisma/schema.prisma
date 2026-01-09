@@ -27,6 +27,7 @@ model User {
   pages     Page[]
   comments  Comment[]
   likes     Like[]
+  bookmarks Bookmark[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -52,6 +53,7 @@ model Post {
   tags        Tag[]
   images      Image[]
   likes       Like[]
+  bookmarks   Bookmark[]
   views       PostView[]
   comments    Comment[]
   createdAt   DateTime   @default(now())
@@ -180,6 +182,20 @@ model Like {
   @@index([postId])
   @@index([userId])
   @@map("likes")
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])   // One bookmark per user per post
+  @@index([postId])
+  @@index([userId])
+  @@map("bookmarks")
 }
 
 model PostView {

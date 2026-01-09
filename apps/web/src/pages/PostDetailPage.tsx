@@ -39,6 +39,8 @@ export default function PostDetailPage() {
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [isLiking, setIsLiking] = useState(false)
+  const [bookmarked, setBookmarked] = useState(false)
+  const [isBookmarking, setIsBookmarking] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
   const [tocExpanded, setTocExpanded] = useState(false)
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
@@ -86,6 +88,19 @@ export default function PostDetailPage() {
       console.error('Like failed:', err)
     } finally {
       setIsLiking(false)
+    }
+  }
+
+  const handleBookmark = async () => {
+    if (!post || isBookmarking || !user || user.role === 'ADMIN') return
+    setIsBookmarking(true)
+    try {
+      const result = await api.toggleBookmark(post.id)
+      setBookmarked(result.bookmarked)
+    } catch (err) {
+      console.error('Bookmark failed:', err)
+    } finally {
+      setIsBookmarking(false)
     }
   }
 
@@ -158,6 +173,14 @@ export default function PostDetailPage() {
           })
           .catch(() => {
             // Ignore error, just use initial likeCount from post
+          })
+        // Fetch bookmark status for logged-in non-admin users
+        api.checkBookmarkStatus(postRes.data.id)
+          .then((bookmarkRes) => {
+            setBookmarked(bookmarkRes.bookmarked)
+          })
+          .catch(() => {
+            // Ignore error
           })
       })
       .catch((err) => {
@@ -1151,9 +1174,23 @@ export default function PostDetailPage() {
                     </span>
                   </button>
                 </div>
-                <button className="text-slate-500 hover:text-primary transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">bookmark</span>
-                </button>
+                {/* Bookmark button - only for logged-in non-admin users */}
+                {user && user.role !== 'ADMIN' && (
+                  <button
+                    onClick={handleBookmark}
+                    disabled={isBookmarking}
+                    className={`transition-colors ${
+                      bookmarked
+                        ? 'text-primary'
+                        : 'text-slate-500 hover:text-primary'
+                    } ${isBookmarking ? 'opacity-50' : ''}`}
+                    title={bookmarked ? '북마크 해제' : '북마크'}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">
+                      {bookmarked ? 'bookmark' : 'bookmark_border'}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           </article>
@@ -1245,7 +1282,8 @@ export default function PostDetailPage() {
       {/* TOC Navigation - Notion Style */}
       {tocHeadings.length > 0 && (
         <div
-          className="fixed right-6 top-1/4 -translate-y-1/2 z-40 hidden lg:block"
+          className="fixed top-[25vh] z-40 hidden lg:block"
+          style={{ left: 'max(1.5rem, calc((100vw - 80rem) / 2 - 2rem))' }}
           onMouseEnter={() => setTocExpanded(true)}
           onMouseLeave={() => setTocExpanded(false)}
         >
@@ -1287,10 +1325,7 @@ export default function PostDetailPage() {
               {tocHeadings.map((heading) => (
                 <button
                   key={heading.id}
-                  onClick={() => {
-                    scrollToHeading(heading.id)
-                    setTocExpanded(false)
-                  }}
+                  onClick={() => scrollToHeading(heading.id)}
                   className={`
                     text-left py-1.5 px-2 rounded-lg transition-colors
                     ${heading.level === 1 ? 'font-semibold text-sm' : heading.level === 2 ? 'pl-4 text-sm' : 'pl-6 text-xs'}
