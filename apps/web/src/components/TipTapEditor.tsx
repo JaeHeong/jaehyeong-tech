@@ -11,90 +11,31 @@ import { common, createLowlight } from 'lowlight'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
+import { SlashCommandsExtension } from './SlashCommands'
+import 'tippy.js/dist/tippy.css'
+import 'tippy.js/animations/shift-toward-subtle.css'
 
 const lowlight = createLowlight(common)
 
-// Custom slash commands extension for headings
-const SlashCommands = Extension.create({
-  name: 'slashCommands',
+// Markdown shortcuts extension (``` triggers code block immediately)
+const MarkdownShortcuts = Extension.create({
+  name: 'markdownShortcuts',
 
   addInputRules() {
     return [
-      // /1 + space → H1
+      // ``` → Code Block (triggers on third backtick)
       new InputRule({
-        find: /^\/1\s$/,
-        handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
-          chain().deleteRange(range).setNode('heading', { level: 1 }).run()
-        },
-      }),
-      // /2 + space → H2
-      new InputRule({
-        find: /^\/2\s$/,
-        handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
-          chain().deleteRange(range).setNode('heading', { level: 2 }).run()
-        },
-      }),
-      // /3 + space → H3
-      new InputRule({
-        find: /^\/3\s$/,
-        handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
-          chain().deleteRange(range).setNode('heading', { level: 3 }).run()
-        },
-      }),
-      // /code + space → Code Block
-      new InputRule({
-        find: /^\/code\s$/,
+        find: /^```$/,
         handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
           chain().deleteRange(range).setNode('codeBlock').run()
         },
       }),
-      // /quote + space → Blockquote
+      // ```language → Code Block with language (e.g., ```javascript)
       new InputRule({
-        find: /^\/quote\s$/,
-        handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
-          chain().deleteRange(range).setNode('blockquote').run()
-        },
-      }),
-      // /ul + space → Bullet List
-      new InputRule({
-        find: /^\/ul\s$/,
-        handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
-          chain().deleteRange(range).toggleBulletList().run()
-        },
-      }),
-      // /ol + space → Ordered List
-      new InputRule({
-        find: /^\/ol\s$/,
-        handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
-          chain().deleteRange(range).toggleOrderedList().run()
-        },
-      }),
-      // /hr + space → Horizontal Rule
-      new InputRule({
-        find: /^\/hr\s$/,
-        handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
-          chain().deleteRange(range).setHorizontalRule().run()
-        },
-      }),
-      // /callout + space → Callout block
-      new InputRule({
-        find: /^\/callout\s$/,
-        handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
-          chain().deleteRange(range).insertContent({
-            type: 'callout',
-            attrs: { type: 'info', icon: '💡' },
-            content: [{ type: 'paragraph' }],
-          }).run()
-        },
-      }),
-      // /pullquote + space → PullQuote block
-      new InputRule({
-        find: /^\/pullquote\s$/,
-        handler: ({ range, chain }: { range: { from: number; to: number }; chain: () => any }) => {
-          chain().deleteRange(range).insertContent({
-            type: 'pullQuote',
-            content: [{ type: 'paragraph' }],
-          }).run()
+        find: /^```(\w+)$/,
+        handler: ({ range, chain, match }: { range: { from: number; to: number }; chain: () => any; match: RegExpMatchArray }) => {
+          const language = match[1]?.toLowerCase() || ''
+          chain().deleteRange(range).setNode('codeBlock', { language }).run()
         },
       }),
     ]
@@ -586,6 +527,9 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const { alert } = useModal()
 
+  // Force re-render on selection change for toolbar highlight
+  const [, setForceUpdate] = useState(0)
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -615,7 +559,8 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           class: 'youtube-video',
         },
       }),
-      SlashCommands,
+      SlashCommandsExtension,
+      MarkdownShortcuts,
       Bookmark,
       Callout,
       PullQuote,
@@ -623,6 +568,14 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
     content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
+    },
+    onSelectionUpdate: () => {
+      // Trigger re-render to update toolbar button highlights
+      setForceUpdate((prev) => prev + 1)
+    },
+    onTransaction: () => {
+      // Also trigger on any transaction (e.g., Ctrl+B formatting)
+      setForceUpdate((prev) => prev + 1)
     },
     editorProps: {
       attributes: {
@@ -1705,6 +1658,130 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           background: rgba(127, 29, 29, 0.5);
           border-color: #7f1d1d;
           color: #f87171;
+        }
+
+        /* Slash Menu Styles */
+        .slash-menu {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.75rem;
+          box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+          max-height: 320px;
+          overflow-y: auto;
+          padding: 0.5rem;
+          min-width: 280px;
+        }
+        .dark .slash-menu {
+          background: #1e293b;
+          border-color: #334155;
+          box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+        }
+        .slash-menu-empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem 1rem;
+          color: #94a3b8;
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.75rem;
+          box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+          min-width: 200px;
+        }
+        .dark .slash-menu-empty {
+          background: #1e293b;
+          border-color: #334155;
+        }
+        .slash-menu-empty p {
+          margin: 0.5rem 0 0;
+          font-size: 0.875rem;
+        }
+        .slash-menu-category {
+          margin-bottom: 0.5rem;
+        }
+        .slash-menu-category:last-child {
+          margin-bottom: 0;
+        }
+        .slash-menu-category-title {
+          font-size: 0.6875rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #94a3b8;
+          padding: 0.375rem 0.75rem 0.25rem;
+        }
+        .slash-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          width: 100%;
+          padding: 0.5rem 0.75rem;
+          border: none;
+          background: transparent;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          text-align: left;
+          transition: background 0.1s;
+        }
+        .slash-menu-item:hover,
+        .slash-menu-item.is-selected {
+          background: #f1f5f9;
+        }
+        .dark .slash-menu-item:hover,
+        .dark .slash-menu-item.is-selected {
+          background: #334155;
+        }
+        .slash-menu-item-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          background: #f1f5f9;
+          border-radius: 0.375rem;
+          color: #64748b;
+          font-size: 18px;
+          flex-shrink: 0;
+        }
+        .dark .slash-menu-item-icon {
+          background: #475569;
+          color: #94a3b8;
+        }
+        .slash-menu-item.is-selected .slash-menu-item-icon {
+          background: #3182f6;
+          color: white;
+        }
+        .slash-menu-item-content {
+          display: flex;
+          flex-direction: column;
+          gap: 0.125rem;
+          min-width: 0;
+        }
+        .slash-menu-item-title {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #1e293b;
+        }
+        .dark .slash-menu-item-title {
+          color: #f1f5f9;
+        }
+        .slash-menu-item-description {
+          font-size: 0.75rem;
+          color: #94a3b8;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        /* Tippy tooltip overrides */
+        .tippy-box {
+          background: transparent;
+          border: none;
+          max-width: none !important;
+        }
+        .tippy-content {
+          padding: 0;
         }
       `}</style>
     </div>

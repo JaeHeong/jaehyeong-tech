@@ -98,7 +98,7 @@ const initialFormData: DraftFormData = {
 export default function AdminDraftEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { confirm } = useModal()
+  const { confirm, alert } = useModal()
   const isEditing = !!id
 
   const [formData, setFormData] = useState<DraftFormData>(initialFormData)
@@ -284,6 +284,44 @@ export default function AdminDraftEditorPage() {
         ? prev.tagIds.filter((id) => id !== tagId)
         : [...prev.tagIds, tagId],
     }))
+  }
+
+  const [newTagName, setNewTagName] = useState('')
+  const [isCreatingTag, setIsCreatingTag] = useState(false)
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return
+    setIsCreatingTag(true)
+    try {
+      const newTag = await api.createTag({ name: newTagName.trim() })
+      setTags((prev) => [...prev, newTag])
+      setNewTagName('')
+    } catch (err: unknown) {
+      console.error('Tag creation failed:', err)
+      const errorMessage = err instanceof Error ? err.message :
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error || '태그 생성에 실패했습니다.'
+      await alert({ message: errorMessage, type: 'error' })
+    } finally {
+      setIsCreatingTag(false)
+    }
+  }
+
+  const handleDeleteTag = async (tagId: string, tagName: string) => {
+    const confirmed = await confirm({
+      title: '태그 삭제',
+      message: `"${tagName}" 태그를 삭제하시겠습니까? 모든 게시물에서 이 태그가 제거됩니다.`,
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!confirmed) return
+    try {
+      await api.deleteTag(tagId)
+      setTags((prev) => prev.filter((t) => t.id !== tagId))
+      setFormData((prev) => ({ ...prev, tagIds: prev.tagIds.filter((id) => id !== tagId) }))
+    } catch (err) {
+      console.error('Tag deletion failed:', err)
+      await alert({ message: '태그 삭제에 실패했습니다.', type: 'error' })
+    }
   }
 
   const handleCoverUpload = useCallback(async (file: File) => {
@@ -589,21 +627,60 @@ export default function AdminDraftEditorPage() {
             <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 md:mb-3">
               태그
             </label>
-            <div className="flex flex-wrap gap-1.5 md:gap-2">
+            <div className="flex flex-wrap gap-1.5 md:gap-2 mb-3">
               {tags.map((tag) => (
-                <button
+                <div
                   key={tag.id}
-                  type="button"
-                  onClick={() => handleTagToggle(tag.id)}
-                  className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium transition-colors ${
+                  className={`group relative flex items-center gap-1 pl-2.5 md:pl-3 pr-1.5 md:pr-2 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium transition-colors cursor-pointer ${
                     formData.tagIds.includes(tag.id)
                       ? 'bg-primary text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                   }`}
+                  onClick={() => handleTagToggle(tag.id)}
                 >
-                  {tag.name}
-                </button>
+                  <span>{tag.name}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteTag(tag.id, tag.name)
+                    }}
+                    className="flex items-center justify-center w-4 h-4 rounded-full hover:bg-red-500 hover:text-white transition-colors"
+                    title="태그 삭제"
+                  >
+                    <span className="material-symbols-outlined text-[12px]">close</span>
+                  </button>
+                </div>
               ))}
+            </div>
+            {/* Add new tag */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleCreateTag()
+                  }
+                }}
+                placeholder="새 태그 입력..."
+                className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-xs border border-transparent focus:border-primary focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleCreateTag}
+                disabled={!newTagName.trim() || isCreatingTag}
+                className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                {isCreatingTag ? (
+                  <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
+                ) : (
+                  <span className="material-symbols-outlined text-[14px]">add</span>
+                )}
+                추가
+              </button>
             </div>
           </div>
 
@@ -716,10 +793,30 @@ export default function AdminDraftEditorPage() {
               에디터 팁
             </h3>
             <ul className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 space-y-1.5 md:space-y-2">
-              <li>• 텍스트를 선택하고 툴바 버튼을 클릭하세요</li>
-              <li>• Ctrl+B: 굵게, Ctrl+I: 기울임</li>
-              <li>• /1, /2, /3 + 스페이스: 제목 변환</li>
-              <li>• /code, /quote, /ul, /ol: 블록 요소</li>
+              <li className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">/</kbd>
+                <span>슬래시 메뉴로 블록 추가</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">```</kbd>
+                <span>코드블록 (```js 언어지정)</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Ctrl+B</kbd>
+                <span>굵게</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Ctrl+I</kbd>
+                <span>기울임</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Ctrl+Shift+S</kbd>
+                <span>취소선</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Ctrl+Z</kbd>
+                <span>실행취소</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Ctrl+Shift+Z</kbd>
+                <span>다시실행</span>
+              </li>
             </ul>
           </div>
         </div>
