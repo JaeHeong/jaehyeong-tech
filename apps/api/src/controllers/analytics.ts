@@ -254,12 +254,11 @@ async function fetchDetailedAnalytics(period: string): Promise<DetailedAnalytics
       }),
     ])
 
-    // Parse overview - GA4 returns rows for each dateRange
-    // When using 2 dateRanges, each row contains metricValues for both periods
+    // Parse overview - GA4 returns separate rows for each dateRange
+    // rows[0] = current period, rows[1] = previous period
     const overviewRows = overviewRes[0].rows || []
 
-    // Parse current period (first dateRange - index 0 in metricValues when single row)
-    // GA4 with multiple dateRanges returns one row with metricValues containing alternating values
+    // Parse current period (first row)
     const currentRow = overviewRows[0]
     const visitors = parseInt(currentRow?.metricValues?.[0]?.value || '0', 10)
     const newUsers = parseInt(currentRow?.metricValues?.[4]?.value || '0', 10)
@@ -272,16 +271,17 @@ async function fetchDetailedAnalytics(period: string): Promise<DetailedAnalytics
       returningUsers: visitors - newUsers,
     }
 
-    // Parse previous period (second dateRange - values at indices 5-9)
+    // Parse previous period (second row)
     let previousOverview: OverviewData | null = null
-    if (currentRow?.metricValues && currentRow.metricValues.length > 5) {
-      const prevVisitors = parseInt(currentRow.metricValues[5]?.value || '0', 10)
-      const prevNewUsers = parseInt(currentRow.metricValues[9]?.value || '0', 10)
+    const previousRow = overviewRows[1]
+    if (previousRow?.metricValues) {
+      const prevVisitors = parseInt(previousRow.metricValues[0]?.value || '0', 10)
+      const prevNewUsers = parseInt(previousRow.metricValues[4]?.value || '0', 10)
       previousOverview = {
         visitors: prevVisitors,
-        pageViews: parseInt(currentRow.metricValues[6]?.value || '0', 10),
-        avgSessionDuration: parseFloat(currentRow.metricValues[7]?.value || '0'),
-        bounceRate: parseFloat(currentRow.metricValues[8]?.value || '0') * 100,
+        pageViews: parseInt(previousRow.metricValues[1]?.value || '0', 10),
+        avgSessionDuration: parseFloat(previousRow.metricValues[2]?.value || '0'),
+        bounceRate: parseFloat(previousRow.metricValues[3]?.value || '0') * 100,
         newUsers: prevNewUsers,
         returningUsers: prevVisitors - prevNewUsers,
       }
