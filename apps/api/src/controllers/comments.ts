@@ -433,6 +433,7 @@ export async function getMyComments(req: AuthRequest, res: Response, next: NextF
 
     const page = parseInt(req.query.page as string) || 1
     const limit = parseInt(req.query.limit as string) || 10
+    const order = (req.query.order as string) === 'asc' ? 'asc' : 'desc'
 
     const whereClause = {
       authorId: req.user.id,
@@ -446,7 +447,7 @@ export async function getMyComments(req: AuthRequest, res: Response, next: NextF
           post: { select: { id: true, title: true, slug: true } },
           _count: { select: { replies: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: order },
         skip: (page - 1) * limit,
         take: limit,
       }),

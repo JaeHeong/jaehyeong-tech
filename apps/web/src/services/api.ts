@@ -494,10 +494,11 @@ class ApiClient {
   }
 
   // User comment endpoints
-  async getMyComments(params?: { page?: number; limit?: number }) {
+  async getMyComments(params?: { page?: number; limit?: number; sort?: string; order?: 'asc' | 'desc' }) {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', params.page.toString())
     if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.order) searchParams.set('order', params.order)
 
     const query = searchParams.toString()
     return this.request<MyCommentsResponse>(`/comments/me${query ? `?${query}` : ''}`)
