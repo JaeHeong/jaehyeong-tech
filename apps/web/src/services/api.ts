@@ -522,6 +522,13 @@ class ApiClient {
     return response.data
   }
 
+  async adminBulkDeleteComments(ids: string[]) {
+    return this.request<{ data: { deletedCount: number; message: string } }>('/comments/admin/bulk-delete', {
+      method: 'POST',
+      body: { ids },
+    })
+  }
+
   // Draft endpoints
   async getDrafts() {
     const response = await this.request<{ data: Draft[] }>('/drafts')

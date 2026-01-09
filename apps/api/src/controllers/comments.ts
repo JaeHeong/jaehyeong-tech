@@ -558,3 +558,32 @@ export async function adminDeleteComment(req: AuthRequest, res: Response, next: 
     next(error)
   }
 }
+
+// Admin: Bulk delete comments
+export async function adminBulkDeleteComments(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    if (!req.user || req.user.role !== 'ADMIN') {
+      throw new AppError('관리자 권한이 필요합니다.', 403)
+    }
+
+    const { ids } = req.body
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new AppError('삭제할 댓글 ID 목록이 필요합니다.', 400)
+    }
+
+    // Delete all selected comments (cascade will delete replies too)
+    const result = await prisma.comment.deleteMany({
+      where: { id: { in: ids } },
+    })
+
+    res.json({
+      data: {
+        deletedCount: result.count,
+        message: `${result.count}개의 댓글이 삭제되었습니다.`,
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
+}

@@ -39,3 +39,4 @@ commentRouter.get('/me', authenticate, commentController.getMyComments)
 // Admin routes
 commentRouter.get('/admin', authenticate, commentController.getAllComments)
 commentRouter.delete('/admin/:id', authenticate, validateParams(idParamSchema), commentController.adminDeleteComment)
+commentRouter.post('/admin/bulk-delete', authenticate, commentController.adminBulkDeleteComments)
