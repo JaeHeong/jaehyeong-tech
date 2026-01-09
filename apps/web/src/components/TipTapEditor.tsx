@@ -13,6 +13,7 @@ import { TextAlign } from '@tiptap/extension-text-align'
 import { Highlight } from '@tiptap/extension-highlight'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
+import { Typography } from '@tiptap/extension-typography'
 import { Extension, Node } from '@tiptap/core'
 import { InputRule } from '@tiptap/core'
 import { common, createLowlight } from 'lowlight'
@@ -1156,6 +1157,12 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
       }),
       TextStyle,
       Color,
+      Typography.configure({
+        openDoubleQuote: '\u201C',
+        closeDoubleQuote: '\u201D',
+        openSingleQuote: '\u2018',
+        closeSingleQuote: '\u2019',
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -2740,9 +2747,6 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
         .ProseMirror p {
           margin-bottom: 1rem;
           line-height: 1.8;
-        }
-        .ProseMirror > p:first-child {
-          font-size: 1.125rem;
         }
         .ProseMirror ul,
         .ProseMirror ol {
