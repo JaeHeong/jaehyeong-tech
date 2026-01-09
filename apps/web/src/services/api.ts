@@ -7,6 +7,15 @@ interface RequestOptions {
   noCache?: boolean // Disable browser caching for view count tracking
 }
 
+export interface UploadImageResult {
+  url: string
+  size: number
+  originalSize: number
+  width: number
+  height: number
+  format: string
+}
+
 class ApiClient {
   private baseUrl: string
   private token: string | null = null
@@ -277,7 +286,7 @@ class ApiClient {
   }
 
   // Upload image
-  async uploadImage(fileOrFormData: File | FormData, type?: 'avatar' | 'post'): Promise<{ url: string }> {
+  async uploadImage(fileOrFormData: File | FormData, type?: 'avatar' | 'cover' | 'post'): Promise<UploadImageResult> {
     const formData = fileOrFormData instanceof FormData ? fileOrFormData : (() => {
       const fd = new FormData()
       fd.append('image', fileOrFormData)
@@ -297,7 +306,14 @@ class ApiClient {
     }
 
     const result = await response.json()
-    return { url: result.data.url }
+    return {
+      url: result.data.url,
+      size: result.data.size,
+      originalSize: result.data.originalSize,
+      width: result.data.width,
+      height: result.data.height,
+      format: result.data.format,
+    }
   }
 
   // Fetch URL metadata for link bookmarks
@@ -939,6 +955,7 @@ export interface OrphanImage {
 export interface ImageStats {
   total: number
   linked: number
+  usedInDrafts: number
   orphaned: number
   totalSize: number
 }

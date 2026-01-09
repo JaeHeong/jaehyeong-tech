@@ -19,6 +19,7 @@ import { common, createLowlight } from 'lowlight'
 import { useCallback, useEffect, useRef, useState, MouseEvent as ReactMouseEvent } from 'react'
 import { api } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
+import { useToast } from '../contexts/ToastContext'
 import { SlashCommandsExtension } from './SlashCommands'
 import 'tippy.js/dist/tippy.css'
 import 'tippy.js/animations/shift-toward-subtle.css'
@@ -886,6 +887,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
   const textColorPickerRef = useRef<HTMLDivElement>(null)
   const tableMenuRef = useRef<HTMLDivElement>(null)
   const { alert } = useModal()
+  const { showToast } = useToast()
   const [showTableBlockAlert, setShowTableBlockAlert] = useState(false)
 
   // Table drag handle state
@@ -1667,15 +1669,26 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
 
     setIsUploading(true)
     try {
-      const { url } = await api.uploadImage(file)
-      editor.chain().focus().setImage({ src: url }).run()
+      const result = await api.uploadImage(file)
+      editor.chain().focus().setImage({ src: result.url }).run()
+
+      // Show optimization toast
+      const originalKB = (result.originalSize / 1024).toFixed(1)
+      const optimizedKB = (result.size / 1024).toFixed(1)
+      const savedPercent = (((result.originalSize - result.size) / result.originalSize) * 100).toFixed(1)
+
+      showToast({
+        type: 'success',
+        title: '이미지 최적화 완료',
+        message: `${originalKB}KB → ${optimizedKB}KB (${savedPercent}% 절감)\n${result.width} × ${result.height}px`,
+      })
     } catch (error) {
       console.error('Image upload failed:', error)
       await alert({ message: error instanceof Error ? error.message : '이미지 업로드에 실패했습니다.', type: 'error' })
     } finally {
       setIsUploading(false)
     }
-  }, [editor, alert])
+  }, [editor, alert, showToast])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

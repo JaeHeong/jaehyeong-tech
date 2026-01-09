@@ -5,7 +5,40 @@ import { AppError } from '../middleware/errorHandler.js'
 import { prisma } from '../services/prisma.js'
 import { deleteFromOCI, isOCIConfigured } from '../services/oci.js'
 
-// Get orphan images (images not linked to any post and older than 24 hours)
+// Extract image URLs from draft content and coverImage
+async function getImageUrlsUsedInDrafts(): Promise<Set<string>> {
+  const drafts = await prisma.draft.findMany({
+    select: { content: true, coverImage: true },
+  })
+
+  const urls = new Set<string>()
+
+  for (const draft of drafts) {
+    // Extract coverImage
+    if (draft.coverImage) {
+      urls.add(draft.coverImage)
+    }
+
+    // Extract image URLs from content (markdown and HTML)
+    if (draft.content) {
+      // Markdown: ![alt](url)
+      const mdMatches = draft.content.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)
+      for (const match of mdMatches) {
+        if (match[1]) urls.add(match[1])
+      }
+
+      // HTML: <img src="url">
+      const htmlMatches = draft.content.matchAll(/<img[^>]+src=["']([^"']+)["']/g)
+      for (const match of htmlMatches) {
+        if (match[1]) urls.add(match[1])
+      }
+    }
+  }
+
+  return urls
+}
+
+// Get orphan images (images not linked to any post/draft and older than 24 hours)
 export async function getOrphanImages(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'ADMIN') {
@@ -14,8 +47,8 @@ export async function getOrphanImages(req: AuthRequest, res: Response, next: Nex
 
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
-    // Get orphan images (no postId and created more than 24 hours ago)
-    const orphans = await prisma.image.findMany({
+    // Get images not linked to any post and older than 24 hours
+    const candidates = await prisma.image.findMany({
       where: {
         postId: null,
         createdAt: {
@@ -24,6 +57,19 @@ export async function getOrphanImages(req: AuthRequest, res: Response, next: Nex
       },
       orderBy: { createdAt: 'desc' },
     })
+
+    // Filter out images used in drafts
+    const draftImageUrls = await getImageUrlsUsedInDrafts()
+    const orphans = candidates.filter((img) => !draftImageUrls.has(img.url))
+
+    // Get all unlinked images (for usedInDrafts calculation)
+    const allUnlinkedImages = await prisma.image.findMany({
+      where: { postId: null },
+      select: { url: true },
+    })
+
+    // Count images used in drafts (among all unlinked images, not just old ones)
+    const usedInDrafts = allUnlinkedImages.filter((img) => draftImageUrls.has(img.url)).length
 
     // Get stats
     const [total, linked, totalSizeResult] = await Promise.all([
@@ -47,6 +93,7 @@ export async function getOrphanImages(req: AuthRequest, res: Response, next: Nex
         stats: {
           total,
           linked,
+          usedInDrafts,
           orphaned: orphans.length,
           totalSize: totalSizeResult._sum.size || 0,
           orphanSize,
@@ -67,8 +114,8 @@ export async function deleteOrphanImages(req: AuthRequest, res: Response, next: 
 
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
-    // Get orphan images
-    const orphans = await prisma.image.findMany({
+    // Get images not linked to any post and older than 24 hours
+    const candidates = await prisma.image.findMany({
       where: {
         postId: null,
         createdAt: {
@@ -76,6 +123,10 @@ export async function deleteOrphanImages(req: AuthRequest, res: Response, next: 
         },
       },
     })
+
+    // Filter out images used in drafts
+    const draftImageUrls = await getImageUrlsUsedInDrafts()
+    const orphans = candidates.filter((img) => !draftImageUrls.has(img.url))
 
     if (orphans.length === 0) {
       return res.json({

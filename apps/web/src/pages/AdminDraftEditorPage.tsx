@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate, useParams, Link, useBlocker } from 'react-router-dom'
 import { api, type Category, type Tag } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
+import { useToast } from '../contexts/ToastContext'
 import TipTapEditor from '../components/TipTapEditor'
 import { common, createLowlight } from 'lowlight'
 
@@ -99,6 +100,7 @@ export default function AdminDraftEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { confirm, alert } = useModal()
+  const { showToast } = useToast()
   const isEditing = !!id
 
   const [formData, setFormData] = useState<DraftFormData>(initialFormData)
@@ -327,15 +329,26 @@ export default function AdminDraftEditorPage() {
   const handleCoverUpload = useCallback(async (file: File) => {
     setIsUploadingCover(true)
     try {
-      const { url } = await api.uploadImage(file)
-      setFormData((prev) => ({ ...prev, coverImage: url }))
+      const result = await api.uploadImage(file, 'cover')
+      setFormData((prev) => ({ ...prev, coverImage: result.url }))
+
+      // Show optimization toast
+      const originalKB = (result.originalSize / 1024).toFixed(1)
+      const optimizedKB = (result.size / 1024).toFixed(1)
+      const savedPercent = (((result.originalSize - result.size) / result.originalSize) * 100).toFixed(1)
+
+      showToast({
+        type: 'success',
+        title: '이미지 최적화 완료',
+        message: `${originalKB}KB → ${optimizedKB}KB (${savedPercent}% 절감)\n${result.width} × ${result.height}px`,
+      })
     } catch (err) {
       console.error('Cover upload failed:', err)
       setError(err instanceof Error ? err.message : '커버 이미지 업로드에 실패했습니다.')
     } finally {
       setIsUploadingCover(false)
     }
-  }, [])
+  }, [showToast])
 
   const handleCoverSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

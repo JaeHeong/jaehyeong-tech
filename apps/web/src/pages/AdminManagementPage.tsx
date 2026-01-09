@@ -14,6 +14,7 @@ interface OrphanImage {
 interface ImageStats {
   total: number
   linked: number
+  usedInDrafts: number
   orphaned: number
   totalSize: number
 }
@@ -462,20 +463,24 @@ export default function AdminManagementPage() {
 
           {/* Image Stats */}
           {imageStats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4 mb-4 md:mb-6">
               <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                 <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">전체 이미지</p>
                 <p className="text-lg md:text-2xl font-bold">{imageStats.total}</p>
               </div>
               <div className="p-3 md:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <p className="text-[10px] md:text-sm text-green-600 dark:text-green-400">연결됨</p>
+                <p className="text-[10px] md:text-sm text-green-600 dark:text-green-400">게시글 연결</p>
                 <p className="text-lg md:text-2xl font-bold text-green-600 dark:text-green-400">{imageStats.linked}</p>
+              </div>
+              <div className="p-3 md:p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                <p className="text-[10px] md:text-sm text-amber-600 dark:text-amber-400">임시저장 사용</p>
+                <p className="text-lg md:text-2xl font-bold text-amber-600 dark:text-amber-400">{imageStats.usedInDrafts}</p>
               </div>
               <div className="p-3 md:p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                 <p className="text-[10px] md:text-sm text-red-600 dark:text-red-400">고아 이미지</p>
                 <p className="text-lg md:text-2xl font-bold text-red-600 dark:text-red-400">{imageStats.orphaned}</p>
               </div>
-              <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg col-span-2 md:col-span-1">
                 <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">총 용량</p>
                 <p className="text-lg md:text-2xl font-bold">{formatBytes(imageStats.totalSize)}</p>
               </div>

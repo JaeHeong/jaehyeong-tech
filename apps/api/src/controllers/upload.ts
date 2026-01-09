@@ -7,6 +7,12 @@ import fs from 'fs'
 import crypto from 'crypto'
 import { uploadToOCI, isOCIConfigured } from '../services/oci.js'
 import { prisma } from '../services/prisma.js'
+import {
+  optimizeImage,
+  getOptimizedFilename,
+  getOptimizedMimetype,
+  type OptimizeOptions,
+} from '../services/imageOptimizer.js'
 
 // Ensure upload directory exists (fallback for local storage)
 const uploadDir = path.join(process.cwd(), 'uploads')
@@ -62,29 +68,54 @@ export async function uploadImage(req: AuthRequest, res: Response, next: NextFun
       throw new AppError('파일이 업로드되지 않았습니다.', 400)
     }
 
-    let imageUrl: string
     const uniqueSuffix = crypto.randomBytes(8).toString('hex')
-    const ext = path.extname(req.file.originalname)
-    const fileName = `${Date.now()}-${uniqueSuffix}${ext}`
+    const uploadType = req.query.type as string | undefined
+    const folder = uploadType === 'avatar' ? 'avatars' : 'posts'
 
-    const folder = req.query.type === 'avatar' ? 'avatars' : 'posts'
+    // Determine optimization type
+    let optimizeType: OptimizeOptions['type'] = 'post'
+    if (uploadType === 'avatar') {
+      optimizeType = 'avatar'
+    } else if (uploadType === 'cover') {
+      optimizeType = 'cover'
+    }
+
+    // Get buffer (from memory storage or read from disk)
+    let buffer: Buffer
+    if (req.file.buffer) {
+      buffer = req.file.buffer
+    } else if (req.file.path) {
+      buffer = fs.readFileSync(req.file.path)
+    } else {
+      throw new AppError('파일 데이터를 읽을 수 없습니다.', 400)
+    }
+
+    // Optimize image
+    const optimized = await optimizeImage(buffer, req.file.mimetype, { type: optimizeType })
+
+    // Generate filename with optimized extension
+    const baseFileName = `${Date.now()}-${uniqueSuffix}`
+    const optimizedFilename = getOptimizedFilename(`${baseFileName}.tmp`, optimized.format)
+    const optimizedMimetype = getOptimizedMimetype(optimized.format)
+
+    let imageUrl: string
     let objectName: string
 
-    if (isOCIConfigured() && req.file.buffer) {
-      // Upload to OCI Object Storage
-      objectName = `${folder}/${fileName}`
-      imageUrl = await uploadToOCI(fileName, req.file.buffer, req.file.mimetype, folder)
+    if (isOCIConfigured()) {
+      // Upload optimized image to OCI Object Storage
+      objectName = `${folder}/${optimizedFilename}`
+      imageUrl = await uploadToOCI(optimizedFilename, optimized.buffer, optimizedMimetype, folder)
     } else {
       // Fallback to local storage
       const baseUrl = process.env.API_BASE_URL || ''
-      objectName = `local/${folder}/${fileName}`
-      imageUrl = `${baseUrl}/uploads/${req.file.filename || fileName}`
+      objectName = `local/${folder}/${optimizedFilename}`
+      const filePath = path.join(uploadDir, optimizedFilename)
+      fs.writeFileSync(filePath, optimized.buffer)
+      imageUrl = `${baseUrl}/uploads/${optimizedFilename}`
 
-      // If using memory storage but OCI not configured, save to disk
-      if (req.file.buffer && !req.file.filename) {
-        const filePath = path.join(uploadDir, fileName)
-        fs.writeFileSync(filePath, req.file.buffer)
-        imageUrl = `${baseUrl}/uploads/${fileName}`
+      // Clean up original file if it was saved to disk
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path)
       }
     }
 
@@ -96,22 +127,38 @@ export async function uploadImage(req: AuthRequest, res: Response, next: NextFun
           url: imageUrl,
           objectName,
           filename: req.file.originalname,
-          size: req.file.size,
-          mimetype: req.file.mimetype,
+          size: optimized.size,
+          mimetype: optimizedMimetype,
           folder,
         },
       })
       imageId = image.id
     }
 
+    // Calculate compression ratio for logging
+    const originalSize = req.file.size
+    const optimizedSize = optimized.size
+    const savings = originalSize - optimizedSize
+    const savingsPercent = ((savings / originalSize) * 100).toFixed(1)
+
+    console.log(
+      `Image optimized: ${req.file.originalname} (${optimizeType}) - ` +
+        `${(originalSize / 1024).toFixed(1)}KB → ${(optimizedSize / 1024).toFixed(1)}KB ` +
+        `(${savingsPercent}% saved, ${optimized.width}x${optimized.height})`
+    )
+
     res.json({
       data: {
         id: imageId,
         url: imageUrl,
-        filename: fileName,
+        filename: optimizedFilename,
         originalName: req.file.originalname,
-        size: req.file.size,
-        mimetype: req.file.mimetype,
+        size: optimized.size,
+        originalSize: req.file.size,
+        mimetype: optimizedMimetype,
+        width: optimized.width,
+        height: optimized.height,
+        format: optimized.format,
       },
     })
   } catch (error) {
