@@ -17,15 +17,18 @@ let cachedData: {
 let cacheTimestamp = 0
 
 // Detailed analytics cache
+interface OverviewData {
+  visitors: number
+  pageViews: number
+  avgSessionDuration: number
+  bounceRate: number
+  newUsers: number
+  returningUsers: number
+}
+
 interface DetailedAnalyticsData {
-  overview: {
-    visitors: number
-    pageViews: number
-    avgSessionDuration: number
-    bounceRate: number
-    newUsers: number
-    returningUsers: number
-  }
+  overview: OverviewData
+  previousOverview: OverviewData | null
   topPages: { path: string; title: string; views: number; avgTime: number }[]
   locations: { country: string; city: string; visitors: number }[]
   devices: { category: string; visitors: number }[]
@@ -35,8 +38,9 @@ interface DetailedAnalyticsData {
   dailyStats: { date: string; visitors: number; pageViews: number }[]
   updatedAt: string
 }
-let cachedDetailedData: DetailedAnalyticsData | null = null
-let detailedCacheTimestamp = 0
+
+// Period-based cache to fix cache bug
+const detailedCacheMap = new Map<string, { data: DetailedAnalyticsData; timestamp: number }>()
 
 function getClient(): BetaAnalyticsDataClient | null {
   if (!propertyId || !clientEmail || !privateKey) {
@@ -130,40 +134,57 @@ async function fetchDetailedAnalytics(period: string): Promise<DetailedAnalytics
   const formatDate = (date: Date): string => date.toISOString().split('T')[0] as string
   const today = new Date()
   let startDate: Date
+  let periodDays: number
 
   switch (period) {
     case '7d':
       startDate = new Date(today)
       startDate.setDate(startDate.getDate() - 6)
+      periodDays = 7
       break
     case '30d':
       startDate = new Date(today)
       startDate.setDate(startDate.getDate() - 29)
+      periodDays = 30
       break
     case 'today':
       startDate = new Date(today)
+      periodDays = 1
       break
     case 'yesterday':
       startDate = new Date(today)
       startDate.setDate(startDate.getDate() - 1)
+      periodDays = 1
       break
     default:
       startDate = new Date(today)
       startDate.setDate(startDate.getDate() - 6)
+      periodDays = 7
   }
+
+  // Calculate previous period dates for comparison
+  const prevEndDate = new Date(startDate)
+  prevEndDate.setDate(prevEndDate.getDate() - 1)
+  const prevStartDate = new Date(prevEndDate)
+  prevStartDate.setDate(prevStartDate.getDate() - periodDays + 1)
 
   const dateRange = {
     startDate: formatDate(startDate),
     endDate: period === 'yesterday' ? formatDate(startDate) : 'today',
   }
 
+  const prevDateRange = {
+    startDate: formatDate(prevStartDate),
+    endDate: formatDate(prevEndDate),
+  }
+
   try {
     // Run multiple reports in parallel
     const [overviewRes, pagesRes, locationsRes, devicesRes, browsersRes, trafficRes, hourlyRes, dailyRes] = await Promise.all([
-      // Overview metrics
+      // Overview metrics with comparison period
       client.runReport({
         property: `properties/${propertyId}`,
-        dateRanges: [dateRange],
+        dateRanges: [dateRange, prevDateRange],
         metrics: [
           { name: 'activeUsers' },
           { name: 'screenPageViews' },
@@ -233,17 +254,37 @@ async function fetchDetailedAnalytics(period: string): Promise<DetailedAnalytics
       }),
     ])
 
-    // Parse overview
-    const overviewRow = overviewRes[0].rows?.[0]
-    const visitors = parseInt(overviewRow?.metricValues?.[0]?.value || '0', 10)
-    const newUsers = parseInt(overviewRow?.metricValues?.[4]?.value || '0', 10)
-    const overview = {
+    // Parse overview - GA4 returns rows for each dateRange
+    // When using 2 dateRanges, each row contains metricValues for both periods
+    const overviewRows = overviewRes[0].rows || []
+
+    // Parse current period (first dateRange - index 0 in metricValues when single row)
+    // GA4 with multiple dateRanges returns one row with metricValues containing alternating values
+    const currentRow = overviewRows[0]
+    const visitors = parseInt(currentRow?.metricValues?.[0]?.value || '0', 10)
+    const newUsers = parseInt(currentRow?.metricValues?.[4]?.value || '0', 10)
+    const overview: OverviewData = {
       visitors,
-      pageViews: parseInt(overviewRow?.metricValues?.[1]?.value || '0', 10),
-      avgSessionDuration: parseFloat(overviewRow?.metricValues?.[2]?.value || '0'),
-      bounceRate: parseFloat(overviewRow?.metricValues?.[3]?.value || '0') * 100,
+      pageViews: parseInt(currentRow?.metricValues?.[1]?.value || '0', 10),
+      avgSessionDuration: parseFloat(currentRow?.metricValues?.[2]?.value || '0'),
+      bounceRate: parseFloat(currentRow?.metricValues?.[3]?.value || '0') * 100,
       newUsers,
       returningUsers: visitors - newUsers,
+    }
+
+    // Parse previous period (second dateRange - values at indices 5-9)
+    let previousOverview: OverviewData | null = null
+    if (currentRow?.metricValues && currentRow.metricValues.length > 5) {
+      const prevVisitors = parseInt(currentRow.metricValues[5]?.value || '0', 10)
+      const prevNewUsers = parseInt(currentRow.metricValues[9]?.value || '0', 10)
+      previousOverview = {
+        visitors: prevVisitors,
+        pageViews: parseInt(currentRow.metricValues[6]?.value || '0', 10),
+        avgSessionDuration: parseFloat(currentRow.metricValues[7]?.value || '0'),
+        bounceRate: parseFloat(currentRow.metricValues[8]?.value || '0') * 100,
+        newUsers: prevNewUsers,
+        returningUsers: prevVisitors - prevNewUsers,
+      }
     }
 
     // Parse top pages
@@ -303,6 +344,7 @@ async function fetchDetailedAnalytics(period: string): Promise<DetailedAnalytics
 
     return {
       overview,
+      previousOverview,
       topPages,
       locations,
       devices,
@@ -332,10 +374,11 @@ export async function getDetailedAnalytics(req: Request, res: Response) {
 
     const now = Date.now()
 
-    // Check cache (use same cache for same period)
-    if (cachedDetailedData && now - detailedCacheTimestamp < CACHE_TTL) {
+    // Check period-specific cache
+    const cached = detailedCacheMap.get(period)
+    if (cached && now - cached.timestamp < CACHE_TTL) {
       return res.json({
-        data: cachedDetailedData,
+        data: cached.data,
         configured: true,
         cached: true,
         period,
@@ -345,8 +388,8 @@ export async function getDetailedAnalytics(req: Request, res: Response) {
     const data = await fetchDetailedAnalytics(period)
 
     if (data) {
-      cachedDetailedData = data
-      detailedCacheTimestamp = now
+      // Store in period-specific cache
+      detailedCacheMap.set(period, { data, timestamp: now })
 
       return res.json({
         data,
@@ -356,10 +399,10 @@ export async function getDetailedAnalytics(req: Request, res: Response) {
       })
     }
 
-    // Fallback to cache
-    if (cachedDetailedData) {
+    // Fallback to stale cache for this period
+    if (cached) {
       return res.json({
-        data: cachedDetailedData,
+        data: cached.data,
         configured: true,
         cached: true,
         stale: true,
@@ -376,9 +419,11 @@ export async function getDetailedAnalytics(req: Request, res: Response) {
   } catch (error) {
     console.error('GA4 Detailed API Error:', error)
 
-    if (cachedDetailedData) {
+    // Fallback to stale cache on error
+    const cached = detailedCacheMap.get((req.query.period as string) || '7d')
+    if (cached) {
       return res.json({
-        data: cachedDetailedData,
+        data: cached.data,
         configured: true,
         cached: true,
         stale: true,
@@ -479,6 +524,200 @@ export async function getWeeklyVisitors(_req: Request, res: Response) {
         configured: true,
         error: 'Failed to fetch analytics data',
       },
+    })
+  }
+}
+
+// Page-specific analytics
+interface PageAnalyticsData {
+  pagePath: string
+  pageTitle: string
+  totalViews: number
+  totalVisitors: number
+  avgSessionDuration: number
+  locations: { country: string; city: string; visitors: number }[]
+  devices: { category: string; visitors: number }[]
+  browsers: { name: string; visitors: number }[]
+  trafficSources: { source: string; visitors: number }[]
+  referrers: { referrer: string; visitors: number }[]
+}
+
+export async function getPageAnalytics(req: Request, res: Response) {
+  try {
+    const client = getClient()
+    const pagePath = req.query.path as string
+    const period = (req.query.period as string) || '7d'
+
+    if (!pagePath) {
+      return res.status(400).json({ error: 'Page path is required' })
+    }
+
+    if (!client || !propertyId) {
+      return res.json({ data: null, configured: false })
+    }
+
+    const formatDate = (date: Date): string => date.toISOString().split('T')[0] as string
+    const today = new Date()
+    let startDate: Date
+
+    switch (period) {
+      case '7d':
+        startDate = new Date(today)
+        startDate.setDate(startDate.getDate() - 6)
+        break
+      case '30d':
+        startDate = new Date(today)
+        startDate.setDate(startDate.getDate() - 29)
+        break
+      case 'today':
+        startDate = new Date(today)
+        break
+      case 'yesterday':
+        startDate = new Date(today)
+        startDate.setDate(startDate.getDate() - 1)
+        break
+      default:
+        startDate = new Date(today)
+        startDate.setDate(startDate.getDate() - 6)
+    }
+
+    const dateRange = {
+      startDate: formatDate(startDate),
+      endDate: period === 'yesterday' ? formatDate(startDate) : 'today',
+    }
+
+    const pageFilter = {
+      filter: {
+        fieldName: 'pagePath',
+        stringFilter: {
+          matchType: 'EXACT' as const,
+          value: pagePath,
+        },
+      },
+    }
+
+    // Run multiple reports in parallel
+    const [overviewRes, locationsRes, devicesRes, browsersRes, trafficRes, referrersRes] = await Promise.all([
+      // Overview metrics for this page
+      client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [dateRange],
+        dimensionFilter: pageFilter,
+        dimensions: [{ name: 'pageTitle' }],
+        metrics: [
+          { name: 'screenPageViews' },
+          { name: 'activeUsers' },
+          { name: 'averageSessionDuration' },
+        ],
+      }),
+      // Locations for this page
+      client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [dateRange],
+        dimensionFilter: pageFilter,
+        dimensions: [{ name: 'country' }, { name: 'city' }],
+        metrics: [{ name: 'activeUsers' }],
+        orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+        limit: 10,
+      }),
+      // Devices for this page
+      client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [dateRange],
+        dimensionFilter: pageFilter,
+        dimensions: [{ name: 'deviceCategory' }],
+        metrics: [{ name: 'activeUsers' }],
+        orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+      }),
+      // Browsers for this page
+      client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [dateRange],
+        dimensionFilter: pageFilter,
+        dimensions: [{ name: 'browser' }],
+        metrics: [{ name: 'activeUsers' }],
+        orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+        limit: 5,
+      }),
+      // Traffic sources for this page
+      client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [dateRange],
+        dimensionFilter: pageFilter,
+        dimensions: [{ name: 'sessionDefaultChannelGroup' }],
+        metrics: [{ name: 'activeUsers' }],
+        orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+      }),
+      // Referrers for this page
+      client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [dateRange],
+        dimensionFilter: pageFilter,
+        dimensions: [{ name: 'sessionSource' }],
+        metrics: [{ name: 'activeUsers' }],
+        orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+        limit: 10,
+      }),
+    ])
+
+    // Parse overview
+    const overviewRow = overviewRes[0].rows?.[0]
+    const pageTitle = overviewRow?.dimensionValues?.[0]?.value || ''
+    const totalViews = parseInt(overviewRow?.metricValues?.[0]?.value || '0', 10)
+    const totalVisitors = parseInt(overviewRow?.metricValues?.[1]?.value || '0', 10)
+    const avgSessionDuration = parseFloat(overviewRow?.metricValues?.[2]?.value || '0')
+
+    // Parse locations
+    const locations = (locationsRes[0].rows || []).map((row) => ({
+      country: row.dimensionValues?.[0]?.value || '',
+      city: row.dimensionValues?.[1]?.value || '',
+      visitors: parseInt(row.metricValues?.[0]?.value || '0', 10),
+    }))
+
+    // Parse devices
+    const devices = (devicesRes[0].rows || []).map((row) => ({
+      category: row.dimensionValues?.[0]?.value || '',
+      visitors: parseInt(row.metricValues?.[0]?.value || '0', 10),
+    }))
+
+    // Parse browsers
+    const browsers = (browsersRes[0].rows || []).map((row) => ({
+      name: row.dimensionValues?.[0]?.value || '',
+      visitors: parseInt(row.metricValues?.[0]?.value || '0', 10),
+    }))
+
+    // Parse traffic sources
+    const trafficSources = (trafficRes[0].rows || []).map((row) => ({
+      source: row.dimensionValues?.[0]?.value || '',
+      visitors: parseInt(row.metricValues?.[0]?.value || '0', 10),
+    }))
+
+    // Parse referrers
+    const referrers = (referrersRes[0].rows || []).map((row) => ({
+      referrer: row.dimensionValues?.[0]?.value || '',
+      visitors: parseInt(row.metricValues?.[0]?.value || '0', 10),
+    }))
+
+    const data: PageAnalyticsData = {
+      pagePath,
+      pageTitle,
+      totalViews,
+      totalVisitors,
+      avgSessionDuration,
+      locations,
+      devices,
+      browsers,
+      trafficSources,
+      referrers,
+    }
+
+    res.json({ data, configured: true })
+  } catch (error) {
+    console.error('GA4 Page Analytics Error:', error)
+    res.json({
+      data: null,
+      configured: true,
+      error: 'Failed to fetch page analytics',
     })
   }
 }

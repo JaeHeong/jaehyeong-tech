@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import api, { type DetailedAnalyticsData } from '../services/api'
+import api, { type DetailedAnalyticsData, type PageAnalyticsData } from '../services/api'
 
 type Period = 'today' | 'yesterday' | '7d' | '30d'
 
@@ -10,29 +10,101 @@ const periodLabels: Record<Period, string> = {
   '30d': '30일',
 }
 
-// Country flag emoji mapping
+// Country flag emoji mapping (GA4 country names)
 const countryFlags: Record<string, string> = {
+  // Asia
   'South Korea': '🇰🇷',
   'Korea': '🇰🇷',
-  'United States': '🇺🇸',
+  'Republic of Korea': '🇰🇷',
   'Japan': '🇯🇵',
   'China': '🇨🇳',
   'Taiwan': '🇹🇼',
-  'Germany': '🇩🇪',
-  'United Kingdom': '🇬🇧',
-  'France': '🇫🇷',
-  'Canada': '🇨🇦',
-  'Australia': '🇦🇺',
+  'Hong Kong': '🇭🇰',
+  'Macau': '🇲🇴',
+  'Mongolia': '🇲🇳',
   'India': '🇮🇳',
   'Singapore': '🇸🇬',
   'Vietnam': '🇻🇳',
+  'Viet Nam': '🇻🇳',
   'Thailand': '🇹🇭',
   'Indonesia': '🇮🇩',
   'Philippines': '🇵🇭',
   'Malaysia': '🇲🇾',
-  'Hong Kong': '🇭🇰',
+  'Myanmar': '🇲🇲',
+  'Myanmar (Burma)': '🇲🇲',
+  'Cambodia': '🇰🇭',
+  'Laos': '🇱🇦',
+  'Bangladesh': '🇧🇩',
+  'Pakistan': '🇵🇰',
+  'Sri Lanka': '🇱🇰',
+  'Nepal': '🇳🇵',
+  'Kazakhstan': '🇰🇿',
+  'Uzbekistan': '🇺🇿',
+
+  // North America
+  'United States': '🇺🇸',
+  'USA': '🇺🇸',
+  'Canada': '🇨🇦',
+  'Mexico': '🇲🇽',
+
+  // Europe
+  'United Kingdom': '🇬🇧',
+  'UK': '🇬🇧',
+  'Germany': '🇩🇪',
+  'France': '🇫🇷',
+  'Italy': '🇮🇹',
+  'Spain': '🇪🇸',
+  'Netherlands': '🇳🇱',
+  'Belgium': '🇧🇪',
+  'Switzerland': '🇨🇭',
+  'Austria': '🇦🇹',
+  'Sweden': '🇸🇪',
+  'Norway': '🇳🇴',
+  'Denmark': '🇩🇰',
+  'Finland': '🇫🇮',
+  'Poland': '🇵🇱',
+  'Czechia': '🇨🇿',
+  'Czech Republic': '🇨🇿',
+  'Portugal': '🇵🇹',
+  'Ireland': '🇮🇪',
+  'Greece': '🇬🇷',
+  'Hungary': '🇭🇺',
+  'Romania': '🇷🇴',
+  'Ukraine': '🇺🇦',
   'Russia': '🇷🇺',
+  'Russian Federation': '🇷🇺',
+  'Turkey': '🇹🇷',
+  'Türkiye': '🇹🇷',
+
+  // Oceania
+  'Australia': '🇦🇺',
+  'New Zealand': '🇳🇿',
+
+  // South America
   'Brazil': '🇧🇷',
+  'Argentina': '🇦🇷',
+  'Chile': '🇨🇱',
+  'Colombia': '🇨🇴',
+  'Peru': '🇵🇪',
+
+  // Middle East
+  'Israel': '🇮🇱',
+  'United Arab Emirates': '🇦🇪',
+  'UAE': '🇦🇪',
+  'Saudi Arabia': '🇸🇦',
+  'Qatar': '🇶🇦',
+  'Kuwait': '🇰🇼',
+  'Iran': '🇮🇷',
+  'Iraq': '🇮🇶',
+  'Egypt': '🇪🇬',
+
+  // Africa
+  'South Africa': '🇿🇦',
+  'Nigeria': '🇳🇬',
+  'Kenya': '🇰🇪',
+  'Morocco': '🇲🇦',
+
+  // Special
   '(not set)': '🌐',
 }
 
@@ -95,12 +167,261 @@ function formatNumber(num: number): string {
   return num.toLocaleString()
 }
 
+function calculateChange(current: number, previous: number): number | null {
+  if (previous === 0) return current > 0 ? 100 : null
+  return ((current - previous) / previous) * 100
+}
+
+function ChangeIndicator({ current, previous, inverted = false }: { current: number; previous: number; inverted?: boolean }) {
+  const change = calculateChange(current, previous)
+  if (change === null) return null
+
+  const isPositive = inverted ? change < 0 : change > 0
+  const isNegative = inverted ? change > 0 : change < 0
+
+  return (
+    <span className={`inline-flex items-center text-[9px] md:text-xs font-medium ${
+      isPositive ? 'text-green-500' : isNegative ? 'text-red-500' : 'text-slate-400'
+    }`}>
+      {change > 0 ? (
+        <span className="material-symbols-outlined text-[12px] md:text-[14px]">arrow_upward</span>
+      ) : change < 0 ? (
+        <span className="material-symbols-outlined text-[12px] md:text-[14px]">arrow_downward</span>
+      ) : null}
+      {Math.abs(change).toFixed(1)}%
+    </span>
+  )
+}
+
+// Page Analytics Modal Component
+function PageAnalyticsModal({
+  data,
+  isLoading,
+  error,
+  onClose
+}: {
+  data: PageAnalyticsData | null
+  isLoading: boolean
+  error: string | null
+  onClose: () => void
+}) {
+  const totalDeviceVisitors = data?.devices.reduce((sum, d) => sum + d.visitors, 0) || 0
+  const totalSourceVisitors = data?.trafficSources.reduce((sum, s) => sum + s.visitors, 0) || 0
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      {/* Modal */}
+      <div className="relative bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl max-h-[85vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex-1 min-w-0 pr-4">
+            <h2 className="text-base md:text-lg font-bold truncate">
+              {isLoading ? '로딩 중...' : data?.pageTitle || '페이지 분석'}
+            </h2>
+            {data && (
+              <p className="text-xs text-slate-500 truncate mt-0.5">{data.pagePath}</p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 overflow-y-auto max-h-[calc(85vh-70px)]">
+          {isLoading && (
+            <div className="flex justify-center items-center py-12">
+              <span className="material-symbols-outlined animate-spin text-3xl text-primary">
+                progress_activity
+              </span>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <span className="material-symbols-outlined text-[18px]">error</span>
+                <span className="text-sm">{error}</span>
+              </div>
+            </div>
+          )}
+
+          {data && !isLoading && !error && (
+            <div className="space-y-4">
+              {/* Overview Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 text-center">
+                  <p className="text-[10px] md:text-xs text-slate-500 mb-1">조회수</p>
+                  <p className="text-lg md:text-xl font-bold">{data.totalViews.toLocaleString()}</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 text-center">
+                  <p className="text-[10px] md:text-xs text-slate-500 mb-1">방문자</p>
+                  <p className="text-lg md:text-xl font-bold">{data.totalVisitors.toLocaleString()}</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 text-center">
+                  <p className="text-[10px] md:text-xs text-slate-500 mb-1">평균 체류</p>
+                  <p className="text-lg md:text-xl font-bold">{formatDuration(data.avgSessionDuration)}</p>
+                </div>
+              </div>
+
+              {/* Two Column Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Locations */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="material-symbols-outlined text-[16px] text-slate-500">location_on</span>
+                    <h3 className="text-xs font-bold">지역별 방문자</h3>
+                  </div>
+                  {data.locations.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {data.locations.slice(0, 5).map((loc, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs">
+                          <span>
+                            {countryFlags[loc.country] || '🌐'} {loc.country}
+                            {loc.city && loc.city !== '(not set)' && (
+                              <span className="text-slate-400 ml-1">({loc.city})</span>
+                            )}
+                          </span>
+                          <span className="font-medium">{loc.visitors}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 text-center py-2">데이터 없음</p>
+                  )}
+                </div>
+
+                {/* Devices */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="material-symbols-outlined text-[16px] text-slate-500">devices</span>
+                    <h3 className="text-xs font-bold">기기별 분포</h3>
+                  </div>
+                  {data.devices.length > 0 ? (
+                    <div className="space-y-2">
+                      {data.devices.map((device, i) => {
+                        const percent = totalDeviceVisitors > 0 ? (device.visitors / totalDeviceVisitors) * 100 : 0
+                        return (
+                          <div key={i}>
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px] text-slate-400">
+                                  {deviceIcons[device.category.toLowerCase()] || 'devices'}
+                                </span>
+                                <span className="capitalize">{device.category}</span>
+                              </span>
+                              <span className="font-medium">{percent.toFixed(1)}%</span>
+                            </div>
+                            <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                              <div className="h-full bg-primary rounded-full" style={{ width: `${percent}%` }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 text-center py-2">데이터 없음</p>
+                  )}
+                </div>
+
+                {/* Traffic Sources */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="material-symbols-outlined text-[16px] text-slate-500">call_split</span>
+                    <h3 className="text-xs font-bold">유입 경로</h3>
+                  </div>
+                  {data.trafficSources.length > 0 ? (
+                    <div className="space-y-2">
+                      {data.trafficSources.map((source, i) => {
+                        const percent = totalSourceVisitors > 0 ? (source.visitors / totalSourceVisitors) * 100 : 0
+                        return (
+                          <div key={i}>
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px] text-slate-400">
+                                  {sourceIcons[source.source] || 'link'}
+                                </span>
+                                <span>{sourceNamesShort[source.source] || source.source}</span>
+                              </span>
+                              <span className="font-medium">{percent.toFixed(1)}%</span>
+                            </div>
+                            <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                              <div className="h-full bg-primary rounded-full" style={{ width: `${percent}%` }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 text-center py-2">데이터 없음</p>
+                  )}
+                </div>
+
+                {/* Referrers */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="material-symbols-outlined text-[16px] text-slate-500">link</span>
+                    <h3 className="text-xs font-bold">유입 소스</h3>
+                  </div>
+                  {data.referrers.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {data.referrers.slice(0, 5).map((ref, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs">
+                          <span className="truncate max-w-[150px]">{ref.referrer || '(direct)'}</span>
+                          <span className="font-medium">{ref.visitors}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 text-center py-2">데이터 없음</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Browsers */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <span className="material-symbols-outlined text-[16px] text-slate-500">web</span>
+                  <h3 className="text-xs font-bold">브라우저</h3>
+                </div>
+                {data.browsers.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {data.browsers.map((browser, i) => (
+                      <span key={i} className="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded-full text-xs">
+                        {browser.name} <span className="font-medium">{browser.visitors}</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 text-center py-2">데이터 없음</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminAnalyticsPage() {
   const [period, setPeriod] = useState<Period>('7d')
   const [data, setData] = useState<DetailedAnalyticsData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
+
+  // Page analytics modal state
+  const [selectedPage, setSelectedPage] = useState<string | null>(null)
+  const [pageAnalytics, setPageAnalytics] = useState<PageAnalyticsData | null>(null)
+  const [pageAnalyticsLoading, setPageAnalyticsLoading] = useState(false)
+  const [pageAnalyticsError, setPageAnalyticsError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -125,6 +446,41 @@ export default function AdminAnalyticsPage() {
 
     fetchData()
   }, [period])
+
+  // Fetch page analytics when a page is selected
+  useEffect(() => {
+    if (!selectedPage) return
+
+    const fetchPageAnalytics = async () => {
+      setPageAnalyticsLoading(true)
+      setPageAnalyticsError(null)
+      setPageAnalytics(null)
+      try {
+        const response = await api.getPageAnalytics(selectedPage, period)
+        if (response.data) {
+          setPageAnalytics(response.data)
+        } else if (response.error) {
+          setPageAnalyticsError(response.error)
+        }
+      } catch (err) {
+        setPageAnalyticsError(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다.')
+      } finally {
+        setPageAnalyticsLoading(false)
+      }
+    }
+
+    fetchPageAnalytics()
+  }, [selectedPage, period])
+
+  const handlePageClick = (path: string) => {
+    setSelectedPage(path)
+  }
+
+  const handleCloseModal = () => {
+    setSelectedPage(null)
+    setPageAnalytics(null)
+    setPageAnalyticsError(null)
+  }
 
   if (isLoading) {
     return (
@@ -203,7 +559,12 @@ export default function AdminAnalyticsPage() {
               <span className="material-symbols-outlined text-[16px] md:text-[18px]">group</span>
             </div>
           </div>
-          <p className="text-xl md:text-3xl font-bold">{formatNumber(data.overview.visitors)}</p>
+          <div className="flex items-baseline gap-1.5 md:gap-2">
+            <p className="text-xl md:text-3xl font-bold">{formatNumber(data.overview.visitors)}</p>
+            {data.previousOverview && (
+              <ChangeIndicator current={data.overview.visitors} previous={data.previousOverview.visitors} />
+            )}
+          </div>
           <p className="text-[9px] md:text-xs text-slate-400 mt-1">
             신규 {data.overview.newUsers} / 재방문 {data.overview.returningUsers}
           </p>
@@ -216,7 +577,12 @@ export default function AdminAnalyticsPage() {
               <span className="material-symbols-outlined text-[16px] md:text-[18px]">visibility</span>
             </div>
           </div>
-          <p className="text-xl md:text-3xl font-bold">{formatNumber(data.overview.pageViews)}</p>
+          <div className="flex items-baseline gap-1.5 md:gap-2">
+            <p className="text-xl md:text-3xl font-bold">{formatNumber(data.overview.pageViews)}</p>
+            {data.previousOverview && (
+              <ChangeIndicator current={data.overview.pageViews} previous={data.previousOverview.pageViews} />
+            )}
+          </div>
         </div>
 
         <div className="bg-card-light dark:bg-card-dark rounded-xl p-3 md:p-6 border border-slate-200 dark:border-slate-800">
@@ -226,7 +592,12 @@ export default function AdminAnalyticsPage() {
               <span className="material-symbols-outlined text-[16px] md:text-[18px]">schedule</span>
             </div>
           </div>
-          <p className="text-xl md:text-3xl font-bold">{formatDuration(data.overview.avgSessionDuration)}</p>
+          <div className="flex items-baseline gap-1.5 md:gap-2">
+            <p className="text-xl md:text-3xl font-bold">{formatDuration(data.overview.avgSessionDuration)}</p>
+            {data.previousOverview && (
+              <ChangeIndicator current={data.overview.avgSessionDuration} previous={data.previousOverview.avgSessionDuration} />
+            )}
+          </div>
         </div>
 
         <div className="bg-card-light dark:bg-card-dark rounded-xl p-3 md:p-6 border border-slate-200 dark:border-slate-800">
@@ -236,7 +607,12 @@ export default function AdminAnalyticsPage() {
               <span className="material-symbols-outlined text-[16px] md:text-[18px]">exit_to_app</span>
             </div>
           </div>
-          <p className="text-xl md:text-3xl font-bold">{data.overview.bounceRate.toFixed(1)}%</p>
+          <div className="flex items-baseline gap-1.5 md:gap-2">
+            <p className="text-xl md:text-3xl font-bold">{data.overview.bounceRate.toFixed(1)}%</p>
+            {data.previousOverview && (
+              <ChangeIndicator current={data.overview.bounceRate} previous={data.previousOverview.bounceRate} inverted />
+            )}
+          </div>
         </div>
       </div>
 
@@ -368,7 +744,8 @@ export default function AdminAnalyticsPage() {
                 {data.topPages.map((page, index) => (
                   <tr
                     key={index}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                    onClick={() => handlePageClick(page.path)}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer transition-colors"
                   >
                     <td className="px-2 md:px-4 py-2 md:py-3">
                       <span className={`font-bold ${index < 3 ? 'text-primary' : 'text-slate-400'}`}>
@@ -382,7 +759,10 @@ export default function AdminAnalyticsPage() {
                     </td>
                     <td className="px-2 md:px-4 py-2 md:py-3">
                       <button
-                        onClick={() => window.open(page.path, '_blank')}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          window.open(page.path, '_blank')
+                        }}
                         className="text-[10px] md:text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 md:px-2 py-0.5 md:py-1 rounded truncate block max-w-[80px] md:max-w-[150px] lg:max-w-[250px] hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                       >
                         {page.path}
@@ -484,6 +864,16 @@ export default function AdminAnalyticsPage() {
           )}
         </div>
       </div>
+
+      {/* Page Analytics Modal */}
+      {selectedPage && (
+        <PageAnalyticsModal
+          data={pageAnalytics}
+          isLoading={pageAnalyticsLoading}
+          error={pageAnalyticsError}
+          onClose={handleCloseModal}
+        />
+      )}
     </>
   )
 }

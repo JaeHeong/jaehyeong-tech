@@ -559,6 +559,11 @@ class ApiClient {
     const response = await this.request<DetailedAnalyticsResponse>(`/analytics/detailed?period=${period}`)
     return response
   }
+
+  async getPageAnalytics(path: string, period: string = '7d') {
+    const response = await this.request<PageAnalyticsResponse>(`/analytics/page?path=${encodeURIComponent(path)}&period=${period}`)
+    return response
+  }
 }
 
 // Types
@@ -1033,15 +1038,18 @@ export interface WeeklyVisitorsResponse {
   error?: string
 }
 
+export interface OverviewData {
+  visitors: number
+  pageViews: number
+  avgSessionDuration: number
+  bounceRate: number
+  newUsers: number
+  returningUsers: number
+}
+
 export interface DetailedAnalyticsData {
-  overview: {
-    visitors: number
-    pageViews: number
-    avgSessionDuration: number
-    bounceRate: number
-    newUsers: number
-    returningUsers: number
-  }
+  overview: OverviewData
+  previousOverview: OverviewData | null
   topPages: { path: string; title: string; views: number; avgTime: number }[]
   locations: { country: string; city: string; visitors: number }[]
   devices: { category: string; visitors: number }[]
@@ -1058,6 +1066,25 @@ export interface DetailedAnalyticsResponse {
   cached?: boolean
   stale?: boolean
   period?: string
+  error?: string
+}
+
+export interface PageAnalyticsData {
+  pagePath: string
+  pageTitle: string
+  totalViews: number
+  totalVisitors: number
+  avgSessionDuration: number
+  locations: { country: string; city: string; visitors: number }[]
+  devices: { category: string; visitors: number }[]
+  browsers: { name: string; visitors: number }[]
+  trafficSources: { source: string; visitors: number }[]
+  referrers: { referrer: string; visitors: number }[]
+}
+
+export interface PageAnalyticsResponse {
+  data: PageAnalyticsData | null
+  configured: boolean
   error?: string
 }
 
