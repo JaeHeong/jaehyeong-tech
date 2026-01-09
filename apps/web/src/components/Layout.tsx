@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import Header from './Header'
 import Footer from './Footer'
 import MouseSparkle from './MouseSparkle'
+import PageTracker from './PageTracker'
 
 export default function Layout() {
   const { pathname } = useLocation()
@@ -14,6 +15,7 @@ export default function Layout() {
 
   return (
     <div className="grid grid-rows-[auto_1fr_auto] min-h-screen">
+      <PageTracker />
       <MouseSparkle />
       <Header />
       <main>
