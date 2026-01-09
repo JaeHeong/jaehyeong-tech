@@ -26,9 +26,9 @@ export default function MyCommentsPage() {
   })
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // ESC key handler to close modals
+  // Keyboard handler for modals (ESC to close, Enter to confirm)
   useEffect(() => {
-    const handleEscKey = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (editModal.isOpen) {
           setEditModal({ isOpen: false, comment: null })
@@ -37,11 +37,22 @@ export default function MyCommentsPage() {
         if (deleteModal.isOpen) {
           setDeleteModal({ isOpen: false, comment: null })
         }
+      } else if (e.key === 'Enter') {
+        // Delete modal: Enter to confirm
+        if (deleteModal.isOpen && !isDeleting) {
+          e.preventDefault()
+          handleDelete()
+        }
+        // Edit modal: Ctrl+Enter or Cmd+Enter to save (since textarea needs Enter for newlines)
+        if (editModal.isOpen && (e.ctrlKey || e.metaKey) && !isEditing && editContent.trim()) {
+          e.preventDefault()
+          handleEdit()
+        }
       }
     }
-    window.addEventListener('keydown', handleEscKey)
-    return () => window.removeEventListener('keydown', handleEscKey)
-  }, [editModal.isOpen, deleteModal.isOpen])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [editModal.isOpen, deleteModal.isOpen, isDeleting, isEditing, editContent])
 
   const fetchComments = useCallback(async (pageNum: number) => {
     setIsLoading(true)

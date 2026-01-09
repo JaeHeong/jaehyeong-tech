@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import api, { AdminUser, UserStats, UserStatus, SignupTrendData, SignupPatternData, SignupTrendPeriod } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
+import LimitSelector from '../components/LimitSelector'
+import { getPageLimit } from '../utils/paginationSettings'
 
 export default function AdminUsersPage() {
   const { alert } = useModal()
@@ -27,6 +29,9 @@ export default function AdminUsersPage() {
 
   const currentPage = parseInt(searchParams.get('page') || '1', 10)
   const currentStatus = (searchParams.get('status') || 'all') as UserStatus | 'all'
+  const defaultLimit = getPageLimit('users')
+  const [isAllMode, setIsAllMode] = useState(false)
+  const limit = isAllMode ? 0 : defaultLimit
 
   // Fetch users and stats
   useEffect(() => {
@@ -35,15 +40,15 @@ export default function AdminUsersPage() {
       try {
         const [usersRes, statsRes] = await Promise.all([
           api.getUsers({
-            page: currentPage,
-            limit: 5,
+            page: limit === 0 ? 1 : currentPage,
+            limit: limit === 0 ? 9999 : limit,
             search: searchQuery || undefined,
             status: currentStatus,
           }),
           api.getUserStats(),
         ])
         setUsers(usersRes.data)
-        setTotalPages(usersRes.meta.totalPages)
+        setTotalPages(limit === 0 ? 1 : usersRes.meta.totalPages)
         setTotal(usersRes.meta.total)
         setStats(statsRes)
       } catch (error) {
@@ -54,7 +59,15 @@ export default function AdminUsersPage() {
     }
 
     fetchData()
-  }, [currentPage, currentStatus, searchQuery])
+  }, [currentPage, currentStatus, searchQuery, limit])
+
+  const handleToggleAll = () => {
+    setIsAllMode(!isAllMode)
+    setSearchParams((prev) => {
+      prev.set('page', '1')
+      return prev
+    })
+  }
 
   // Fetch trend data when period changes
   useEffect(() => {
@@ -82,16 +95,24 @@ export default function AdminUsersPage() {
     fetchPattern()
   }, [])
 
-  // ESC key to close modals
+  // ESC/Enter key to control modals
   useEffect(() => {
-    const handleEscKey = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (deleteModal.isOpen) setDeleteModal({ isOpen: false, user: null })
         if (statusModal.isOpen) setStatusModal({ isOpen: false, user: null, newStatus: null })
+      } else if (e.key === 'Enter') {
+        if (deleteModal.isOpen) {
+          e.preventDefault()
+          handleDelete()
+        } else if (statusModal.isOpen) {
+          e.preventDefault()
+          handleStatusChange()
+        }
       }
     }
-    document.addEventListener('keydown', handleEscKey)
-    return () => document.removeEventListener('keydown', handleEscKey)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [deleteModal.isOpen, statusModal.isOpen])
 
   const handleFilterChange = (key: string, value: string) => {
@@ -280,6 +301,7 @@ export default function AdminUsersPage() {
                 />
               </div>
             </form>
+            <LimitSelector defaultLimit={defaultLimit} isAll={isAllMode} onToggle={handleToggleAll} />
             <select
               value={currentStatus}
               onChange={(e) => handleFilterChange('status', e.target.value)}

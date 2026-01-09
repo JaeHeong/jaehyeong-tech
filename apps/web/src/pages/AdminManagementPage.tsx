@@ -61,9 +61,9 @@ export default function AdminManagementPage() {
     fetchBackups()
   }, [])
 
-  // ESC key handler for modals
+  // ESC/Enter key handler for modals
   useEffect(() => {
-    const handleEscKey = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (previewBackup) {
           setPreviewBackup(null)
@@ -72,10 +72,13 @@ export default function AdminManagementPage() {
           setShowBackupModal(false)
           setBackupDescription('')
         }
+      } else if (e.key === 'Enter' && showBackupModal && !isCreatingBackup) {
+        e.preventDefault()
+        handleCreateBackup()
       }
     }
-    document.addEventListener('keydown', handleEscKey)
-    return () => document.removeEventListener('keydown', handleEscKey)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [previewBackup, showBackupModal, isCreatingBackup])
 
   const handleCreateBackup = async () => {
@@ -85,7 +88,7 @@ export default function AdminManagementPage() {
       const result = await api.createBackup(backupDescription.trim() || undefined)
       setBackupMessage({
         type: 'success',
-        text: `백업이 생성되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 페이지: ${result.data.stats.pages})`,
+        text: `백업이 생성되었습니다. (게시물: ${result.data.stats.posts}, 임시저장: ${result.data.stats.drafts}, 댓글: ${result.data.stats.comments}, 페이지: ${result.data.stats.pages})`,
       })
       setShowBackupModal(false)
       setBackupDescription('')
@@ -121,7 +124,7 @@ export default function AdminManagementPage() {
       const result = await api.restoreBackup(fileName)
       setBackupMessage({
         type: 'success',
-        text: `백업이 복원되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 페이지: ${result.data.stats.pages})`,
+        text: `백업이 복원되었습니다. (게시물: ${result.data.stats.posts}, 임시저장: ${result.data.stats.drafts}, 댓글: ${result.data.stats.comments}, 페이지: ${result.data.stats.pages})`,
       })
     } catch {
       setBackupMessage({ type: 'error', text: '백업 복원에 실패했습니다.' })
@@ -243,7 +246,7 @@ export default function AdminManagementPage() {
                 데이터 백업
               </h2>
               <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-0.5 md:mt-1">
-                게시물, 카테고리, 태그, 페이지 데이터를 백업하고 복원합니다.
+                게시물, 임시저장, 카테고리, 태그, 페이지 데이터를 백업하고 복원합니다.
               </p>
             </div>
             <button
@@ -621,6 +624,10 @@ export default function AdminManagementPage() {
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
                   <p className="text-xl font-bold">{previewBackup.stats.posts}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">게시물</p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                  <p className="text-xl font-bold">{previewBackup.stats.drafts}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">임시저장</p>
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
                   <p className="text-xl font-bold">{previewBackup.stats.comments}</p>

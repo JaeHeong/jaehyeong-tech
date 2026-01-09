@@ -464,6 +464,11 @@ class ApiClient {
   }
 
   // Comment endpoints
+  async getRecentComments(limit: number = 5) {
+    const response = await this.request<{ data: RecentComment[] }>(`/comments/recent?limit=${limit}`)
+    return response.data
+  }
+
   async getComments(postId: string) {
     const response = await this.request<{ data: CommentsResponse }>(`/comments/post/${postId}`)
     return response.data
@@ -970,6 +975,7 @@ export interface BackupResult {
     categories: number
     tags: number
     posts: number
+    drafts: number
     pages: number
     comments: number
   }
@@ -985,6 +991,7 @@ export interface BackupInfoDetail {
     categories: number
     tags: number
     posts: number
+    drafts: number
     pages: number
     comments: number
   }
@@ -998,6 +1005,7 @@ export interface RestoreResult {
     categories: number
     tags: number
     posts: number
+    drafts: number
     pages: number
     comments: number
   }
@@ -1032,6 +1040,19 @@ export interface DeleteOrphanResult {
 }
 
 // Comment types
+export interface RecentComment {
+  id: string
+  content: string
+  authorName: string
+  authorAvatar: string | null
+  createdAt: string
+  post: {
+    id: string
+    title: string
+    slug: string
+  }
+}
+
 export interface Comment {
   id: string
   content: string

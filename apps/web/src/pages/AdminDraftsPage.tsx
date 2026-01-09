@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import api, { Draft } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
-
-const ITEMS_PER_PAGE = 9
+import LimitSelector from '../components/LimitSelector'
+import { getPageLimit } from '../utils/paginationSettings'
 
 export default function AdminDraftsPage() {
   const { alert } = useModal()
@@ -14,13 +14,22 @@ export default function AdminDraftsPage() {
     draft: null,
   })
   const [currentPage, setCurrentPage] = useState(1)
+  const defaultLimit = getPageLimit('drafts')
+  const [isAllMode, setIsAllMode] = useState(false)
+  const limit = isAllMode ? 0 : defaultLimit
 
   // Client-side pagination
-  const totalPages = Math.ceil(drafts.length / ITEMS_PER_PAGE)
+  const totalPages = limit === 0 ? 1 : Math.ceil(drafts.length / limit)
   const paginatedDrafts = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE
-    return drafts.slice(start, start + ITEMS_PER_PAGE)
-  }, [drafts, currentPage])
+    if (limit === 0) return drafts
+    const start = (currentPage - 1) * limit
+    return drafts.slice(start, start + limit)
+  }, [drafts, currentPage, limit])
+
+  const handleToggleAll = () => {
+    setIsAllMode(!isAllMode)
+    setCurrentPage(1)
+  }
 
   useEffect(() => {
     const fetchDrafts = async () => {
@@ -38,9 +47,28 @@ export default function AdminDraftsPage() {
     fetchDrafts()
   }, [])
 
-  const handleDelete = async () => {
-    if (!deleteModal.draft) return
+  const [isDeleting, setIsDeleting] = useState(false)
 
+  // ESC/Enter key handler for modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (deleteModal.isOpen) {
+        if (e.key === 'Escape') {
+          setDeleteModal({ isOpen: false, draft: null })
+        } else if (e.key === 'Enter' && !isDeleting) {
+          e.preventDefault()
+          handleDelete()
+        }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [deleteModal.isOpen, isDeleting])
+
+  const handleDelete = async () => {
+    if (!deleteModal.draft || isDeleting) return
+
+    setIsDeleting(true)
     try {
       await api.deleteDraft(deleteModal.draft.id)
       setDrafts(drafts.filter((d) => d.id !== deleteModal.draft?.id))
@@ -48,6 +76,8 @@ export default function AdminDraftsPage() {
     } catch (error) {
       console.error('Failed to delete draft:', error)
       await alert({ message: '삭제에 실패했습니다.', type: 'error' })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -80,13 +110,16 @@ export default function AdminDraftsPage() {
             작성 중인 글을 관리합니다. ({drafts.length}개)
           </p>
         </div>
-        <Link
-          to="/admin/posts/new"
-          className="inline-flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs md:text-sm font-bold transition-colors"
-        >
-          <span className="material-symbols-outlined text-[16px] md:text-[18px]">add</span>
-          새 글 작성
-        </Link>
+        <div className="flex items-center gap-3">
+          <LimitSelector defaultLimit={defaultLimit} isAll={isAllMode} onToggle={handleToggleAll} />
+          <Link
+            to="/admin/posts/new"
+            className="inline-flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs md:text-sm font-bold transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px] md:text-[18px]">add</span>
+            새 글 작성
+          </Link>
+        </div>
       </div>
 
       {/* Drafts List */}
@@ -255,9 +288,10 @@ export default function AdminDraftsPage() {
               </button>
               <button
                 onClick={handleDelete}
-                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold transition-colors"
+                disabled={isDeleting}
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold transition-colors disabled:opacity-50"
               >
-                삭제
+                {isDeleting ? '삭제 중...' : '삭제'}
               </button>
             </div>
           </div>

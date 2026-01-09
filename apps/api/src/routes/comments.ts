@@ -6,6 +6,9 @@ import { createCommentSchema, updateCommentSchema, idParamSchema } from '../vali
 
 export const commentRouter: IRouter = Router()
 
+// Public routes
+commentRouter.get('/recent', commentController.getRecentComments)
+
 // Public routes (with optional auth for visibility filtering)
 commentRouter.get('/post/:postId', optionalAuth, commentController.getComments)
 

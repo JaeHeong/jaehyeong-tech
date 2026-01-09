@@ -587,3 +587,57 @@ export async function adminBulkDeleteComments(req: AuthRequest, res: Response, n
     next(error)
   }
 }
+
+// Public: Get recent comments for sidebar
+export async function getRecentComments(req: Request, res: Response, next: NextFunction) {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 5, 10)
+
+    const comments = await prisma.comment.findMany({
+      where: {
+        isDeleted: false,
+        isPrivate: false,
+        post: {
+          status: 'PUBLIC',
+        },
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    })
+
+    res.json({
+      data: comments.map((comment) => ({
+        id: comment.id,
+        content: comment.content.length > 80
+          ? comment.content.substring(0, 80) + '...'
+          : comment.content,
+        authorName: comment.author?.name || comment.guestName || '익명',
+        authorAvatar: comment.author?.avatar || null,
+        createdAt: comment.createdAt.toISOString(),
+        post: {
+          id: comment.post.id,
+          title: comment.post.title,
+          slug: comment.post.slug,
+        },
+      })),
+    })
+  } catch (error) {
+    next(error)
+  }
+}

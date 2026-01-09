@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import api, { Tag, WeeklyVisitorsResponse } from '../services/api'
+import api, { Tag, WeeklyVisitorsResponse, RecentComment } from '../services/api'
 
 interface Author {
   name: string
@@ -32,6 +32,7 @@ export default function MobileProfileModal() {
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [visitors, setVisitors] = useState<WeeklyVisitorsResponse | null>(null)
+  const [recentComments, setRecentComments] = useState<RecentComment[]>([])
   const modalRef = useRef<HTMLDivElement>(null)
 
   const handleClose = () => {
@@ -93,10 +94,20 @@ export default function MobileProfileModal() {
       }
     }
 
+    const fetchRecentComments = async () => {
+      try {
+        const data = await api.getRecentComments(3)
+        setRecentComments(data)
+      } catch {
+        setRecentComments([])
+      }
+    }
+
     fetchAuthor()
     fetchPopularPosts()
     fetchTags()
     fetchVisitors()
+    fetchRecentComments()
   }, [])
 
   const formatViewCount = (count: number) => {
@@ -284,6 +295,66 @@ export default function MobileProfileModal() {
                 </div>
               </div>
 
+              {/* Recent Comments */}
+              {recentComments.length > 0 && (
+                <>
+                  <div className="border-t border-slate-200 dark:border-slate-800" />
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-green-500/10 rounded-lg text-green-500">
+                        <span className="material-symbols-outlined">chat</span>
+                      </div>
+                      <h3 className="text-lg font-bold">최근 댓글</h3>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      {recentComments.map((comment, index) => (
+                        <Link
+                          key={comment.id}
+                          to={`/posts/${comment.post.slug}`}
+                          onClick={handleClose}
+                          className={`group ${
+                            index < recentComments.length - 1
+                              ? 'pb-3 border-b border-slate-100 dark:border-slate-800/50'
+                              : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            {comment.authorAvatar ? (
+                              <img
+                                src={comment.authorAvatar}
+                                alt={comment.authorName}
+                                className="size-7 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="size-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                                <span className="material-symbols-outlined text-[14px] text-slate-400">person</span>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  {comment.authorName}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  {formatRelativeTime(comment.createdAt)}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed group-hover:text-primary transition-colors">
+                                {comment.content}
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-1 truncate group-hover:text-primary/70 transition-colors">
+                                <span className="material-symbols-outlined text-[10px] align-middle mr-0.5">arrow_forward</span>
+                                {comment.post.title}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
               {/* Tags */}
               {tags.length > 0 && (
                 <>
@@ -381,4 +452,19 @@ export default function MobileProfileModal() {
       )}
     </>
   )
+}
+
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return '방금'
+  if (diffMins < 60) return `${diffMins}분 전`
+  if (diffHours < 24) return `${diffHours}시간 전`
+  if (diffDays < 7) return `${diffDays}일 전`
+  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
 }

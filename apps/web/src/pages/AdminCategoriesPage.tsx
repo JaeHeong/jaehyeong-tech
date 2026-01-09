@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import api, { Category, CreateCategoryData } from '../services/api'
-
-const ITEMS_PER_PAGE = 9
+import LimitSelector from '../components/LimitSelector'
+import { getPageLimit } from '../utils/paginationSettings'
 
 interface CategoryFormData {
   name: string
@@ -42,17 +42,51 @@ export default function AdminCategoriesPage() {
     color: 'blue',
   })
   const [currentPage, setCurrentPage] = useState(1)
+  const defaultLimit = getPageLimit('categories')
+  const [isAllMode, setIsAllMode] = useState(false)
+  const limit = isAllMode ? 0 : defaultLimit
 
   // Client-side pagination
-  const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE)
+  const totalPages = limit === 0 ? 1 : Math.ceil(categories.length / limit)
   const paginatedCategories = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE
-    return categories.slice(start, start + ITEMS_PER_PAGE)
-  }, [categories, currentPage])
+    if (limit === 0) return categories
+    const start = (currentPage - 1) * limit
+    return categories.slice(start, start + limit)
+  }, [categories, currentPage, limit])
+
+  const handleToggleAll = () => {
+    setIsAllMode(!isAllMode)
+    setCurrentPage(1)
+  }
 
   useEffect(() => {
     fetchCategories()
   }, [])
+
+  // ESC/Enter key handler for modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (deleteModal.isOpen) {
+          setDeleteModal({ isOpen: false, category: null })
+        } else if (isModalOpen) {
+          setIsModalOpen(false)
+        }
+      } else if (e.key === 'Enter') {
+        if (deleteModal.isOpen && !isDeleting) {
+          e.preventDefault()
+          handleDelete()
+        }
+        // Edit modal: Ctrl+Enter or Cmd+Enter to save (since there's a textarea)
+        if (isModalOpen && (e.ctrlKey || e.metaKey) && formData.name && !isSaving) {
+          e.preventDefault()
+          handleSubmit(e as unknown as React.FormEvent)
+        }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [deleteModal.isOpen, isModalOpen, isDeleting, isSaving, formData.name])
 
   const fetchCategories = async () => {
     setIsLoading(true)
@@ -179,13 +213,16 @@ export default function AdminCategoriesPage() {
             블로그 카테고리를 관리합니다.
           </p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs md:text-sm font-bold transition-colors"
-        >
-          <span className="material-symbols-outlined text-[16px] md:text-[18px]">add</span>
-          새 카테고리
-        </button>
+        <div className="flex items-center gap-3">
+          <LimitSelector defaultLimit={defaultLimit} isAll={isAllMode} onToggle={handleToggleAll} />
+          <button
+            onClick={() => handleOpenModal()}
+            className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs md:text-sm font-bold transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px] md:text-[18px]">add</span>
+            새 카테고리
+          </button>
+        </div>
       </div>
 
       {/* Error Message */}

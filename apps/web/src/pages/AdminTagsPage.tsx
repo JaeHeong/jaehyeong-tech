@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import api, { Tag, CreateTagData } from '../services/api'
-
-const ITEMS_PER_PAGE = 9
+import LimitSelector from '../components/LimitSelector'
+import { getPageLimit } from '../utils/paginationSettings'
 
 interface ApiError {
   message: string
@@ -21,13 +21,22 @@ export default function AdminTagsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const editInputRef = useRef<HTMLInputElement>(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const defaultLimit = getPageLimit('tags')
+  const [isAllMode, setIsAllMode] = useState(false)
+  const limit = isAllMode ? 0 : defaultLimit
 
   // Client-side pagination
-  const totalPages = Math.ceil(tags.length / ITEMS_PER_PAGE)
+  const totalPages = limit === 0 ? 1 : Math.ceil(tags.length / limit)
   const paginatedTags = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE
-    return tags.slice(start, start + ITEMS_PER_PAGE)
-  }, [tags, currentPage])
+    if (limit === 0) return tags
+    const start = (currentPage - 1) * limit
+    return tags.slice(start, start + limit)
+  }, [tags, currentPage, limit])
+
+  const handleToggleAll = () => {
+    setIsAllMode(!isAllMode)
+    setCurrentPage(1)
+  }
 
   useEffect(() => {
     fetchTags()
@@ -39,6 +48,22 @@ export default function AdminTagsPage() {
       editInputRef.current.select()
     }
   }, [editingTag])
+
+  // ESC/Enter key handler for delete modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (deleteModal.isOpen) {
+        if (e.key === 'Escape') {
+          setDeleteModal({ isOpen: false, tag: null })
+        } else if (e.key === 'Enter' && !isDeleting) {
+          e.preventDefault()
+          handleDelete()
+        }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [deleteModal.isOpen, isDeleting])
 
   const fetchTags = async () => {
     setIsLoading(true)
@@ -144,8 +169,11 @@ export default function AdminTagsPage() {
             게시물에 사용되는 태그를 생성, 수정 및 관리합니다.
           </p>
         </div>
-        <div className="text-xs md:text-sm text-slate-500 dark:text-slate-400">
-          총 <span className="font-bold text-primary">{tags.length}</span>개의 태그
+        <div className="flex items-center gap-3">
+          <LimitSelector defaultLimit={defaultLimit} isAll={isAllMode} onToggle={handleToggleAll} />
+          <div className="text-xs md:text-sm text-slate-500 dark:text-slate-400">
+            총 <span className="font-bold text-primary">{tags.length}</span>개의 태그
+          </div>
         </div>
       </div>
 

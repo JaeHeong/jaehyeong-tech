@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import api, { type Page, type PageStats } from '../services/api'
 import TipTapEditor from '../components/TipTapEditor'
 import { useModal } from '../contexts/ModalContext'
+import LimitSelector from '../components/LimitSelector'
+import { getPageLimit } from '../utils/paginationSettings'
 
 type PageTab = 'NOTICE' | 'STATIC'
 
@@ -36,10 +38,13 @@ export default function AdminPagesPage() {
   const activeTab = (searchParams.get('tab') as PageTab) || 'NOTICE'
   const currentPage = parseInt(searchParams.get('page') || '1', 10)
   const currentStatus = searchParams.get('status') || ''
+  const defaultLimit = getPageLimit('pages')
+  const [isAllMode, setIsAllMode] = useState(false)
+  const limit = isAllMode ? 0 : defaultLimit
 
   useEffect(() => {
     fetchData()
-  }, [activeTab, currentPage, currentStatus, searchQuery])
+  }, [activeTab, currentPage, currentStatus, searchQuery, limit])
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -47,21 +52,54 @@ export default function AdminPagesPage() {
       const [statsRes, pagesRes] = await Promise.all([
         api.getPageStats(),
         api.getAdminPages({
-          page: currentPage,
-          limit: 9,
+          page: limit === 0 ? 1 : currentPage,
+          limit: limit === 0 ? 9999 : limit,
           type: activeTab,
           status: currentStatus as 'DRAFT' | 'PUBLISHED' | undefined,
         }),
       ])
       setStats(statsRes)
       setPages(pagesRes.pages)
-      setTotalPages(pagesRes.meta.totalPages)
+      setTotalPages(limit === 0 ? 1 : pagesRes.meta.totalPages)
     } catch (error) {
       console.error('Failed to fetch data:', error)
     } finally {
       setIsLoading(false)
     }
   }
+
+  const handleToggleAll = () => {
+    setIsAllMode(!isAllMode)
+    setSearchParams((prev) => {
+      prev.set('page', '1')
+      return prev
+    })
+  }
+
+  // ESC/Enter key handler for modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (deleteModal.isOpen) {
+          setDeleteModal({ isOpen: false, page: null })
+        } else if (editModal.isOpen) {
+          setEditModal({ isOpen: false, page: null, isNew: false })
+        }
+      } else if (e.key === 'Enter') {
+        if (deleteModal.isOpen) {
+          e.preventDefault()
+          handleDelete()
+        }
+        // Edit modal: Ctrl+Enter or Cmd+Enter to save (since TipTap editor needs Enter for newlines)
+        if (editModal.isOpen && (e.ctrlKey || e.metaKey) && formData.title && formData.content) {
+          e.preventDefault()
+          handleSave()
+        }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [deleteModal.isOpen, editModal.isOpen, formData.title, formData.content])
 
   const handleTabChange = (tab: PageTab) => {
     const params = new URLSearchParams()
@@ -285,6 +323,8 @@ export default function AdminPagesPage() {
                 />
               </div>
             </form>
+
+            <LimitSelector defaultLimit={defaultLimit} isAll={isAllMode} onToggle={handleToggleAll} />
 
             <select
               value={currentStatus}

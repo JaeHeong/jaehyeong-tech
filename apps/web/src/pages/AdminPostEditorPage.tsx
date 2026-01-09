@@ -4,6 +4,7 @@ import { api, type Category, type Tag } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
 import { useToast } from '../contexts/ToastContext'
 import TipTapEditor from '../components/TipTapEditor'
+import { convertToSmartQuotes } from '../utils/smartQuotes'
 import { common, createLowlight } from 'lowlight'
 
 // Initialize lowlight for syntax highlighting in preview
@@ -276,7 +277,9 @@ export default function AdminPostEditorPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    // Apply smart quotes to excerpt field
+    const processedValue = name === 'excerpt' ? convertToSmartQuotes(value) : value
+    setFormData((prev) => ({ ...prev, [name]: processedValue }))
   }
 
   const handleContentChange = (content: string) => {

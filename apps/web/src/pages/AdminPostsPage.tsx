@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { Link, useSearchParams } from 'react-router-dom'
 import api, { Post, Category } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
+import LimitSelector from '../components/LimitSelector'
+import { getPageLimit } from '../utils/paginationSettings'
 
 export default function AdminPostsPage() {
   const { alert } = useModal()
@@ -21,6 +23,9 @@ export default function AdminPostsPage() {
   const [expandedTagsId, setExpandedTagsId] = useState<string | null>(null)
   const [tagModalPosition, setTagModalPosition] = useState<{ top: number; left: number } | null>(null)
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const defaultLimit = getPageLimit('posts')
+  const [isAllMode, setIsAllMode] = useState(false)
+  const limit = isAllMode ? 0 : defaultLimit
 
   const currentPage = parseInt(searchParams.get('page') || '1', 10)
   const currentCategory = searchParams.get('category') || ''
@@ -34,8 +39,8 @@ export default function AdminPostsPage() {
         const [catRes, postsRes] = await Promise.all([
           api.getCategories(),
           api.getPosts({
-            page: currentPage,
-            limit: 9,
+            page: limit === 0 ? 1 : currentPage,
+            limit: limit === 0 ? 9999 : limit,
             category: currentCategory || undefined,
             status: (currentStatus || 'PUBLISHED') as 'PUBLISHED' | 'PRIVATE' | 'ALL',
             search: searchQuery || undefined,
@@ -44,7 +49,7 @@ export default function AdminPostsPage() {
         ])
         setCategories(catRes.categories)
         setPosts(postsRes.posts)
-        setTotalPages(postsRes.meta.totalPages)
+        setTotalPages(limit === 0 ? 1 : postsRes.meta.totalPages)
       } catch (error) {
         console.error('Failed to fetch data:', error)
       } finally {
@@ -53,7 +58,15 @@ export default function AdminPostsPage() {
     }
 
     fetchData()
-  }, [currentPage, currentCategory, currentStatus, currentSort, searchQuery])
+  }, [currentPage, currentCategory, currentStatus, currentSort, searchQuery, limit])
+
+  const handleToggleAll = () => {
+    setIsAllMode(!isAllMode)
+    setSearchParams((prev) => {
+      prev.set('page', '1')
+      return prev
+    })
+  }
 
   // 페이지/필터 변경 시 선택 초기화
   useEffect(() => {
@@ -77,9 +90,9 @@ export default function AdminPostsPage() {
     }
   }, [])
 
-  // ESC 키로 모달 닫기
+  // ESC/Enter 키로 모달 제어
   useEffect(() => {
-    const handleEscKey = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (deleteModal.isOpen) {
           setDeleteModal({ isOpen: false, post: null })
@@ -87,10 +100,18 @@ export default function AdminPostsPage() {
         if (bulkDeleteModal) {
           setBulkDeleteModal(false)
         }
+      } else if (e.key === 'Enter') {
+        if (deleteModal.isOpen) {
+          e.preventDefault()
+          handleDelete()
+        } else if (bulkDeleteModal) {
+          e.preventDefault()
+          handleBulkDelete()
+        }
       }
     }
-    document.addEventListener('keydown', handleEscKey)
-    return () => document.removeEventListener('keydown', handleEscKey)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [deleteModal.isOpen, bulkDeleteModal])
 
   const handleSelectAll = () => {
@@ -221,7 +242,10 @@ export default function AdminPostsPage() {
           </form>
 
           {/* Filter Row */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {/* Limit Selector */}
+            <LimitSelector defaultLimit={defaultLimit} isAll={isAllMode} onToggle={handleToggleAll} />
+
             {/* Category Filter */}
             <select
               value={currentCategory}

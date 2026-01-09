@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type AdminComment } from '../services/api'
+import LimitSelector from '../components/LimitSelector'
+import { getPageLimit } from '../utils/paginationSettings'
 
 export default function AdminCommentsPage() {
   const [comments, setComments] = useState<AdminComment[]>([])
@@ -17,21 +19,29 @@ export default function AdminCommentsPage() {
   })
   const [bulkDeleteModal, setBulkDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const defaultLimit = getPageLimit('comments')
+  const [isAllMode, setIsAllMode] = useState(false)
+  const limit = isAllMode ? 0 : defaultLimit
 
   const fetchComments = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await api.getAdminComments({ page, limit: 7, includeDeleted })
+      const response = await api.getAdminComments({ page: limit === 0 ? 1 : page, limit: limit === 0 ? 9999 : limit, includeDeleted })
       setComments(response.data)
-      setTotalPages(response.meta.totalPages)
+      setTotalPages(limit === 0 ? 1 : response.meta.totalPages)
       setTotal(response.meta.total)
     } catch (err) {
       setError(err instanceof Error ? err.message : '댓글을 불러오는데 실패했습니다.')
     } finally {
       setIsLoading(false)
     }
-  }, [page, includeDeleted])
+  }, [page, includeDeleted, limit])
+
+  const handleToggleAll = () => {
+    setIsAllMode(!isAllMode)
+    setPage(1)
+  }
 
   useEffect(() => {
     fetchComments()
@@ -42,9 +52,9 @@ export default function AdminCommentsPage() {
     setSelectedIds([])
   }, [page, includeDeleted])
 
-  // ESC 키로 모달 닫기
+  // ESC/Enter 키로 모달 제어
   useEffect(() => {
-    const handleEscKey = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (deleteModal.isOpen) {
           setDeleteModal({ isOpen: false, comment: null })
@@ -52,10 +62,18 @@ export default function AdminCommentsPage() {
         if (bulkDeleteModal) {
           setBulkDeleteModal(false)
         }
+      } else if (e.key === 'Enter') {
+        if (deleteModal.isOpen) {
+          e.preventDefault()
+          handleDelete()
+        } else if (bulkDeleteModal) {
+          e.preventDefault()
+          handleBulkDelete()
+        }
       }
     }
-    document.addEventListener('keydown', handleEscKey)
-    return () => document.removeEventListener('keydown', handleEscKey)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [deleteModal.isOpen, bulkDeleteModal])
 
   const handleSelectAll = () => {
@@ -156,6 +174,7 @@ export default function AdminCommentsPage() {
               </button>
             </div>
           )}
+          <LimitSelector defaultLimit={defaultLimit} isAll={isAllMode} onToggle={handleToggleAll} />
           <label className="flex items-center gap-2 text-xs md:text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
             <input
               type="checkbox"

@@ -88,9 +88,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     setAlertState((prev) => ({ ...prev, isOpen: false, resolve: null }))
   }, [alertState.resolve])
 
-  // ESC key handler for modals
+  // ESC/Enter key handler for modals
   useEffect(() => {
-    const handleEscKey = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (confirmState.isOpen) {
           handleCancel()
@@ -98,11 +98,20 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         if (alertState.isOpen) {
           handleAlertClose()
         }
+      } else if (e.key === 'Enter') {
+        if (confirmState.isOpen) {
+          e.preventDefault()
+          handleConfirm()
+        }
+        if (alertState.isOpen) {
+          e.preventDefault()
+          handleAlertClose()
+        }
       }
     }
-    document.addEventListener('keydown', handleEscKey)
-    return () => document.removeEventListener('keydown', handleEscKey)
-  }, [confirmState.isOpen, alertState.isOpen, handleCancel, handleAlertClose])
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [confirmState.isOpen, alertState.isOpen, handleCancel, handleAlertClose, handleConfirm])
 
   const getConfirmTypeStyles = () => {
     switch (confirmState.type) {

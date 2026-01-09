@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
+import {
+  getPaginationSettings,
+  savePaginationSettings,
+  PaginationSettings,
+  DEFAULT_LIMITS,
+} from '../utils/paginationSettings'
 
 export default function AdminSettingsPage() {
   const { user, refreshUser } = useAuth()
@@ -21,6 +27,10 @@ export default function AdminSettingsPage() {
     linkedin: '',
     website: '',
   })
+
+  const [paginationSettings, setPaginationSettings] = useState<PaginationSettings>(() =>
+    getPaginationSettings()
+  )
 
   // 초기 로드 시에만 user 데이터로 폼 초기화
   useEffect(() => {
@@ -75,6 +85,14 @@ export default function AdminSettingsPage() {
     setFormData((prev) => ({ ...prev, avatar: '' }))
   }
 
+  const handlePaginationChange = (pageType: keyof PaginationSettings, value: number) => {
+    setPaginationSettings((prev) => ({ ...prev, [pageType]: value }))
+  }
+
+  const handleResetPagination = () => {
+    setPaginationSettings({ ...DEFAULT_LIMITS })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSaving(true)
@@ -111,6 +129,8 @@ export default function AdminSettingsPage() {
       if (refreshUser) {
         await refreshUser()
       }
+      // 페이지네이션 설정 저장
+      savePaginationSettings(paginationSettings)
       setMessage({ type: 'success', text: '설정이 저장되었습니다.' })
     } catch {
       setMessage({ type: 'error', text: '설정 저장에 실패했습니다.' })
@@ -347,6 +367,56 @@ export default function AdminSettingsPage() {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Pagination Settings */}
+          <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-8">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
+              <h2 className="text-base md:text-xl font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[20px] md:text-[24px]">
+                  table_rows
+                </span>
+                페이지네이션 기본값
+              </h2>
+              <button
+                type="button"
+                onClick={handleResetPagination}
+                className="px-2.5 md:px-3 py-1 md:py-1.5 text-[10px] md:text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                초기화
+              </button>
+            </div>
+            <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mb-4 md:mb-6">
+              각 관리 페이지에서 기본으로 표시할 항목 수를 설정합니다. (0 = 전체 표시)
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {[
+                { key: 'posts' as const, label: '게시물' },
+                { key: 'drafts' as const, label: '임시저장' },
+                { key: 'pages' as const, label: '페이지' },
+                { key: 'categories' as const, label: '카테고리' },
+                { key: 'tags' as const, label: '태그' },
+                { key: 'comments' as const, label: '댓글' },
+                { key: 'users' as const, label: '사용자' },
+              ].map(({ key, label }) => (
+                <div key={key}>
+                  <label
+                    htmlFor={`pagination-${key}`}
+                    className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                  >
+                    {label}
+                  </label>
+                  <input
+                    type="number"
+                    id={`pagination-${key}`}
+                    min="0"
+                    value={paginationSettings[key]}
+                    onChange={(e) => handlePaginationChange(key, Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs md:text-sm focus:border-primary focus:ring-primary/20 transition-shadow py-2 md:py-2.5"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 

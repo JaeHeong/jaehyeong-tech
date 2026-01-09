@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import api, { Tag, WeeklyVisitorsResponse } from '../services/api'
+import api, { Tag, WeeklyVisitorsResponse, RecentComment } from '../services/api'
 
 interface Author {
   name: string
@@ -31,13 +31,15 @@ interface SidebarProps {
   showPopularTopics?: boolean
   showTags?: boolean
   showVisitors?: boolean
+  showRecentComments?: boolean
 }
 
-export default function Sidebar({ showAuthor = true, showPopularTopics = true, showTags = true, showVisitors = true }: SidebarProps) {
+export default function Sidebar({ showAuthor = true, showPopularTopics = true, showTags = true, showVisitors = true, showRecentComments = true }: SidebarProps) {
   const [author, setAuthor] = useState<Author | null>(null)
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [visitors, setVisitors] = useState<WeeklyVisitorsResponse | null>(null)
+  const [recentComments, setRecentComments] = useState<RecentComment[]>([])
 
   useEffect(() => {
     // Fetch author info
@@ -93,11 +95,22 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true, s
       }
     }
 
+    // Fetch recent comments
+    const fetchRecentComments = async () => {
+      try {
+        const data = await api.getRecentComments(3)
+        setRecentComments(data)
+      } catch {
+        setRecentComments([])
+      }
+    }
+
     if (showAuthor) fetchAuthor()
     if (showPopularTopics) fetchPopularPosts()
     if (showTags) fetchTags()
     if (showVisitors) fetchVisitors()
-  }, [showAuthor, showPopularTopics, showTags, showVisitors])
+    if (showRecentComments) fetchRecentComments()
+  }, [showAuthor, showPopularTopics, showTags, showVisitors, showRecentComments])
 
   const formatViewCount = (count: number) => {
     if (count >= 1000) {
@@ -228,6 +241,62 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true, s
         </div>
       )}
 
+      {/* Recent Comments */}
+      {showRecentComments && recentComments.length > 0 && (
+        <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-green-500/10 rounded-lg text-green-500">
+              <span className="material-symbols-outlined">chat</span>
+            </div>
+            <h3 className="text-lg font-bold">최근 댓글</h3>
+          </div>
+          <div className="flex flex-col gap-4">
+            {recentComments.map((comment, index) => (
+              <Link
+                key={comment.id}
+                to={`/posts/${comment.post.slug}`}
+                className={`group ${
+                  index < recentComments.length - 1
+                    ? 'pb-4 border-b border-slate-100 dark:border-slate-800/50'
+                    : ''
+                }`}
+              >
+                <div className="flex items-start gap-2.5">
+                  {comment.authorAvatar ? (
+                    <img
+                      src={comment.authorAvatar}
+                      alt={comment.authorName}
+                      className="size-7 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="size-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                      <span className="material-symbols-outlined text-[14px] text-slate-400">person</span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                        {comment.authorName}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {formatRelativeTime(comment.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed group-hover:text-primary transition-colors">
+                      {comment.content}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1 truncate group-hover:text-primary/70 transition-colors">
+                      <span className="material-symbols-outlined text-[10px] align-middle mr-0.5">arrow_forward</span>
+                      {comment.post.title}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tags */}
       {showTags && tags.length > 0 && (
         <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -323,4 +392,19 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true, s
       )}
     </aside>
   )
+}
+
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return '방금'
+  if (diffMins < 60) return `${diffMins}분 전`
+  if (diffHours < 24) return `${diffHours}시간 전`
+  if (diffDays < 7) return `${diffDays}일 전`
+  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
 }

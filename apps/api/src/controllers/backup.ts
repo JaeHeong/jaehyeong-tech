@@ -27,6 +27,7 @@ interface BackupData {
     categories: unknown[]
     tags: unknown[]
     posts: unknown[]
+    drafts: unknown[]
     pages: unknown[]
     comments: unknown[]
   }
@@ -44,7 +45,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
     }
 
     // Fetch all data
-    const [users, categories, tags, posts, pages, comments] = await Promise.all([
+    const [users, categories, tags, posts, drafts, pages, comments] = await Promise.all([
       prisma.user.findMany({
         select: {
           id: true,
@@ -68,6 +69,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           tags: { select: { id: true } },
         },
       }),
+      prisma.draft.findMany(),
       prisma.page.findMany(),
       prisma.comment.findMany({
         select: {
@@ -89,7 +91,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
     const { description } = req.body as { description?: string }
 
     const backupData: BackupData = {
-      version: '1.1',
+      version: '1.2',
       description: description || undefined,
       createdAt: new Date().toISOString(),
       data: {
@@ -101,6 +103,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           tagIds: post.tags.map((t: { id: string }) => t.id),
           tags: undefined,
         })),
+        drafts,
         pages,
         comments,
       },
@@ -125,6 +128,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           categories: categories.length,
           tags: tags.length,
           posts: posts.length,
+          drafts: drafts.length,
           pages: pages.length,
           comments: comments.length,
         },
@@ -218,6 +222,7 @@ export async function getBackupInfo(req: AuthRequest, res: Response, next: NextF
           categories: backupData.data.categories?.length || 0,
           tags: backupData.data.tags?.length || 0,
           posts: backupData.data.posts?.length || 0,
+          drafts: backupData.data.drafts?.length || 0,
           pages: backupData.data.pages?.length || 0,
           comments: backupData.data.comments?.length || 0,
         },
@@ -285,6 +290,7 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
       // Delete in order respecting foreign key constraints
       await tx.comment.deleteMany({})
       await tx.post.deleteMany({})
+      await tx.draft.deleteMany({})
       await tx.page.deleteMany({})
       await tx.tag.deleteMany({})
       await tx.category.deleteMany({})
@@ -323,6 +329,13 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
         }
       }
 
+      // Restore drafts
+      if (backupData.data.drafts?.length) {
+        for (const draft of backupData.data.drafts) {
+          await tx.draft.create({ data: draft as never })
+        }
+      }
+
       // Restore comments (parent comments first, then replies)
       if (backupData.data.comments?.length) {
         const comments = backupData.data.comments as Array<{ parentId?: string | null } & Record<string, unknown>>
@@ -349,6 +362,7 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
           categories: backupData.data.categories?.length || 0,
           tags: backupData.data.tags?.length || 0,
           posts: backupData.data.posts?.length || 0,
+          drafts: backupData.data.drafts?.length || 0,
           pages: backupData.data.pages?.length || 0,
           comments: backupData.data.comments?.length || 0,
         },
