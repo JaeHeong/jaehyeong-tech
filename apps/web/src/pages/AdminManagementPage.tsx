@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { api, type BackupInfo, type BackupInfoDetail } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
 
@@ -54,6 +54,11 @@ export default function AdminManagementPage() {
       setIsLoadingBackups(false)
     }
   }
+
+  // Auto-load backups on mount
+  useEffect(() => {
+    fetchBackups()
+  }, [])
 
   const handleCreateBackup = async () => {
     setIsCreatingBackup(true)

@@ -53,8 +53,10 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [isCleaningImages, setIsCleaningImages] = useState(false)
   const [isCreatingBackup, setIsCreatingBackup] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const fetchData = async () => {
+  const fetchData = async (isRefresh = false) => {
+    if (isRefresh) setIsRefreshing(true)
     try {
       const [stats, visitorsData] = await Promise.all([
         api.getDashboardStats(),
@@ -66,6 +68,7 @@ export default function AdminDashboardPage() {
       setError(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다.')
     } finally {
       setIsLoading(false)
+      if (isRefresh) setIsRefreshing(false)
     }
   }
 
@@ -393,7 +396,7 @@ export default function AdminDashboardPage() {
           <div className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800">
             {data.recentDrafts.length > 0 ? (
               data.recentDrafts.map((draft) => (
-                <Link key={draft.id} to={`/admin/posts/${draft.id}/edit`} className="p-3 md:p-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group block">
+                <Link key={draft.id} to={`/admin/drafts/${draft.id}/edit`} className="p-3 md:p-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group block">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors line-clamp-1">{draft.title}</h4>
                     <span className="text-[10px] md:text-xs text-slate-400 shrink-0 ml-2">{formatDate(draft.updatedAt)}</span>
@@ -568,6 +571,16 @@ export default function AdminDashboardPage() {
               <h3 className="font-bold text-sm md:text-base">백업</h3>
               <span className="text-[10px] md:text-xs text-slate-400">({data.backups.length})</span>
             </div>
+            <button
+              onClick={() => fetchData(true)}
+              disabled={isRefreshing}
+              className="text-[10px] md:text-xs text-primary hover:text-primary/80 disabled:opacity-50 flex items-center gap-1"
+            >
+              <span className={`material-symbols-outlined text-[14px] md:text-[16px] ${isRefreshing ? 'animate-spin' : ''}`}>
+                {isRefreshing ? 'progress_activity' : 'refresh'}
+              </span>
+              {isRefreshing ? '불러오는 중...' : '새로고침'}
+            </button>
           </div>
           <div className="flex-1 overflow-y-auto p-3 md:p-4">
             {data.backups.length > 0 ? (

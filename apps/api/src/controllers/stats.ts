@@ -2,7 +2,7 @@ import type { Response, NextFunction } from 'express'
 import { prisma } from '../services/prisma.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { AppError } from '../middleware/errorHandler.js'
-import { listObjects, isOCIConfigured } from '../services/oci.js'
+import { listBackupObjects, isOCIConfigured } from '../services/oci.js'
 
 const BACKUP_FOLDER = 'backups'
 
@@ -143,7 +143,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
     let backups: { name: string; createdAt: string | null }[] = []
     if (isOCIConfigured()) {
       try {
-        const objects = await listObjects(BACKUP_FOLDER)
+        const objects = await listBackupObjects(BACKUP_FOLDER)
         backups = objects
           .filter((name) => name.endsWith('.json'))
           .map((name) => {
