@@ -26,6 +26,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
       newComments,
       totalViews,
       totalLikes,
+      totalUsers,
       categoryStats,
       tagStats,
       staticPages,
@@ -58,6 +59,8 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
       }),
       // Total likes
       prisma.like.count(),
+      // Total users (non-admin)
+      prisma.user.count({ where: { role: 'USER' } }),
       // Category stats (count only PUBLIC posts for display)
       prisma.category.findMany({
         select: {
@@ -187,6 +190,7 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
           newComments,
           totalViews: totalViews._sum.viewCount || 0,
           totalLikes,
+          totalUsers,
         },
         categories: categoryStats.map((cat) => ({
           id: cat.id,

@@ -19,6 +19,7 @@ const menuItems: MenuItem[] = [
   { path: '/admin/pages', icon: 'description', label: '페이지' },
   { path: '/admin/drafts', icon: 'edit_note', label: '임시저장' },
   { path: '/admin/comments', icon: 'chat', label: '댓글' },
+  { path: '/admin/users', icon: 'group', label: '사용자' },
   { path: '/admin/management', icon: 'storage', label: '시스템' },
   { path: '/admin/settings', icon: 'settings', label: '설정' },
   { path: '#logout', icon: 'logout', label: '로그아웃', isLogout: true },

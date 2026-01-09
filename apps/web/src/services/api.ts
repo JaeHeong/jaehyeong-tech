@@ -819,6 +819,7 @@ export interface DashboardStats {
     newComments: number
     totalViews: number
     totalLikes: number
+    totalUsers: number
   }
   categories: {
     id: string

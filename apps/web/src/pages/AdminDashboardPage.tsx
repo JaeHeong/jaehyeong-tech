@@ -150,7 +150,7 @@ export default function AdminDashboardPage() {
   return (
     <>
       {/* Stats Cards - 핵심 지표 */}
-      <div className="grid grid-cols-3 gap-3 md:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
         <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl p-3 md:p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0">
           <div>
             <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 font-medium mb-0.5 md:mb-1">
@@ -187,6 +187,19 @@ export default function AdminDashboardPage() {
             <span className="material-symbols-outlined text-[28px]">forum</span>
           </div>
         </div>
+
+        <Link to="/admin/users" className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl p-3 md:p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0 hover:border-primary/50 transition-colors group">
+          <div>
+            <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 font-medium mb-0.5 md:mb-1">사용자</p>
+            <h3 className="text-lg md:text-3xl font-bold">{data.stats.totalUsers}</h3>
+            <p className="text-[9px] md:text-xs text-primary mt-0.5 md:mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              전체보기 →
+            </p>
+          </div>
+          <div className="p-1.5 md:p-3 bg-green-500/10 rounded-lg text-green-500 hidden md:block">
+            <span className="material-symbols-outlined text-[28px]">group</span>
+          </div>
+        </Link>
       </div>
 
       {/* Weekly Visitors Card */}
