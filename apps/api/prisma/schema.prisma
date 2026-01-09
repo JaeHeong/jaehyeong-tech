@@ -8,26 +8,27 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  password  String?   // Optional for OAuth users
-  googleId  String?   @unique // Google OAuth ID
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String?    // Optional for OAuth users
+  googleId  String?    @unique // Google OAuth ID
   name      String
   avatar    String?
   bio       String?
-  title     String?   // Job title
+  title     String?    // Job title
   github    String?
   twitter   String?
   linkedin  String?
   website   String?
-  role      Role      @default(USER)
+  role      Role       @default(USER)
+  status    UserStatus @default(ACTIVE)
   posts     Post[]
   drafts    Draft[]
   pages     Page[]
   comments  Comment[]
   likes     Like[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@map("users")
 }
@@ -105,6 +106,11 @@ model Tag {
 enum Role {
   USER
   ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
 }
 
 enum PageType {

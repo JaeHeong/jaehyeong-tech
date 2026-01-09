@@ -33,6 +33,7 @@ const baseSidebarItems: Array<{
   { path: '/admin/pages', icon: 'description', label: '페이지 관리', badgeKey: 'pages' },
   { path: '/admin/drafts', icon: 'edit_note', label: '임시 저장 글', badgeKey: 'drafts' },
   { path: '/admin/comments', icon: 'chat', label: '댓글 관리', badgeKey: 'comments' },
+  { path: '/admin/users', icon: 'group', label: '사용자 관리' },
   { path: '/admin/management', icon: 'storage', label: '시스템 관리' },
   { path: '/admin/settings', icon: 'settings', label: '설정' },
 ]

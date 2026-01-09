@@ -591,6 +591,47 @@ class ApiClient {
     const response = await this.request<PageAnalyticsResponse>(`/analytics/page?path=${encodeURIComponent(path)}&period=${period}`)
     return response
   }
+
+  // User management endpoints
+  async getUsers(params?: UsersQueryParams) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.search) searchParams.set('search', params.search)
+    if (params?.status) searchParams.set('status', params.status)
+
+    const query = searchParams.toString()
+    return this.request<UsersResponse>(`/users${query ? `?${query}` : ''}`)
+  }
+
+  async getUserStats() {
+    const response = await this.request<{ data: UserStats }>('/users/stats')
+    return response.data
+  }
+
+  async updateUserStatus(userId: string, status: UserStatus) {
+    const response = await this.request<{ data: AdminUser }>(`/users/${userId}/status`, {
+      method: 'PATCH',
+      body: { status },
+    })
+    return response.data
+  }
+
+  async deleteUser(userId: string) {
+    return this.request<void>(`/users/${userId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async getSignupTrend(period: SignupTrendPeriod = 'daily') {
+    const response = await this.request<{ data: SignupTrendData }>(`/users/signup-trend?period=${period}`)
+    return response.data
+  }
+
+  async getSignupPattern() {
+    const response = await this.request<{ data: SignupPatternData }>('/users/signup-pattern')
+    return response.data
+  }
 }
 
 // Types
@@ -1139,6 +1180,65 @@ export interface PageAnalyticsResponse {
   data: PageAnalyticsData | null
   configured: boolean
   error?: string
+}
+
+// User management types
+export type UserStatus = 'ACTIVE' | 'SUSPENDED'
+
+export interface AdminUser {
+  id: string
+  email: string
+  name: string
+  avatar: string | null
+  role: 'ADMIN' | 'USER'
+  status: UserStatus
+  commentCount: number
+  createdAt: string
+}
+
+export interface UsersQueryParams {
+  page?: number
+  limit?: number
+  search?: string
+  status?: UserStatus | 'all'
+}
+
+export interface UsersResponse {
+  data: AdminUser[]
+  meta: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface UserStats {
+  totalUsers: number
+  suspendedUsers: number
+  activeUsers: number
+  todayNewUsers: number
+  yesterdayNewUsers: number
+  thisWeekNewUsers: number
+  lastWeekNewUsers: number
+  thisMonthNewUsers: number
+  lastMonthNewUsers: number
+}
+
+export type SignupTrendPeriod = 'daily' | 'weekly' | 'monthly'
+
+export interface SignupTrendData {
+  trend: { date: string; count: number }[]
+  summary: {
+    total: number
+    average: number
+    max: { date: string; count: number }
+  }
+}
+
+export interface SignupPatternData {
+  pattern: { day: string; count: number; average: number }[]
+  peakDay: string
 }
 
 export const api = new ApiClient(API_BASE_URL)

@@ -26,6 +26,7 @@ import AdminPostsPage from './pages/AdminPostsPage'
 import AdminCategoriesPage from './pages/AdminCategoriesPage'
 import AdminTagsPage from './pages/AdminTagsPage'
 import AdminCommentsPage from './pages/AdminCommentsPage'
+import AdminUsersPage from './pages/AdminUsersPage'
 import AdminDraftsPage from './pages/AdminDraftsPage'
 import AdminPagesPage from './pages/AdminPagesPage'
 import AdminPageEditorPage from './pages/AdminPageEditorPage'
@@ -94,6 +95,7 @@ const router = createBrowserRouter([
       { path: 'drafts', element: <AdminDraftsPage /> },
       { path: 'drafts/:id/edit', element: <AdminDraftEditorPage /> },
       { path: 'comments', element: <AdminCommentsPage /> },
+      { path: 'users', element: <AdminUsersPage /> },
       { path: 'pages', element: <AdminPagesPage /> },
       { path: 'pages/:id/edit', element: <AdminPageEditorPage /> },
       { path: 'management', element: <AdminManagementPage /> },
