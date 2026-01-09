@@ -78,10 +78,9 @@ export default function AdminCommentsPage() {
     setIsDeleting(true)
     try {
       await api.adminBulkDeleteComments(selectedIds)
-      setComments(comments.filter((c) => !selectedIds.includes(c.id)))
-      setTotal(total - selectedIds.length)
       setSelectedIds([])
       setBulkDeleteModal(false)
+      fetchComments() // 현재 페이지 다시 로드
     } catch (err) {
       setError(err instanceof Error ? err.message : '댓글 삭제에 실패했습니다.')
     } finally {
@@ -95,9 +94,8 @@ export default function AdminCommentsPage() {
     setIsDeleting(true)
     try {
       await api.adminDeleteComment(deleteModal.comment.id)
-      setComments(comments.filter((c) => c.id !== deleteModal.comment?.id))
-      setTotal(total - 1)
       setDeleteModal({ isOpen: false, comment: null })
+      fetchComments() // 현재 페이지 다시 로드
     } catch (err) {
       setError(err instanceof Error ? err.message : '댓글 삭제에 실패했습니다.')
     } finally {
