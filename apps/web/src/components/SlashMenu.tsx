@@ -7,6 +7,7 @@ export interface SlashMenuItem {
   command: (props: { editor: any; range: any }) => void
   category: string
   keywords?: string[]
+  disableInTable?: boolean
 }
 
 interface SlashMenuProps {

@@ -13,6 +13,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'title',
     category: '기본 블록',
     keywords: ['h1', 'heading', 'title', '제목'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('heading', { level: 1 }).run()
     },
@@ -23,6 +24,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'title',
     category: '기본 블록',
     keywords: ['h2', 'heading', 'subtitle', '제목'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('heading', { level: 2 }).run()
     },
@@ -33,6 +35,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'title',
     category: '기본 블록',
     keywords: ['h3', 'heading', '제목'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('heading', { level: 3 }).run()
     },
@@ -43,6 +46,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'format_list_bulleted',
     category: '기본 블록',
     keywords: ['ul', 'bullet', 'list', '목록'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).toggleBulletList().run()
     },
@@ -53,6 +57,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'format_list_numbered',
     category: '기본 블록',
     keywords: ['ol', 'number', 'list', '목록'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).toggleOrderedList().run()
     },
@@ -63,6 +68,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'format_quote',
     category: '기본 블록',
     keywords: ['quote', 'blockquote', '인용'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('blockquote').run()
     },
@@ -73,18 +79,20 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'horizontal_rule',
     category: '기본 블록',
     keywords: ['hr', 'divider', 'horizontal', '구분'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setHorizontalRule().run()
     },
   },
 
-  // 코드 블록
+  // 코드 블록 - 모두 테이블 내에서 비활성화
   {
     title: '코드 블록',
     description: '코드 블록 (자동 감지)',
     icon: 'code_blocks',
     category: '코드',
     keywords: ['code', 'codeblock', '코드'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock').run()
     },
@@ -95,6 +103,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'javascript',
     category: '코드',
     keywords: ['js', 'javascript', 'node'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'javascript' }).run()
     },
@@ -105,6 +114,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'code',
     category: '코드',
     keywords: ['ts', 'typescript'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'typescript' }).run()
     },
@@ -115,6 +125,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'code',
     category: '코드',
     keywords: ['py', 'python'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'python' }).run()
     },
@@ -125,6 +136,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'code',
     category: '코드',
     keywords: ['java'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'java' }).run()
     },
@@ -135,6 +147,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'terminal',
     category: '코드',
     keywords: ['bash', 'shell', 'sh', 'terminal', '터미널'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'bash' }).run()
     },
@@ -145,6 +158,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'database',
     category: '코드',
     keywords: ['sql', 'database', 'query', '쿼리'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'sql' }).run()
     },
@@ -155,6 +169,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'html',
     category: '코드',
     keywords: ['html', 'markup'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'html' }).run()
     },
@@ -165,6 +180,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'css',
     category: '코드',
     keywords: ['css', 'style', '스타일'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'css' }).run()
     },
@@ -175,6 +191,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'data_object',
     category: '코드',
     keywords: ['json', 'data'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'json' }).run()
     },
@@ -185,6 +202,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'settings',
     category: '코드',
     keywords: ['yaml', 'yml', 'config'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'yaml' }).run()
     },
@@ -195,6 +213,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'code',
     category: '코드',
     keywords: ['go', 'golang'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'go' }).run()
     },
@@ -205,6 +224,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'code',
     category: '코드',
     keywords: ['rust', 'rs'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'rust' }).run()
     },
@@ -215,6 +235,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'code',
     category: '코드',
     keywords: ['c'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'c' }).run()
     },
@@ -225,18 +246,20 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'code',
     category: '코드',
     keywords: ['cpp', 'c++'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setNode('codeBlock', { language: 'cpp' }).run()
     },
   },
 
-  // 특수 블록
+  // 특수 블록 - 모두 테이블 내에서 비활성화
   {
     title: '콜아웃',
     description: '강조 박스 (정보, 경고 등)',
     icon: 'lightbulb',
     category: '특수 블록',
     keywords: ['callout', 'info', 'warning', 'alert', '콜아웃', '정보'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).insertContent({
         type: 'callout',
@@ -251,6 +274,7 @@ export const slashMenuItems: SlashMenuItem[] = [
     icon: 'format_ink_highlighter',
     category: '특수 블록',
     keywords: ['pullquote', 'highlight', '인용'],
+    disableInTable: true,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).insertContent({
         type: 'pullQuote',
@@ -258,12 +282,53 @@ export const slashMenuItems: SlashMenuItem[] = [
       }).run()
     },
   },
+  {
+    title: '표',
+    description: '3x3 표 삽입',
+    icon: 'table',
+    category: '특수 블록',
+    keywords: ['table', '표', '테이블'],
+    disableInTable: true,
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+    },
+  },
+  {
+    title: '형광펜',
+    description: '텍스트 하이라이트',
+    icon: 'ink_highlighter',
+    category: '텍스트 서식',
+    keywords: ['highlight', '형광펜', '하이라이트', '강조'],
+    // 형광펜은 테이블 내에서도 사용 가능
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).toggleHighlight().run()
+    },
+  },
 ]
 
-// Filter items based on query
-const filterItems = (items: SlashMenuItem[], query: string): SlashMenuItem[] => {
+// Check if cursor is inside a table cell
+const isInsideTable = (editor: any): boolean => {
+  const { $from } = editor.state.selection
+  for (let depth = $from.depth; depth > 0; depth--) {
+    const node = $from.node(depth)
+    if (node.type.name === 'tableCell' || node.type.name === 'tableHeader') {
+      return true
+    }
+  }
+  return false
+}
+
+// Filter items based on query and context
+const filterItems = (items: SlashMenuItem[], query: string, editor?: any): SlashMenuItem[] => {
   const lowerQuery = query.toLowerCase()
+  const inTable = editor ? isInsideTable(editor) : false
+
   return items.filter((item) => {
+    // 테이블 내에서 비활성화된 항목 필터링
+    if (inTable && item.disableInTable) {
+      return false
+    }
+
     const titleMatch = item.title.toLowerCase().includes(lowerQuery)
     const descMatch = item.description.toLowerCase().includes(lowerQuery)
     const keywordMatch = item.keywords?.some((keyword) =>
@@ -293,7 +358,7 @@ export const SlashCommandsExtension = Extension.create({
       Suggestion({
         editor: this.editor,
         ...this.options.suggestion,
-        items: ({ query }: { query: string }) => filterItems(slashMenuItems, query),
+        items: ({ query }: { query: string }) => filterItems(slashMenuItems, query, this.editor),
         render: () => {
           let component: ReactRenderer<SlashMenuRef> | null = null
           let popup: TippyInstance[] | null = null

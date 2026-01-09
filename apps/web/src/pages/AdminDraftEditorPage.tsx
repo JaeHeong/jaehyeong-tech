@@ -810,6 +810,16 @@ export default function AdminDraftEditorPage() {
               <li className="flex items-center gap-1.5">
                 <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Ctrl+Shift+S</kbd>
                 <span>취소선</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Ctrl+Shift+H</kbd>
+                <span>형광펜</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Ctrl+Shift+L</kbd>
+                <span>좌측</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Ctrl+Shift+E</kbd>
+                <span>가운데</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Ctrl+Shift+R</kbd>
+                <span>우측</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Ctrl+Z</kbd>
@@ -827,6 +837,11 @@ export default function AdminDraftEditorPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Preview Styles */}
           <style>{`
+            .preview-content {
+              max-width: 718px;
+              margin-left: auto;
+              margin-right: auto;
+            }
             /* Headings */
             .preview-content h1 {
               font-size: 2rem;
@@ -860,8 +875,11 @@ export default function AdminDraftEditorPage() {
             /* Paragraphs */
             .preview-content p {
               margin-bottom: 1rem;
-              line-height: 1.75;
+              line-height: 1.8;
               color: #334155;
+            }
+            .preview-content > p:first-child {
+              font-size: 1.125rem;
             }
             .dark .preview-content p {
               color: #cbd5e1;
@@ -986,6 +1004,153 @@ export default function AdminDraftEditorPage() {
               border-radius: 0.5rem;
               margin: 1.5rem 0;
             }
+            /* Callout Block */
+            .preview-content .callout-static {
+              display: flex;
+              align-items: flex-start;
+              gap: 0.75rem;
+              margin: 1.5rem 0;
+              padding: 1rem;
+              border-radius: 0.75rem;
+              border-left: 4px solid var(--callout-border);
+              background: var(--callout-bg-light);
+            }
+            .dark .preview-content .callout-static {
+              background: var(--callout-bg-dark);
+            }
+            .preview-content .callout-static-icon {
+              font-size: 1.25rem;
+              line-height: 1.5;
+              flex-shrink: 0;
+            }
+            .preview-content .callout-static-content {
+              flex: 1;
+              min-width: 0;
+            }
+            .preview-content .callout-static-content p {
+              margin: 0;
+            }
+            /* PullQuote Block */
+            .preview-content .pullquote-static {
+              position: relative;
+              margin: 2rem 0;
+              padding: 2rem 3rem;
+              text-align: center;
+            }
+            .preview-content .pullquote-static-mark-open,
+            .preview-content .pullquote-static-mark-close {
+              position: absolute;
+              font-family: Georgia, 'Times New Roman', serif;
+              font-size: 5rem;
+              line-height: 1;
+              color: #3182f6;
+              opacity: 0.3;
+            }
+            .preview-content .pullquote-static-mark-open {
+              top: 0;
+              left: 0;
+            }
+            .preview-content .pullquote-static-mark-close {
+              bottom: -0.5rem;
+              right: 0;
+            }
+            .preview-content .pullquote-static-content p {
+              margin: 0;
+              font-size: 1.5rem;
+              font-weight: 500;
+              font-style: italic;
+              line-height: 1.6;
+              color: #334155;
+            }
+            .dark .preview-content .pullquote-static-content p {
+              color: #e2e8f0;
+            }
+            /* Highlight */
+            .preview-content mark {
+              background-color: #fef08a;
+              padding: 0.125rem 0.25rem;
+              border-radius: 0.25rem;
+            }
+            .dark .preview-content mark {
+              background-color: #854d0e;
+              color: #fef9c3;
+            }
+            /* Table */
+            .preview-content .tableWrapper {
+              overflow-x: auto;
+              margin: 1.5rem 0;
+            }
+            .preview-content table {
+              border-collapse: collapse;
+              table-layout: fixed;
+              width: 100%;
+              min-width: 100%;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+            }
+            .dark .preview-content table {
+              border-color: #334155;
+            }
+            .preview-content td,
+            .preview-content th {
+              border: 1px solid #e2e8f0;
+              padding: 0.5rem 0.75rem;
+              text-align: left;
+              vertical-align: middle;
+              min-width: 80px;
+              max-width: 300px;
+              word-wrap: break-word;
+              word-break: break-word;
+              overflow-wrap: break-word;
+              line-height: 1.4;
+              font-size: 0.9375rem;
+              min-height: 36px;
+              height: auto;
+            }
+            .preview-content td p,
+            .preview-content th p {
+              margin: 0;
+              line-height: 1.4;
+              min-height: 1.4em;
+            }
+            .dark .preview-content td,
+            .dark .preview-content th {
+              border-color: #334155;
+            }
+            .preview-content th {
+              font-weight: 600;
+              background-color: #f1f5f9;
+            }
+            .dark .preview-content th {
+              background-color: #334155;
+            }
+            /* Allow inline style to override default header background */
+            .preview-content th[style*="background-color"] {
+              background-color: unset;
+            }
+            /* Nested List Styles */
+            .preview-content ul { list-style-type: disc; }
+            .preview-content ul ul { list-style-type: circle; }
+            .preview-content ul ul ul { list-style-type: square; }
+            .preview-content ul ul ul ul { list-style-type: disc; }
+            .preview-content ul ul ul ul ul { list-style-type: circle; }
+            .preview-content ul ul ul ul ul ul { list-style-type: square; }
+            .preview-content ul ul ul ul ul ul ul { list-style-type: disc; }
+            .preview-content ul ul ul ul ul ul ul ul { list-style-type: circle; }
+            .preview-content ul ul ul ul ul ul ul ul ul { list-style-type: square; }
+            .preview-content ol { list-style-type: decimal; }
+            .preview-content ol ol { list-style-type: lower-alpha; }
+            .preview-content ol ol ol { list-style-type: lower-roman; }
+            .preview-content ol ol ol ol { list-style-type: decimal; }
+            .preview-content ol ol ol ol ol { list-style-type: lower-alpha; }
+            .preview-content ol ol ol ol ol ol { list-style-type: lower-roman; }
+            .preview-content ol ol ol ol ol ol ol { list-style-type: decimal; }
+            .preview-content ol ol ol ol ol ol ol ol { list-style-type: lower-alpha; }
+            .preview-content ol ol ol ol ol ol ol ol ol { list-style-type: lower-roman; }
+            /* Image alignment */
+            .preview-content img[data-align="left"] { display: block; margin-left: 0; margin-right: auto; }
+            .preview-content img[data-align="center"] { display: block; margin-left: auto; margin-right: auto; }
+            .preview-content img[data-align="right"] { display: block; margin-left: auto; margin-right: 0; }
           `}</style>
           {/* Backdrop */}
           <div
@@ -993,7 +1158,7 @@ export default function AdminDraftEditorPage() {
             onClick={() => setShowPreview(false)}
           />
           {/* Modal */}
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-[90vw] lg:max-w-[50vw] max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-[90vw] lg:max-w-[846px] max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
               <h2 className="text-lg font-bold flex items-center gap-2">

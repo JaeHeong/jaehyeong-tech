@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
 
 interface ConfirmOptions {
   title?: string
@@ -87,6 +87,22 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     alertState.resolve?.()
     setAlertState((prev) => ({ ...prev, isOpen: false, resolve: null }))
   }, [alertState.resolve])
+
+  // ESC key handler for modals
+  useEffect(() => {
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (confirmState.isOpen) {
+          handleCancel()
+        }
+        if (alertState.isOpen) {
+          handleAlertClose()
+        }
+      }
+    }
+    document.addEventListener('keydown', handleEscKey)
+    return () => document.removeEventListener('keydown', handleEscKey)
+  }, [confirmState.isOpen, alertState.isOpen, handleCancel, handleAlertClose])
 
   const getConfirmTypeStyles = () => {
     switch (confirmState.type) {

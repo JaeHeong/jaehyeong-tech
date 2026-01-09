@@ -342,6 +342,11 @@ export default function PostDetailPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Post Content Styles */}
       <style>{`
+        .post-content {
+          max-width: 768px;
+          margin-left: auto;
+          margin-right: auto;
+        }
         .post-content pre {
           position: relative;
           margin: 1.5rem 0;
@@ -491,8 +496,11 @@ export default function PostDetailPage() {
         .post-content h2 { font-size: 1.5rem; font-weight: 700; margin: 2rem 0 1rem; color: inherit; }
         .post-content h3 { font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 0.75rem; color: inherit; }
         /* Paragraphs */
-        .post-content p { margin: 1rem 0; line-height: 1.8; }
-        .post-content p:first-child { font-size: 1.125rem; }
+        .post-content p {
+          margin-bottom: 1rem;
+          line-height: 1.8;
+        }
+        .post-content > p:first-child { font-size: 1.125rem; }
         /* Word break and wrap */
         .post-content {
           word-break: keep-all; /* Korean: don't break in middle of words */
@@ -688,6 +696,103 @@ export default function PostDetailPage() {
         }
         .dark .post-content .pullquote-static-content p {
           color: #e2e8f0;
+        }
+        /* Table */
+        .post-content .tableWrapper {
+          overflow-x: auto;
+          margin: 1.5rem 0;
+        }
+        .post-content table {
+          border-collapse: collapse;
+          table-layout: fixed;
+          width: 100%;
+          min-width: 100%;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+        }
+        .dark .post-content table {
+          border-color: #334155;
+        }
+        .post-content td,
+        .post-content th {
+          border: 1px solid #e2e8f0;
+          padding: 0.5rem 0.75rem;
+          text-align: left;
+          vertical-align: middle;
+          min-width: 80px;
+          max-width: 300px;
+          word-wrap: break-word;
+          word-break: break-word;
+          overflow-wrap: break-word;
+          line-height: 1.4;
+          font-size: 0.9375rem;
+          min-height: 36px;
+          height: auto;
+        }
+        .post-content td p,
+        .post-content th p {
+          margin: 0;
+          line-height: 1.4;
+          min-height: 1.4em;
+        }
+        .dark .post-content td,
+        .dark .post-content th {
+          border-color: #334155;
+        }
+        /* Header cells - bold text with default background */
+        .post-content th {
+          font-weight: 600;
+          background-color: #f1f5f9;
+        }
+        .dark .post-content th {
+          background-color: #334155;
+        }
+        /* Allow inline style to override default header background */
+        .post-content th[style*="background-color"] {
+          background-color: unset;
+        }
+        /* Highlight */
+        .post-content mark {
+          background-color: #fef08a;
+          padding: 0.125rem 0.25rem;
+          border-radius: 2px;
+        }
+        .dark .post-content mark {
+          background-color: #854d0e;
+          color: #fef9c3;
+        }
+        /* Nested Lists */
+        .post-content ul { list-style-type: disc; }
+        .post-content ul ul { list-style-type: circle; }
+        .post-content ul ul ul { list-style-type: square; }
+        .post-content ul ul ul ul { list-style-type: disc; }
+        .post-content ul ul ul ul ul { list-style-type: circle; }
+        .post-content ul ul ul ul ul ul { list-style-type: square; }
+        .post-content ul ul ul ul ul ul ul { list-style-type: disc; }
+        .post-content ul ul ul ul ul ul ul ul { list-style-type: circle; }
+        .post-content ul ul ul ul ul ul ul ul ul { list-style-type: square; }
+        .post-content ol { list-style-type: decimal; }
+        .post-content ol ol { list-style-type: lower-alpha; }
+        .post-content ol ol ol { list-style-type: lower-roman; }
+        .post-content ol ol ol ol { list-style-type: decimal; }
+        .post-content ol ol ol ol ol { list-style-type: lower-alpha; }
+        .post-content ol ol ol ol ol ol { list-style-type: lower-roman; }
+        .post-content ol ol ol ol ol ol ol { list-style-type: decimal; }
+        .post-content ol ol ol ol ol ol ol ol { list-style-type: lower-alpha; }
+        .post-content ol ol ol ol ol ol ol ol ol { list-style-type: lower-roman; }
+        /* Image Alignment */
+        .post-content .resizable-image-wrapper {
+          display: flex;
+          margin: 1rem 0;
+        }
+        .post-content .resizable-image-wrapper.align-left {
+          justify-content: flex-start;
+        }
+        .post-content .resizable-image-wrapper.align-center {
+          justify-content: center;
+        }
+        .post-content .resizable-image-wrapper.align-right {
+          justify-content: flex-end;
         }
         /* Code Copy Button */
         .post-content pre > code {
@@ -891,7 +996,7 @@ export default function PostDetailPage() {
               {/* Content */}
               <div
                 ref={contentRef}
-                className="post-content text-slate-700 dark:text-slate-300 leading-relaxed"
+                className="post-content text-slate-700 dark:text-slate-300"
                 onClick={handleContentClick}
                 dangerouslySetInnerHTML={{ __html: contentWithIds || post.content }}
               />

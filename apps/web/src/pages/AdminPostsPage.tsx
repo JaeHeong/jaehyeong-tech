@@ -77,6 +77,22 @@ export default function AdminPostsPage() {
     }
   }, [])
 
+  // ESC 키로 모달 닫기
+  useEffect(() => {
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (deleteModal.isOpen) {
+          setDeleteModal({ isOpen: false, post: null })
+        }
+        if (bulkDeleteModal) {
+          setBulkDeleteModal(false)
+        }
+      }
+    }
+    document.addEventListener('keydown', handleEscKey)
+    return () => document.removeEventListener('keydown', handleEscKey)
+  }, [deleteModal.isOpen, bulkDeleteModal])
+
   const handleSelectAll = () => {
     if (selectedIds.length === posts.length) {
       setSelectedIds([])

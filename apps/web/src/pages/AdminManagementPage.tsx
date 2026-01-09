@@ -60,6 +60,23 @@ export default function AdminManagementPage() {
     fetchBackups()
   }, [])
 
+  // ESC key handler for modals
+  useEffect(() => {
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (previewBackup) {
+          setPreviewBackup(null)
+        }
+        if (showBackupModal && !isCreatingBackup) {
+          setShowBackupModal(false)
+          setBackupDescription('')
+        }
+      }
+    }
+    document.addEventListener('keydown', handleEscKey)
+    return () => document.removeEventListener('keydown', handleEscKey)
+  }, [previewBackup, showBackupModal, isCreatingBackup])
+
   const handleCreateBackup = async () => {
     setIsCreatingBackup(true)
     setBackupMessage(null)
