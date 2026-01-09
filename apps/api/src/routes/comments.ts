@@ -33,6 +33,9 @@ commentRouter.delete(
   commentController.deleteComment
 )
 
+// User routes (authenticated)
+commentRouter.get('/me', authenticate, commentController.getMyComments)
+
 // Admin routes
 commentRouter.get('/admin', authenticate, commentController.getAllComments)
 commentRouter.delete('/admin/:id', authenticate, validateParams(idParamSchema), commentController.adminDeleteComment)

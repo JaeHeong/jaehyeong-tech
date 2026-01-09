@@ -424,6 +424,58 @@ export async function deleteComment(req: AuthRequest, res: Response, next: NextF
   }
 }
 
+// User: Get my comments
+export async function getMyComments(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    if (!req.user) {
+      throw new AppError('로그인이 필요합니다.', 401)
+    }
+
+    const page = parseInt(req.query.page as string) || 1
+    const limit = parseInt(req.query.limit as string) || 10
+
+    const whereClause = {
+      authorId: req.user.id,
+      isDeleted: false,
+    }
+
+    const [comments, total] = await Promise.all([
+      prisma.comment.findMany({
+        where: whereClause,
+        include: {
+          post: { select: { id: true, title: true, slug: true } },
+          _count: { select: { replies: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.comment.count({ where: whereClause }),
+    ])
+
+    res.json({
+      data: comments.map((c) => ({
+        id: c.id,
+        content: c.content,
+        isPrivate: c.isPrivate,
+        post: c.post,
+        parentId: c.parentId,
+        replyCount: c._count.replies,
+        createdAt: c.createdAt.toISOString(),
+        updatedAt: c.updatedAt.toISOString(),
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 // Admin: Get all comments (for management)
 export async function getAllComments(req: AuthRequest, res: Response, next: NextFunction) {
   try {

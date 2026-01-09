@@ -28,11 +28,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api.getCurrentUser()
         .then(({ data }) => {
           setUser(data)
+          setIsLoading(false)
         })
         .catch(() => {
           api.logout()
-        })
-        .finally(() => {
           setIsLoading(false)
         })
     } else {
@@ -46,12 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { user } = await api.login(email, password)
       setUser(user)
+      setIsLoading(false)
     } catch (err) {
       const message = err instanceof Error ? err.message : '로그인에 실패했습니다.'
       setError(message)
-      throw err
-    } finally {
       setIsLoading(false)
+      throw err
     }
   }, [])
 
@@ -61,12 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { user } = await api.googleLogin(credential)
       setUser(user)
+      setIsLoading(false)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Google 로그인에 실패했습니다.'
       setError(message)
-      throw err
-    } finally {
       setIsLoading(false)
+      throw err
     }
   }, [])
 

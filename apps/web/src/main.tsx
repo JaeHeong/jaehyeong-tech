@@ -7,6 +7,7 @@ import { ToastProvider } from './contexts/ToastContext'
 import Layout from './components/Layout'
 import AdminLayout from './components/AdminLayout'
 import ProtectedRoute from './components/ProtectedRoute'
+import UserProtectedRoute from './components/UserProtectedRoute'
 import HomePage from './pages/HomePage'
 import PostListPage from './pages/PostListPage'
 import PostDetailPage from './pages/PostDetailPage'
@@ -31,6 +32,7 @@ import AdminPageEditorPage from './pages/AdminPageEditorPage'
 import AdminManagementPage from './pages/AdminManagementPage'
 import AdminAnalyticsPage from './pages/AdminAnalyticsPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import MyCommentsPage from './pages/MyCommentsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import './styles/index.css'
 
@@ -50,6 +52,20 @@ const router = createBrowserRouter([
       { path: 'notices/:slug', element: <NoticeDetailPage /> },
       { path: 'privacy', element: <PrivacyPolicyPage /> },
       { path: '*', element: <NotFoundPage /> },
+    ],
+  },
+  {
+    path: '/my',
+    element: <Layout />,
+    children: [
+      {
+        path: 'comments',
+        element: (
+          <UserProtectedRoute>
+            <MyCommentsPage />
+          </UserProtectedRoute>
+        ),
+      },
     ],
   },
   {

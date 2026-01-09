@@ -493,6 +493,16 @@ class ApiClient {
     return response.data
   }
 
+  // User comment endpoints
+  async getMyComments(params?: { page?: number; limit?: number }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+
+    const query = searchParams.toString()
+    return this.request<MyCommentsResponse>(`/comments/me${query ? `?${query}` : ''}`)
+  }
+
   // Admin comment endpoints
   async getAdminComments(params?: { page?: number; limit?: number; includeDeleted?: boolean }) {
     const searchParams = new URLSearchParams()
@@ -1032,6 +1042,31 @@ export interface AdminComment {
 
 export interface AdminCommentsResponse {
   data: AdminComment[]
+  meta: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface MyComment {
+  id: string
+  content: string
+  isPrivate: boolean
+  post: {
+    id: string
+    title: string
+    slug: string
+  }
+  parentId: string | null
+  replyCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MyCommentsResponse {
+  data: MyComment[]
   meta: {
     total: number
     page: number
