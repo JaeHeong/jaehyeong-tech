@@ -6,7 +6,7 @@ interface UserProtectedRouteProps {
 }
 
 export default function UserProtectedRoute({ children }: UserProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, isSuspended } = useAuth()
   const location = useLocation()
 
   // Show loading state while checking authentication
@@ -26,6 +26,11 @@ export default function UserProtectedRoute({ children }: UserProtectedRouteProps
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  // Redirect suspended users to suspended page
+  if (isSuspended) {
+    return <Navigate to="/suspended" replace />
   }
 
   return <>{children}</>

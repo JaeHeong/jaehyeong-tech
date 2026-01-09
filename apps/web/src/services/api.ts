@@ -647,6 +647,7 @@ export interface AuthUser {
   linkedin?: string
   website?: string
   role: 'ADMIN' | 'USER'
+  status?: 'ACTIVE' | 'SUSPENDED'
 }
 
 export interface AuthorInfo {

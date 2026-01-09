@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth()
+  const { isAuthenticated, isAdmin, isLoading, isSuspended } = useAuth()
   const location = useLocation()
 
   // Show loading state while checking authentication
@@ -27,6 +27,11 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/admin/login" state={{ from: location }} replace />
+  }
+
+  // Redirect suspended users to suspended page
+  if (isSuspended) {
+    return <Navigate to="/suspended" replace />
   }
 
   // Redirect to home if admin access required but user is not admin

@@ -68,6 +68,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
           name: user.name,
           avatar: user.avatar,
           role: user.role,
+          status: user.status,
         },
       },
     })
@@ -143,6 +144,7 @@ export async function getMe(req: AuthRequest, res: Response, next: NextFunction)
         linkedin: true,
         website: true,
         role: true,
+        status: true,
         createdAt: true,
       },
     })
@@ -339,6 +341,7 @@ export async function googleLogin(req: Request, res: Response, next: NextFunctio
           name: user.name,
           avatar: user.avatar,
           role: user.role,
+          status: user.status,
         },
       },
     })

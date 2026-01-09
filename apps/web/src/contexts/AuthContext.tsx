@@ -6,6 +6,7 @@ interface AuthContextType {
   isLoading: boolean
   isAuthenticated: boolean
   isAdmin: boolean
+  isSuspended: boolean
   login: (email: string, password: string) => Promise<void>
   googleLogin: (credential: string) => Promise<void>
   logout: () => void
@@ -92,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'ADMIN',
+    isSuspended: user?.status === 'SUSPENDED',
     login,
     googleLogin,
     logout,
