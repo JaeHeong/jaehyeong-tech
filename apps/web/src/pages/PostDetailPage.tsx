@@ -94,6 +94,7 @@ export default function PostDetailPage() {
   const [shareCopied, setShareCopied] = useState(false)
   const [tocExpanded, setTocExpanded] = useState(false)
   const [hoveredHeadingId, setHoveredHeadingId] = useState<string | null>(null)
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
   // TOC heading type
@@ -406,6 +407,58 @@ export default function PostDetailPage() {
       })
     }
   }, [hoveredHeadingId, tocHeadings])
+
+  // Track active heading based on scroll position
+  useEffect(() => {
+    if (tocHeadings.length === 0) return
+
+    const updateActiveHeading = () => {
+      const viewportThird = window.innerHeight / 3
+      let currentActive: string | null = null
+
+      // Find the heading that is closest to or just above the 1/3 viewport line
+      for (const heading of tocHeadings) {
+        const element = document.getElementById(heading.id)
+        if (element) {
+          const rect = element.getBoundingClientRect()
+          // If heading is above or at the 1/3 line of viewport, it could be active
+          if (rect.top <= viewportThird + 50) {
+            currentActive = heading.id
+          }
+        }
+      }
+
+      // If no heading found (scrolled to top), use first heading
+      if (!currentActive && tocHeadings.length > 0 && tocHeadings[0]) {
+        currentActive = tocHeadings[0].id
+      }
+
+      if (currentActive) {
+        setActiveHeadingId(currentActive)
+      }
+    }
+
+    // Initial check
+    updateActiveHeading()
+
+    // Throttled scroll handler
+    let ticking = false
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          updateActiveHeading()
+          ticking = false
+        })
+        ticking = true
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [tocHeadings])
 
   if (isLoading) {
     return (
@@ -1403,23 +1456,29 @@ export default function PostDetailPage() {
         >
           {/* Indicators - always visible underneath */}
           <div className="flex flex-col items-end gap-2 py-4 pl-6 pr-2 cursor-pointer">
-            {tocHeadings.map((heading) => (
-              <button
-                key={heading.id}
-                onClick={() => scrollToHeading(heading.id)}
-                onMouseEnter={() => setHoveredHeadingId(heading.id)}
-                onMouseLeave={() => setHoveredHeadingId(null)}
-                className={`
-                  rounded-full cursor-pointer transition-all duration-200
-                  ${heading.level === 1 ? 'w-5 h-1.5' : heading.level === 2 ? 'w-4 h-1' : 'w-3 h-1'}
-                  ${hoveredHeadingId === heading.id
-                    ? 'bg-primary'
-                    : 'bg-slate-300 dark:bg-slate-600'
-                  }
-                `}
-                title={heading.text}
-              />
-            ))}
+            {tocHeadings.map((heading) => {
+              const isActive = activeHeadingId === heading.id
+              const isHovered = hoveredHeadingId === heading.id
+              return (
+                <button
+                  key={heading.id}
+                  onClick={() => scrollToHeading(heading.id)}
+                  onMouseEnter={() => setHoveredHeadingId(heading.id)}
+                  onMouseLeave={() => setHoveredHeadingId(null)}
+                  className={`
+                    rounded-full cursor-pointer transition-all duration-200
+                    ${heading.level === 1 ? 'w-5 h-1.5' : heading.level === 2 ? 'w-4 h-1' : 'w-3 h-1'}
+                    ${isHovered
+                      ? 'bg-primary scale-110'
+                      : isActive
+                        ? 'bg-primary/70'
+                        : 'bg-slate-300 dark:bg-slate-600'
+                    }
+                  `}
+                  title={heading.text}
+                />
+              )
+            })}
           </div>
 
           {/* Expanded Panel - overlays on top of indicators */}
@@ -1438,24 +1497,30 @@ export default function PostDetailPage() {
           >
             <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 block">목차</span>
             <div className="flex flex-col gap-1">
-              {tocHeadings.map((heading) => (
-                <button
-                  key={heading.id}
-                  onClick={() => scrollToHeading(heading.id)}
-                  onMouseEnter={() => setHoveredHeadingId(heading.id)}
-                  onMouseLeave={() => setHoveredHeadingId(null)}
-                  className={`
-                    text-left py-1.5 px-2 rounded-lg transition-colors
-                    ${heading.level === 1 ? 'font-semibold text-sm' : heading.level === 2 ? 'pl-4 text-sm' : 'pl-6 text-xs'}
-                    ${hoveredHeadingId === heading.id
-                      ? 'text-primary bg-primary/10'
-                      : 'text-slate-600 dark:text-slate-400'
-                    }
-                  `}
-                >
-                  {heading.text}
-                </button>
-              ))}
+              {tocHeadings.map((heading) => {
+                const isActive = activeHeadingId === heading.id
+                const isHovered = hoveredHeadingId === heading.id
+                return (
+                  <button
+                    key={heading.id}
+                    onClick={() => scrollToHeading(heading.id)}
+                    onMouseEnter={() => setHoveredHeadingId(heading.id)}
+                    onMouseLeave={() => setHoveredHeadingId(null)}
+                    className={`
+                      text-left py-1.5 px-2 rounded-lg transition-colors
+                      ${heading.level === 1 ? 'font-semibold text-sm' : heading.level === 2 ? 'pl-4 text-sm' : 'pl-6 text-xs'}
+                      ${isHovered
+                        ? 'text-primary bg-primary/10'
+                        : isActive
+                          ? 'text-primary font-medium'
+                          : 'text-slate-600 dark:text-slate-400'
+                      }
+                    `}
+                  >
+                    {heading.text}
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>

@@ -214,13 +214,16 @@ export async function listBackups(req: AuthRequest, res: Response, next: NextFun
     }
 
     const objects = await listBackupObjects(BACKUP_FOLDER)
-    const backups = objects
-      .filter((name) => name.endsWith('.json'))
-      .map((name) => {
+    const backupFiles = objects.filter((name) => name.endsWith('.json'))
+
+    // Fetch description for each backup file
+    const backups = await Promise.all(
+      backupFiles.map(async (name) => {
         // Extract timestamp from filename: backup_2024-01-15T10-30-00-000Z.json
         // Original format was: 2024-01-15T10:30:00.000Z (colons and dots replaced with hyphens)
         const match = name.match(/backup_(.+)\.json$/)
         let createdAt: string | null = null
+        let description: string | null = null
 
         if (match && match[1]) {
           try {
@@ -240,15 +243,27 @@ export async function listBackups(req: AuthRequest, res: Response, next: NextFun
           }
         }
 
+        // Try to read description from backup file
+        try {
+          const buffer = await downloadFromBackupBucket(name)
+          const backupData: BackupData = JSON.parse(buffer.toString('utf-8'))
+          description = backupData.description || null
+        } catch {
+          // Ignore errors reading backup file
+        }
+
         return {
           name: name.split('/').pop(),
           fullPath: name,
           createdAt,
+          description,
         }
       })
-      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+    )
 
-    res.json({ data: backups })
+    const sortedBackups = backups.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+
+    res.json({ data: sortedBackups })
   } catch (error) {
     next(error)
   }

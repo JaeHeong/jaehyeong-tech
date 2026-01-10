@@ -312,6 +312,9 @@ export default function AdminManagementPage() {
                         <div className="flex-1 min-w-0">
                           <p className="font-mono text-[10px] text-slate-700 dark:text-slate-300 truncate">{backup.name}</p>
                           <p className="text-[10px] text-slate-500 mt-0.5">{formatBackupDate(backup.createdAt)}</p>
+                          {backup.description && (
+                            <p className="text-[10px] text-slate-500 mt-1 line-clamp-1">{backup.description}</p>
+                          )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <button
@@ -358,6 +361,7 @@ export default function AdminManagementPage() {
                     <thead className="bg-slate-50 dark:bg-slate-800/50">
                       <tr>
                         <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">파일명</th>
+                        <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">설명</th>
                         <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-400">생성일시</th>
                         <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-400">작업</th>
                       </tr>
@@ -366,6 +370,9 @@ export default function AdminManagementPage() {
                       {backups.map((backup) => (
                         <tr key={backup.fullPath} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                           <td className="px-4 py-3 font-mono text-xs">{backup.name}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[200px] truncate" title={backup.description || undefined}>
+                            {backup.description || <span className="text-slate-400">-</span>}
+                          </td>
                           <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                             {formatBackupDate(backup.createdAt)}
                           </td>

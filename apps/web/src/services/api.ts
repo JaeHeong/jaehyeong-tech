@@ -1072,6 +1072,7 @@ export interface BackupInfo {
   name: string
   fullPath: string
   createdAt: string | null
+  description: string | null
 }
 
 export interface BackupResult {
