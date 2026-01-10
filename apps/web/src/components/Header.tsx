@@ -85,7 +85,7 @@ export default function Header() {
   const mobileNavLinks = navLinks.filter((link) => !link.hideOnMobile)
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md transform-gpu">
       <div className="container-wrapper">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}

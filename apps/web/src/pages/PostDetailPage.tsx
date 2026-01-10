@@ -93,7 +93,7 @@ export default function PostDetailPage() {
   const [isBookmarking, setIsBookmarking] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
   const [tocExpanded, setTocExpanded] = useState(false)
-  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
+  const [hoveredHeadingId, setHoveredHeadingId] = useState<string | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
   // TOC heading type
@@ -375,40 +375,7 @@ export default function PostDetailPage() {
     })
   }, [])
 
-  // Track scroll position for active heading
-  useEffect(() => {
-    if (tocHeadings.length === 0) return
-
-    // Set initial active heading
-    const firstHeading = tocHeadings[0]
-    if (firstHeading) {
-      setActiveHeadingId(firstHeading.id)
-    }
-
-    // Scroll tracking
-    const handleScroll = () => {
-      let currentActive = tocHeadings[0]?.id || null
-
-      for (const heading of tocHeadings) {
-        const element = document.getElementById(heading.id)
-        if (element) {
-          const rect = element.getBoundingClientRect()
-          if (rect.top < window.innerHeight / 3) {
-            currentActive = heading.id
-          }
-        }
-      }
-
-      setActiveHeadingId(currentActive)
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll() // Initial check
-
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [tocHeadings])
-
-  // Scroll to heading - position at 1/3 of viewport (matching highlight calculation)
+  // Scroll to heading - position at 1/3 of viewport
   const scrollToHeading = (headingId: string) => {
     const element = document.getElementById(headingId)
     if (element) {
@@ -418,14 +385,27 @@ export default function PostDetailPage() {
         top: elementPosition - viewportThird + 20, // +20 for slight padding
         behavior: 'smooth'
       })
-
-      // Add highlight effect
-      element.classList.add('toc-highlight')
-      setTimeout(() => {
-        element.classList.remove('toc-highlight')
-      }, 2000)
     }
   }
+
+  // Handle TOC hover - highlight corresponding heading in content
+  useEffect(() => {
+    if (hoveredHeadingId) {
+      const element = document.getElementById(hoveredHeadingId)
+      if (element) {
+        element.classList.add('toc-hover-highlight')
+      }
+    }
+    return () => {
+      // Remove highlight from all headings when hover changes
+      tocHeadings.forEach((heading) => {
+        const element = document.getElementById(heading.id)
+        if (element) {
+          element.classList.remove('toc-hover-highlight')
+        }
+      })
+    }
+  }, [hoveredHeadingId, tocHeadings])
 
   if (isLoading) {
     return (
@@ -624,25 +604,15 @@ export default function PostDetailPage() {
         .post-content h1 { font-size: 2rem; font-weight: 700; margin: 2.5rem 0 1rem; color: inherit; }
         .post-content h2 { font-size: 1.5rem; font-weight: 700; margin: 2rem 0 1rem; color: inherit; }
         .post-content h3 { font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 0.75rem; color: inherit; }
-        /* TOC Highlight Animation */
-        .post-content h1.toc-highlight,
-        .post-content h2.toc-highlight,
-        .post-content h3.toc-highlight {
-          animation: tocHighlightFade 2s ease-out;
-        }
-        @keyframes tocHighlightFade {
-          0% {
-            background: linear-gradient(90deg, rgba(49, 130, 246, 0.3) 0%, rgba(49, 130, 246, 0.1) 100%);
-            border-radius: 4px;
-            padding-left: 8px;
-            margin-left: -8px;
-          }
-          100% {
-            background: transparent;
-            border-radius: 4px;
-            padding-left: 8px;
-            margin-left: -8px;
-          }
+        /* TOC Hover Highlight */
+        .post-content h1.toc-hover-highlight,
+        .post-content h2.toc-hover-highlight,
+        .post-content h3.toc-hover-highlight {
+          background: linear-gradient(90deg, rgba(49, 130, 246, 0.25) 0%, rgba(49, 130, 246, 0.08) 100%);
+          border-radius: 4px;
+          padding-left: 8px;
+          margin-left: -8px;
+          transition: background 0.2s ease-out;
         }
         /* Paragraphs */
         .post-content p {
@@ -1426,7 +1396,10 @@ export default function PostDetailPage() {
           className="fixed top-[25vh] z-40 hidden lg:block"
           style={{ left: 'max(1.5rem, calc((100vw - 80rem) / 2 - 2rem))' }}
           onMouseEnter={() => setTocExpanded(true)}
-          onMouseLeave={() => setTocExpanded(false)}
+          onMouseLeave={() => {
+            setTocExpanded(false)
+            setHoveredHeadingId(null)
+          }}
         >
           {/* Indicators - always visible underneath */}
           <div className="flex flex-col items-end gap-2 py-4 pl-6 pr-2 cursor-pointer">
@@ -1434,12 +1407,14 @@ export default function PostDetailPage() {
               <button
                 key={heading.id}
                 onClick={() => scrollToHeading(heading.id)}
+                onMouseEnter={() => setHoveredHeadingId(heading.id)}
+                onMouseLeave={() => setHoveredHeadingId(null)}
                 className={`
                   rounded-full cursor-pointer transition-all duration-200
                   ${heading.level === 1 ? 'w-5 h-1.5' : heading.level === 2 ? 'w-4 h-1' : 'w-3 h-1'}
-                  ${activeHeadingId === heading.id
+                  ${hoveredHeadingId === heading.id
                     ? 'bg-primary'
-                    : 'bg-slate-300 dark:bg-slate-600 hover:bg-primary/60'
+                    : 'bg-slate-300 dark:bg-slate-600'
                   }
                 `}
                 title={heading.text}
@@ -1467,12 +1442,14 @@ export default function PostDetailPage() {
                 <button
                   key={heading.id}
                   onClick={() => scrollToHeading(heading.id)}
+                  onMouseEnter={() => setHoveredHeadingId(heading.id)}
+                  onMouseLeave={() => setHoveredHeadingId(null)}
                   className={`
                     text-left py-1.5 px-2 rounded-lg transition-colors
                     ${heading.level === 1 ? 'font-semibold text-sm' : heading.level === 2 ? 'pl-4 text-sm' : 'pl-6 text-xs'}
-                    ${activeHeadingId === heading.id
+                    ${hoveredHeadingId === heading.id
                       ? 'text-primary bg-primary/10'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-700'
+                      : 'text-slate-600 dark:text-slate-400'
                     }
                   `}
                 >

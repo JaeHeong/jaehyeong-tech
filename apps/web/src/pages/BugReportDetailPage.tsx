@@ -4,12 +4,14 @@ import { api, BugReportDetail, AdminBugReport } from '../services/api'
 import { useSEO } from '../hooks/useSEO'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import { useModal } from '../contexts/ModalContext'
 
 export default function BugReportDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { isAdmin } = useAuth()
   const { showToast } = useToast()
+  const { confirm } = useModal()
   const [bugReport, setBugReport] = useState<BugReportDetail | AdminBugReport | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -123,7 +125,16 @@ export default function BugReportDetailPage() {
 
   const handleDelete = async () => {
     if (!id) return
-    if (!confirm('정말로 이 버그 리포트를 삭제하시겠습니까?')) return
+
+    const confirmed = await confirm({
+      title: '버그 리포트 삭제',
+      message: '정말로 이 버그 리포트를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+      confirmText: '삭제',
+      cancelText: '취소',
+      type: 'danger',
+    })
+
+    if (!confirmed) return
 
     setIsDeleting(true)
     try {
@@ -167,52 +178,52 @@ export default function BugReportDetailPage() {
   const adminReport = bugReport as AdminBugReport
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         {/* Header */}
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-4">
+        <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-3 sm:mb-4">
             <Link to="/" className="hover:text-primary transition-colors">홈</Link>
-            <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+            <span className="material-symbols-outlined text-[12px] sm:text-[14px]">chevron_right</span>
             <Link to="/bug-reports" className="hover:text-primary transition-colors">버그 리포트</Link>
-            <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+            <span className="material-symbols-outlined text-[12px] sm:text-[14px]">chevron_right</span>
             <span className="text-primary font-medium">상세</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             {getStatusBadge(bugReport.status)}
-            <span className="text-sm text-slate-500 dark:text-slate-400">
+            <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {getCategoryLabel(bugReport.category)}
             </span>
             {getPriorityBadge(bugReport.priority)}
           </div>
 
-          <h1 className="text-2xl font-bold mb-2">{bugReport.title}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <h1 className="text-xl sm:text-2xl font-bold mb-1.5 sm:mb-2">{bugReport.title}</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             {formatDate(bugReport.createdAt)}
           </p>
         </div>
 
         {/* Admin Info Section */}
         {isAdmin && adminReport.email && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-b border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="material-symbols-outlined text-[18px] text-blue-600 dark:text-blue-400">admin_panel_settings</span>
+          <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <span className="material-symbols-outlined text-[16px] sm:text-[18px] text-blue-600 dark:text-blue-400">admin_panel_settings</span>
               <span className="font-medium text-blue-800 dark:text-blue-300">관리자 정보</span>
             </div>
-            <div className="mt-2 text-sm text-blue-700 dark:text-blue-400">
+            <div className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-blue-700 dark:text-blue-400">
               <span className="font-medium">제출자 이메일:</span> {adminReport.email}
             </div>
           </div>
         )}
 
         {/* Content */}
-        <div className="p-6">
-          <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+        <div className="p-4 sm:p-6">
+          <h2 className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 sm:mb-3">
             설명
           </h2>
           <div className="prose prose-slate dark:prose-invert max-w-none">
-            <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300 leading-relaxed">
+            <p className="whitespace-pre-wrap text-sm sm:text-base text-slate-700 dark:text-slate-300 leading-relaxed">
               {bugReport.description}
             </p>
           </div>
@@ -220,17 +231,17 @@ export default function BugReportDetailPage() {
 
         {/* Admin Response Section (visible to all if exists) */}
         {bugReport.adminResponse && !isEditing && (
-          <div className="p-6 bg-green-50 dark:bg-green-900/20 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="material-symbols-outlined text-[20px] text-green-600 dark:text-green-400">verified</span>
-              <h3 className="font-semibold text-green-800 dark:text-green-300">관리자 답변</h3>
+          <div className="p-4 sm:p-6 bg-green-50 dark:bg-green-900/20 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+              <span className="material-symbols-outlined text-[18px] sm:text-[20px] text-green-600 dark:text-green-400">verified</span>
+              <h3 className="text-sm sm:text-base font-semibold text-green-800 dark:text-green-300">관리자 답변</h3>
               {bugReport.respondedAt && (
-                <span className="text-xs text-green-600 dark:text-green-400 ml-auto">
+                <span className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 ml-auto">
                   {formatDate(bugReport.respondedAt)}
                 </span>
               )}
             </div>
-            <p className="whitespace-pre-wrap text-green-700 dark:text-green-300 leading-relaxed">
+            <p className="whitespace-pre-wrap text-sm sm:text-base text-green-700 dark:text-green-300 leading-relaxed">
               {bugReport.adminResponse}
             </p>
           </div>
@@ -238,22 +249,22 @@ export default function BugReportDetailPage() {
 
         {/* Admin Edit Section */}
         {isAdmin && isEditing && (
-          <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[20px]">edit</span>
+          <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+            <h3 className="text-sm sm:text-base font-semibold mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2">
+              <span className="material-symbols-outlined text-[18px] sm:text-[20px]">edit</span>
               버그 리포트 수정
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
               {/* Status */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   상태
                 </label>
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary focus:border-primary"
+                  className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary focus:border-primary"
                 >
                   <option value="OPEN">OPEN</option>
                   <option value="IN_PROGRESS">IN PROGRESS</option>
@@ -264,13 +275,13 @@ export default function BugReportDetailPage() {
 
               {/* Priority */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   우선순위
                 </label>
                 <select
                   value={editPriority}
                   onChange={(e) => setEditPriority(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary focus:border-primary"
+                  className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary focus:border-primary"
                 >
                   <option value="LOW">낮음</option>
                   <option value="MEDIUM">보통</option>
@@ -280,15 +291,15 @@ export default function BugReportDetailPage() {
             </div>
 
             {/* Admin Response */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <div className="mb-3 sm:mb-4">
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 관리자 답변
               </label>
               <textarea
                 value={editAdminResponse}
                 onChange={(e) => setEditAdminResponse(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
+                className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
                 placeholder="버그 리포트에 대한 답변을 작성하세요..."
               />
             </div>
@@ -297,13 +308,13 @@ export default function BugReportDetailPage() {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {isSaving ? '저장 중...' : '저장'}
               </button>
               <button
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               >
                 취소
               </button>
@@ -312,17 +323,17 @@ export default function BugReportDetailPage() {
         )}
 
         {/* Footer */}
-        <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
-          <div className="flex flex-wrap gap-4">
+        <div className="p-4 sm:p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
+          <div className="flex flex-wrap gap-2 sm:gap-4">
             <Link
               to="/bug-reports"
-              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
               목록으로
             </Link>
             <Link
               to="/bug-report"
-              className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
             >
               새 리포트 작성
             </Link>
@@ -331,20 +342,20 @@ export default function BugReportDetailPage() {
               <>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors ml-auto"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors ml-auto"
                 >
                   <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                    <span className="material-symbols-outlined text-[16px] sm:text-[18px]">edit</span>
                     수정
                   </span>
                 </button>
                 <button
                   onClick={handleDelete}
                   disabled={isDeleting}
-                  className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
                 >
                   <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                    <span className="material-symbols-outlined text-[16px] sm:text-[18px]">delete</span>
                     {isDeleting ? '삭제 중...' : '삭제'}
                   </span>
                 </button>

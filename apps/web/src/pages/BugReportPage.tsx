@@ -117,16 +117,16 @@ export default function BugReportPage() {
   ]
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8">
         {/* Sidebar - Guidelines */}
-        <aside className="lg:col-span-4 space-y-6 order-2 lg:order-1">
-          <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold mb-4 text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <span className="material-symbols-outlined text-[20px]">info</span>
+        <aside className="lg:col-span-4 space-y-4 sm:space-y-6 order-2 lg:order-1">
+          <div className="bg-card-light dark:bg-card-dark rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 className="font-bold mb-3 sm:mb-4 text-xs sm:text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] sm:text-[20px]">info</span>
               Bug Report Guidelines
             </h3>
-            <ul className="space-y-4 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            <ul className="space-y-3 sm:space-y-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               <li className="flex gap-3">
                 <span className="text-primary font-bold">01.</span>
                 <span>문제가 발생한 환경(OS, Browser, Device)을 상세히 기재해 주세요.</span>
@@ -148,12 +148,12 @@ export default function BugReportPage() {
 
           {/* Recent Reports */}
           <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">최근 리포트 상태</h3>
+            <div className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">최근 리포트 상태</h3>
             </div>
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {recentReports.length === 0 ? (
-                <div className="p-4 text-center text-sm text-slate-500">
+                <div className="p-4 text-center text-xs sm:text-sm text-slate-500">
                   등록된 리포트가 없습니다.
                 </div>
               ) : (
@@ -161,13 +161,13 @@ export default function BugReportPage() {
                   <Link
                     key={report.id}
                     to={`/bug-reports/${report.id}`}
-                    className="block p-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                    className="block p-3 sm:p-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                   >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-sm font-medium truncate pr-4">{report.title}</span>
+                    <div className="flex justify-between items-start mb-1 gap-2">
+                      <span className="text-xs sm:text-sm font-medium truncate">{report.title}</span>
                       {getStatusBadge(report.status)}
                     </div>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-[10px] sm:text-xs text-slate-500">
                       {formatDate(report.createdAt)} • {getCategoryLabel(report.category)}
                     </span>
                   </Link>
@@ -176,19 +176,19 @@ export default function BugReportPage() {
             </div>
             <Link
               to="/bug-reports"
-              className="block p-3 text-center text-xs font-medium text-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-t border-slate-100 dark:border-slate-800"
+              className="block p-2.5 sm:p-3 text-center text-xs font-medium text-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-t border-slate-100 dark:border-slate-800"
             >
               전체 리포트 보기
             </Link>
           </div>
 
           {/* Contact Info */}
-          <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold mb-3 text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <span className="material-symbols-outlined text-[20px]">mail</span>
+          <div className="bg-card-light dark:bg-card-dark rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 className="font-bold mb-2 sm:mb-3 text-xs sm:text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] sm:text-[20px]">mail</span>
               보안 취약점 제보
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               보안 취약점 발견 시 공개 리포트 대신<br />
               <a href="mailto:rlawogud970301@gmail.com" className="text-primary hover:underline font-medium">
                 rlawogud970301@gmail.com
@@ -201,23 +201,23 @@ export default function BugReportPage() {
         {/* Main Form */}
         <main className="lg:col-span-8 order-1 lg:order-2">
           <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-3 sm:mb-4">
                 <Link to="/" className="hover:text-primary transition-colors">홈</Link>
-                <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+                <span className="material-symbols-outlined text-[12px] sm:text-[14px]">chevron_right</span>
                 <span className="text-primary font-medium">버그 리포트</span>
               </div>
-              <h2 className="text-2xl font-bold">버그 리포트 제출</h2>
-              <p className="text-slate-500 dark:text-slate-400 mt-1">
+              <h2 className="text-xl sm:text-2xl font-bold">버그 리포트 제출</h2>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
                 블로그 이용 중 발견하신 기술적인 문제나 버그를 알려주세요.
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Title */}
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="title">
+                <div className="space-y-1.5 sm:space-y-2 md:col-span-2">
+                  <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="title">
                     Issue Title <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -226,21 +226,21 @@ export default function BugReportPage() {
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="문제의 핵심 내용을 입력해 주세요"
-                    className="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm transition-all px-4 py-2.5"
+                    className="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm transition-all px-3 sm:px-4 py-2 sm:py-2.5"
                     required
                   />
                 </div>
 
                 {/* Category */}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="category">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="category">
                     Category <span className="text-red-500">*</span>
                   </label>
                   <select
                     id="category"
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value as Category })}
-                    className="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm transition-all px-4 py-2.5"
+                    className="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm transition-all px-3 sm:px-4 py-2 sm:py-2.5"
                     required
                   >
                     <option value="">카테고리 선택</option>
@@ -251,15 +251,15 @@ export default function BugReportPage() {
                 </div>
 
                 {/* Priority */}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="priority">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="priority">
                     Priority
                   </label>
                   <select
                     id="priority"
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value as Priority })}
-                    className="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm transition-all px-4 py-2.5"
+                    className="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm transition-all px-3 sm:px-4 py-2 sm:py-2.5"
                   >
                     {priorityOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -269,8 +269,8 @@ export default function BugReportPage() {
               </div>
 
               {/* Description */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="description">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="description">
                   Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -281,15 +281,15 @@ export default function BugReportPage() {
 2. 어떤 결과가 나타났나요?
 3. 기대했던 결과는 무엇인가요?
 4. 에러 로그가 있다면 함께 작성해 주세요.`}
-                  className="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm min-h-[200px] transition-all px-4 py-2.5 resize-y"
+                  className="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm min-h-[150px] sm:min-h-[200px] transition-all px-3 sm:px-4 py-2 sm:py-2.5 resize-y"
                   required
                 />
               </div>
 
               {/* Email (optional) */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="email">
-                  Email <span className="text-slate-400 font-normal">(선택, 답변 받기 원하시면 입력)</span>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="email">
+                  Email <span className="text-slate-400 font-normal text-[10px] sm:text-xs">(선택, 답변 받기 원하시면 입력)</span>
                 </label>
                 <input
                   id="email"
@@ -297,32 +297,32 @@ export default function BugReportPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="example@email.com"
-                  className="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm transition-all px-4 py-2.5"
+                  className="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm transition-all px-3 sm:px-4 py-2 sm:py-2.5"
                 />
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-2 sm:pt-4">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 sm:flex-none px-8 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 sm:px-8 py-2.5 sm:py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   {isSubmitting ? (
                     <>
-                      <span className="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+                      <span className="material-symbols-outlined text-[18px] sm:text-[20px] animate-spin">progress_activity</span>
                       제출 중...
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-[20px]">send</span>
+                      <span className="material-symbols-outlined text-[18px] sm:text-[20px]">send</span>
                       리포트 제출하기
                     </>
                   )}
                 </button>
                 <Link
                   to="/"
-                  className="flex-1 sm:flex-none px-8 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-center"
+                  className="px-6 sm:px-8 py-2.5 sm:py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-center text-sm sm:text-base"
                 >
                   취소
                 </Link>
