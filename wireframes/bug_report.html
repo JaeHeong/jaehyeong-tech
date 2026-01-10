@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html class="" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>버그 리포트 제출 - jaehyeong tech</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3182f6",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101722",
+                        "card-light": "#ffffff",
+                        "card-dark": "#1c232d",
+                        "secondary-dark": "#282f39"
+                    },
+                    fontFamily: {
+                        display: "Space Grotesk"
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        full: "9999px"
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen font-display text-slate-900 dark:text-white overflow-x-hidden selection:bg-primary selection:text-white">
+<header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex h-16 items-center justify-between gap-4">
+<div class="flex items-center gap-3 shrink-0">
+<div class="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
+<span class="material-symbols-outlined text-[24px]">terminal</span>
+</div>
+<a class="text-xl font-bold tracking-tight" href="#">jaehyeong<span class="text-primary"> tech</span></a>
+</div>
+<div class="hidden md:flex flex-1 items-center justify-end gap-6">
+<nav class="flex gap-6 mr-4">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">홈</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">소개</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">글 목록</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">카테고리</a>
+</nav>
+<div class="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-800">
+<div class="relative w-64 group">
+<div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">search</span>
+</div>
+<input class="block w-full py-1.5 pl-4 pr-10 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-primary/50 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="검색어를 입력하세요..." type="text"/>
+</div>
+<button class="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">dark_mode</span>
+</button>
+</div>
+</div>
+<div class="flex md:hidden items-center gap-4">
+<button class="p-2 text-slate-500">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+<button class="p-2 text-slate-500">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<aside class="lg:col-span-4 space-y-6 order-2 lg:order-1">
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+<h3 class="font-bold mb-4 text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">info</span>
+                        Bug Report Guidelines
+                    </h3>
+<ul class="space-y-4 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+<li class="flex gap-3">
+<span class="text-primary font-bold">01.</span>
+<span>문제가 발생한 환경(OS, Browser, Device)을 상세히 기재해 주세요.</span>
+</li>
+<li class="flex gap-3">
+<span class="text-primary font-bold">02.</span>
+<span>버그를 재현할 수 있는 단계를 구체적으로 설명해 주세요.</span>
+</li>
+<li class="flex gap-3">
+<span class="text-primary font-bold">03.</span>
+<span>스크린샷이나 에러 로그를 첨부하면 해결 속도가 빨라집니다.</span>
+</li>
+<li class="flex gap-3">
+<span class="text-primary font-bold">04.</span>
+<span>보안 취약점의 경우 공개 리포트 대신 이메일로 제보 바랍니다.</span>
+</li>
+</ul>
+</div>
+<div class="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+<div class="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+<h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">최근 리포트 상태</h3>
+</div>
+<div class="divide-y divide-slate-100 dark:divide-slate-800">
+<div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<div class="flex justify-between items-start mb-1">
+<span class="text-sm font-medium truncate pr-4">모바일 레이아웃 깨짐 현상</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">RESOLVED</span>
+</div>
+<span class="text-xs text-slate-500">2023.10.24 • UI</span>
+</div>
+<div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<div class="flex justify-between items-start mb-1">
+<span class="text-sm font-medium truncate pr-4">댓글 작성 시 간헐적 오류</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">IN PROGRESS</span>
+</div>
+<span class="text-xs text-slate-500">2023.10.23 • Functional</span>
+</div>
+<div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<div class="flex justify-between items-start mb-1">
+<span class="text-sm font-medium truncate pr-4">검색 결과 로딩 속도 저하</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">OPEN</span>
+</div>
+<span class="text-xs text-slate-500">2023.10.21 • Performance</span>
+</div>
+</div>
+<a class="block p-3 text-center text-xs font-medium text-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-t border-slate-100 dark:border-slate-800" href="#">
+                        전체 리포트 보기
+                    </a>
+</div>
+</aside>
+<main class="lg:col-span-8 order-1 lg:order-2 space-y-6">
+<div class="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+<div class="p-6 border-b border-slate-200 dark:border-slate-800">
+<h2 class="text-2xl font-bold">버그 리포트 제출</h2>
+<p class="text-slate-500 dark:text-slate-400 mt-1">블로그 이용 중 발견하신 기술적인 문제나 버그를 알려주세요.</p>
+</div>
+<form class="p-6 space-y-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2 md:col-span-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300" for="issue-title">Issue Title <span class="text-red-500">*</span></label>
+<input class="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-primary/20 text-sm transition-all" id="issue-title" placeholder="문제의 핵심 내용을 입력해 주세요" required="" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300" for="category">Category <span class="text-red-500">*</span></label>
+<select class="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-primary/20 text-sm transition-all" id="category" required="">
+<option value="">카테고리 선택</option>
+<option value="ui">UI/UX (레이아웃, 스타일)</option>
+<option value="functional">Functional (기능 고장)</option>
+<option value="performance">Performance (성능, 속도)</option>
+<option value="security">Security (보안 취약점)</option>
+<option value="etc">기타</option>
+</select>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300" for="priority">Priority</label>
+<select class="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-primary/20 text-sm transition-all" id="priority">
+<option value="low">낮음</option>
+<option selected="" value="medium">보통</option>
+<option value="high">높음 (긴급)</option>
+</select>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300" for="description">Description <span class="text-red-500">*</span></label>
+<textarea class="block w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-primary/20 text-sm min-h-[200px] transition-all" id="description" placeholder="1. 어떤 작업을 수행하려 했나요?
+2. 어떤 결과가 나타났나요?
+3. 기대했던 결과는 무엇인가요?
+4. 에러 로그가 있다면 함께 작성해 주세요." required=""></textarea>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Image Upload (Screenshots)</label>
+<div class="flex items-center justify-center w-full">
+<label class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-200 dark:border-slate-700 border-dashed rounded-lg cursor-pointer bg-slate-50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all">
+<div class="flex flex-col items-center justify-center pt-5 pb-6">
+<span class="material-symbols-outlined text-slate-400 mb-2">cloud_upload</span>
+<p class="mb-1 text-sm text-slate-500 dark:text-slate-400"><span class="font-semibold text-primary">클릭하여 업로드</span> 하거나 파일을 끌어오세요</p>
+<p class="text-xs text-slate-400">PNG, JPG or GIF (MAX. 10MB)</p>
+</div>
+<input class="hidden" multiple="" type="file"/>
+</label>
+</div>
+</div>
+<div class="flex items-center gap-4 pt-4">
+<button class="flex-1 sm:flex-none px-8 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2" type="submit">
+<span class="material-symbols-outlined text-[20px]">send</span>
+                                리포트 제출하기
+                            </button>
+<button class="flex-1 sm:flex-none px-8 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all" type="button">
+                                취소
+                            </button>
+</div>
+</form>
+</div>
+</main>
+</div>
+</div>
+<footer class="border-t border-slate-200 dark:border-slate-800 py-10 mt-12 bg-card-light dark:bg-card-dark">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-slate-500 dark:text-slate-400 text-sm">© 2023 jaehyeong tech. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="text-slate-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">rss_feed</span></a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">Twitter</a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">GitHub</a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">LinkedIn</a>
+</div>
+</div>
+</footer>
+
+</body></html>

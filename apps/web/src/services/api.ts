@@ -687,6 +687,59 @@ class ApiClient {
     const response = await this.request<{ data: SignupPatternData }>('/users/signup-pattern')
     return response.data
   }
+
+  // Bug Report endpoints (public)
+  async createBugReport(data: CreateBugReportData) {
+    const response = await this.request<{ data: { id: string; message: string } }>('/bug-reports', {
+      method: 'POST',
+      body: data,
+    })
+    return response.data
+  }
+
+  async getPublicBugReports(params?: { page?: number; limit?: number; status?: string; category?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.status) searchParams.set('status', params.status)
+    if (params?.category) searchParams.set('category', params.category)
+
+    const query = searchParams.toString()
+    return this.request<BugReportsResponse>(`/bug-reports/public${query ? `?${query}` : ''}`)
+  }
+
+  async getPublicBugReport(id: string) {
+    return this.request<{ data: BugReportDetail }>(`/bug-reports/public/${id}`)
+  }
+
+  // Bug Report endpoints (admin only)
+  async getAdminBugReports(params?: { page?: number; limit?: number; status?: string; category?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.status) searchParams.set('status', params.status)
+    if (params?.category) searchParams.set('category', params.category)
+
+    const query = searchParams.toString()
+    return this.request<{ data: AdminBugReport[]; meta: { page: number; limit: number; total: number; totalPages: number } }>(`/bug-reports${query ? `?${query}` : ''}`)
+  }
+
+  async getAdminBugReport(id: string) {
+    return this.request<{ data: AdminBugReport }>(`/bug-reports/${id}`)
+  }
+
+  async updateBugReport(id: string, data: UpdateBugReportData) {
+    return this.request<{ data: AdminBugReport }>(`/bug-reports/${id}`, {
+      method: 'PATCH',
+      body: data,
+    })
+  }
+
+  async deleteBugReport(id: string) {
+    return this.request<{ message: string }>(`/bug-reports/${id}`, {
+      method: 'DELETE',
+    })
+  }
 }
 
 // Types
@@ -1025,6 +1078,7 @@ export interface BackupResult {
     bookmarks: number
     likes: number
     images: number
+    bugReports: number
   }
 }
 
@@ -1044,6 +1098,7 @@ export interface BackupInfoDetail {
     bookmarks: number
     likes: number
     images: number
+    bugReports: number
   }
 }
 
@@ -1052,6 +1107,7 @@ export interface RestoreResult {
   message: string
   restoredAt: string
   stats: {
+    users: number
     categories: number
     tags: number
     posts: number
@@ -1061,6 +1117,7 @@ export interface RestoreResult {
     bookmarks: number
     likes: number
     images: number
+    bugReports: number
   }
 }
 
@@ -1379,6 +1436,53 @@ export interface SignupTrendData {
 export interface SignupPatternData {
   pattern: { day: string; count: number; average: number }[]
   peakDay: string
+}
+
+// Bug Report types
+export interface CreateBugReportData {
+  title: string
+  category: 'ui' | 'functional' | 'performance' | 'security' | 'etc'
+  priority: 'low' | 'medium' | 'high'
+  description: string
+  email?: string
+}
+
+export interface PublicBugReport {
+  id: string
+  title: string
+  category: 'UI' | 'FUNCTIONAL' | 'PERFORMANCE' | 'SECURITY' | 'ETC'
+  priority: 'LOW' | 'MEDIUM' | 'HIGH'
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
+  createdAt: string
+}
+
+export interface BugReportDetail extends PublicBugReport {
+  description: string
+  adminResponse?: string | null
+  respondedAt?: string | null
+}
+
+// Admin-only bug report with all fields
+export interface AdminBugReport extends BugReportDetail {
+  email?: string | null
+  ipHash?: string | null
+  updatedAt: string
+}
+
+export interface UpdateBugReportData {
+  status?: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH'
+  adminResponse?: string
+}
+
+export interface BugReportsResponse {
+  data: PublicBugReport[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
 }
 
 export const api = new ApiClient(API_BASE_URL)

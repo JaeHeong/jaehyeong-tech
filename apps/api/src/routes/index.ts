@@ -16,6 +16,7 @@ import { statsRouter } from './stats.js'
 import { draftRouter } from './drafts.js'
 import { analyticsRouter } from './analytics.js'
 import { usersRouter } from './users.js'
+import { bugReportRouter } from './bugReports.js'
 
 export const apiRouter: IRouter = Router()
 
@@ -36,6 +37,7 @@ apiRouter.use('/stats', statsRouter)
 apiRouter.use('/drafts', draftRouter)
 apiRouter.use('/analytics', analyticsRouter)
 apiRouter.use('/users', usersRouter)
+apiRouter.use('/bug-reports', bugReportRouter)
 
 // API info
 apiRouter.get('/', (_req, res) => {
@@ -59,6 +61,7 @@ apiRouter.get('/', (_req, res) => {
       drafts: '/api/drafts',
       analytics: '/api/analytics',
       users: '/api/users',
+      bugReports: '/api/bug-reports',
     },
   })
 })

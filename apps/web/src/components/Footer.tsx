@@ -43,6 +43,12 @@ export default function Footer() {
           >
             개인정보처리방침
           </Link>
+          <Link
+            to="/bug-report"
+            className="text-slate-400 hover:text-primary transition-colors text-xs md:text-sm"
+          >
+            버그 리포트
+          </Link>
         </div>
         <div className="flex gap-4 md:gap-6">
           <a

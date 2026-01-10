@@ -418,6 +418,12 @@ export default function PostDetailPage() {
         top: elementPosition - viewportThird + 20, // +20 for slight padding
         behavior: 'smooth'
       })
+
+      // Add highlight effect
+      element.classList.add('toc-highlight')
+      setTimeout(() => {
+        element.classList.remove('toc-highlight')
+      }, 2000)
     }
   }
 
@@ -618,6 +624,26 @@ export default function PostDetailPage() {
         .post-content h1 { font-size: 2rem; font-weight: 700; margin: 2.5rem 0 1rem; color: inherit; }
         .post-content h2 { font-size: 1.5rem; font-weight: 700; margin: 2rem 0 1rem; color: inherit; }
         .post-content h3 { font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 0.75rem; color: inherit; }
+        /* TOC Highlight Animation */
+        .post-content h1.toc-highlight,
+        .post-content h2.toc-highlight,
+        .post-content h3.toc-highlight {
+          animation: tocHighlightFade 2s ease-out;
+        }
+        @keyframes tocHighlightFade {
+          0% {
+            background: linear-gradient(90deg, rgba(49, 130, 246, 0.3) 0%, rgba(49, 130, 246, 0.1) 100%);
+            border-radius: 4px;
+            padding-left: 8px;
+            margin-left: -8px;
+          }
+          100% {
+            background: transparent;
+            border-radius: 4px;
+            padding-left: 8px;
+            margin-left: -8px;
+          }
+        }
         /* Paragraphs */
         .post-content p {
           margin-bottom: 1rem;

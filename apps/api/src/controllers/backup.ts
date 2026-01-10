@@ -33,6 +33,7 @@ interface BackupData {
     bookmarks?: unknown[]
     likes?: unknown[]
     images?: unknown[]
+    bugReports?: unknown[]
   }
 }
 
@@ -48,7 +49,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
     }
 
     // Fetch all data
-    const [users, categories, tags, posts, drafts, pages, comments, bookmarks, likes, images] = await Promise.all([
+    const [users, categories, tags, posts, drafts, pages, comments, bookmarks, likes, images, bugReports] = await Promise.all([
       prisma.user.findMany({
         select: {
           id: true,
@@ -87,6 +88,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           postId: true,
           authorId: true,
           parentId: true,
+          ipHash: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -126,12 +128,14 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           createdAt: true,
         },
       }),
+      // Bug reports
+      prisma.bugReport.findMany(),
     ])
 
     const { description } = req.body as { description?: string }
 
     const backupData: BackupData = {
-      version: '1.4',
+      version: '1.5',
       description: description || undefined,
       createdAt: new Date().toISOString(),
       data: {
@@ -149,6 +153,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
         bookmarks,
         likes,
         images,
+        bugReports,
       },
     }
 
@@ -177,6 +182,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           bookmarks: bookmarks.length,
           likes: likes.length,
           images: images.length,
+          bugReports: bugReports.length,
         },
       },
     })
@@ -274,6 +280,7 @@ export async function getBackupInfo(req: AuthRequest, res: Response, next: NextF
           bookmarks: backupData.data.bookmarks?.length || 0,
           likes: backupData.data.likes?.length || 0,
           images: backupData.data.images?.length || 0,
+          bugReports: backupData.data.bugReports?.length || 0,
         },
       },
     })
@@ -339,6 +346,8 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
       // Delete in order respecting foreign key constraints
       await tx.bookmark.deleteMany({})
       await tx.like.deleteMany({})
+      await tx.postView.deleteMany({})  // Must delete before posts
+      await tx.pageView.deleteMany({})  // Must delete before pages
       await tx.comment.deleteMany({})
       await tx.image.deleteMany({})
       await tx.post.deleteMany({})
@@ -346,6 +355,62 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
       await tx.page.deleteMany({})
       await tx.tag.deleteMany({})
       await tx.category.deleteMany({})
+      await tx.bugReport.deleteMany({})
+
+      // Restore users (upsert to preserve existing users and add missing ones)
+      if (backupData.data.users?.length) {
+        for (const user of backupData.data.users) {
+          const userData = user as {
+            id: string
+            email: string
+            googleId?: string | null
+            name: string
+            role: 'USER' | 'ADMIN'
+            status?: 'ACTIVE' | 'SUSPENDED'
+            avatar?: string | null
+            bio?: string | null
+            title?: string | null
+            github?: string | null
+            twitter?: string | null
+            linkedin?: string | null
+            website?: string | null
+            createdAt: Date | string
+          }
+          await tx.user.upsert({
+            where: { id: userData.id },
+            update: {
+              email: userData.email,
+              googleId: userData.googleId,
+              name: userData.name,
+              role: userData.role,
+              status: userData.status || 'ACTIVE',
+              avatar: userData.avatar,
+              bio: userData.bio,
+              title: userData.title,
+              github: userData.github,
+              twitter: userData.twitter,
+              linkedin: userData.linkedin,
+              website: userData.website,
+            },
+            create: {
+              id: userData.id,
+              email: userData.email,
+              googleId: userData.googleId,
+              name: userData.name,
+              role: userData.role,
+              status: userData.status || 'ACTIVE',
+              avatar: userData.avatar,
+              bio: userData.bio,
+              title: userData.title,
+              github: userData.github,
+              twitter: userData.twitter,
+              linkedin: userData.linkedin,
+              website: userData.website,
+              createdAt: new Date(userData.createdAt),
+            },
+          })
+        }
+      }
 
       // Restore categories
       if (backupData.data.categories?.length) {
@@ -424,6 +489,13 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
           await tx.image.create({ data: image as never })
         }
       }
+
+      // Restore bug reports (v1.5+)
+      if (backupData.data.bugReports?.length) {
+        for (const bugReport of backupData.data.bugReports) {
+          await tx.bugReport.create({ data: bugReport as never })
+        }
+      }
     })
 
     res.json({
@@ -432,6 +504,7 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
         message: '백업이 복원되었습니다.',
         restoredAt: new Date().toISOString(),
         stats: {
+          users: backupData.data.users?.length || 0,
           categories: backupData.data.categories?.length || 0,
           tags: backupData.data.tags?.length || 0,
           posts: backupData.data.posts?.length || 0,
@@ -441,6 +514,7 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
           bookmarks: backupData.data.bookmarks?.length || 0,
           likes: backupData.data.likes?.length || 0,
           images: backupData.data.images?.length || 0,
+          bugReports: backupData.data.bugReports?.length || 0,
         },
       },
     })

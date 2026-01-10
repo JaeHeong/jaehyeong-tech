@@ -37,6 +37,9 @@ import MyCommentsPage from './pages/MyCommentsPage'
 import MyBookmarksPage from './pages/MyBookmarksPage'
 import MySettingsPage from './pages/MySettingsPage'
 import SuspendedPage from './pages/SuspendedPage'
+import BugReportPage from './pages/BugReportPage'
+import BugReportListPage from './pages/BugReportListPage'
+import BugReportDetailPage from './pages/BugReportDetailPage'
 import NotFoundPage from './pages/NotFoundPage'
 import './styles/index.css'
 
@@ -55,6 +58,9 @@ const router = createBrowserRouter([
       { path: 'notices', element: <NoticePage /> },
       { path: 'notices/:slug', element: <NoticeDetailPage /> },
       { path: 'privacy', element: <PrivacyPolicyPage /> },
+      { path: 'bug-report', element: <BugReportPage /> },
+      { path: 'bug-reports', element: <BugReportListPage /> },
+      { path: 'bug-reports/:id', element: <BugReportDetailPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

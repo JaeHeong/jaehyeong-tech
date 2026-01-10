@@ -88,7 +88,7 @@ export default function AdminManagementPage() {
       const result = await api.createBackup(backupDescription.trim() || undefined)
       setBackupMessage({
         type: 'success',
-        text: `백업이 생성되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 북마크: ${result.data.stats.bookmarks}, 좋아요: ${result.data.stats.likes}, 이미지: ${result.data.stats.images})`,
+        text: `백업이 생성되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 북마크: ${result.data.stats.bookmarks}, 좋아요: ${result.data.stats.likes}, 이미지: ${result.data.stats.images}, 버그리포트: ${result.data.stats.bugReports})`,
       })
       setShowBackupModal(false)
       setBackupDescription('')
@@ -124,7 +124,7 @@ export default function AdminManagementPage() {
       const result = await api.restoreBackup(fileName)
       setBackupMessage({
         type: 'success',
-        text: `백업이 복원되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 북마크: ${result.data.stats.bookmarks}, 좋아요: ${result.data.stats.likes}, 이미지: ${result.data.stats.images})`,
+        text: `백업이 복원되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 북마크: ${result.data.stats.bookmarks}, 좋아요: ${result.data.stats.likes}, 이미지: ${result.data.stats.images}, 버그리포트: ${result.data.stats.bugReports})`,
       })
     } catch {
       setBackupMessage({ type: 'error', text: '백업 복원에 실패했습니다.' })
@@ -660,6 +660,10 @@ export default function AdminManagementPage() {
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
                   <p className="text-xl font-bold">{previewBackup.stats.users}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">사용자</p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                  <p className="text-xl font-bold">{previewBackup.stats.bugReports || 0}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">버그리포트</p>
                 </div>
               </div>
             </div>

@@ -256,3 +256,44 @@ model Draft {
   @@index([updatedAt])
   @@map("drafts")
 }
+
+enum BugReportCategory {
+  UI
+  FUNCTIONAL
+  PERFORMANCE
+  SECURITY
+  ETC
+}
+
+enum BugReportPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum BugReportStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model BugReport {
+  id            String            @id @default(cuid())
+  title         String
+  description   String
+  category      BugReportCategory
+  priority      BugReportPriority @default(MEDIUM)
+  status        BugReportStatus   @default(OPEN)
+  email         String?           // Optional contact email
+  ipHash        String?           // For spam prevention
+  adminResponse String?           // Admin response/comment
+  respondedAt   DateTime?         // When admin responded
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+  @@map("bug_reports")
+}
