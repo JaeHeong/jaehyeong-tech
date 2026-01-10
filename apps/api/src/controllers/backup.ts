@@ -30,6 +30,9 @@ interface BackupData {
     drafts: unknown[]
     pages: unknown[]
     comments: unknown[]
+    bookmarks?: unknown[]
+    likes?: unknown[]
+    images?: unknown[]
   }
 }
 
@@ -45,13 +48,15 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
     }
 
     // Fetch all data
-    const [users, categories, tags, posts, drafts, pages, comments] = await Promise.all([
+    const [users, categories, tags, posts, drafts, pages, comments, bookmarks, likes, images] = await Promise.all([
       prisma.user.findMany({
         select: {
           id: true,
           email: true,
+          googleId: true,
           name: true,
           role: true,
+          status: true,
           avatar: true,
           bio: true,
           title: true,
@@ -86,12 +91,47 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           updatedAt: true,
         },
       }),
+      // Bookmarks (user bookmarks)
+      prisma.bookmark.findMany({
+        select: {
+          id: true,
+          postId: true,
+          userId: true,
+          createdAt: true,
+        },
+      }),
+      // Likes (only logged-in user likes, not anonymous IP-based likes)
+      prisma.like.findMany({
+        where: {
+          userId: { not: null },
+        },
+        select: {
+          id: true,
+          postId: true,
+          userId: true,
+          createdAt: true,
+        },
+      }),
+      // Images (metadata for orphan cleanup)
+      prisma.image.findMany({
+        select: {
+          id: true,
+          url: true,
+          objectName: true,
+          filename: true,
+          size: true,
+          mimetype: true,
+          folder: true,
+          postId: true,
+          createdAt: true,
+        },
+      }),
     ])
 
     const { description } = req.body as { description?: string }
 
     const backupData: BackupData = {
-      version: '1.2',
+      version: '1.4',
       description: description || undefined,
       createdAt: new Date().toISOString(),
       data: {
@@ -106,6 +146,9 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
         drafts,
         pages,
         comments,
+        bookmarks,
+        likes,
+        images,
       },
     }
 
@@ -131,6 +174,9 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           drafts: drafts.length,
           pages: pages.length,
           comments: comments.length,
+          bookmarks: bookmarks.length,
+          likes: likes.length,
+          images: images.length,
         },
       },
     })
@@ -225,6 +271,9 @@ export async function getBackupInfo(req: AuthRequest, res: Response, next: NextF
           drafts: backupData.data.drafts?.length || 0,
           pages: backupData.data.pages?.length || 0,
           comments: backupData.data.comments?.length || 0,
+          bookmarks: backupData.data.bookmarks?.length || 0,
+          likes: backupData.data.likes?.length || 0,
+          images: backupData.data.images?.length || 0,
         },
       },
     })
@@ -288,7 +337,10 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
     await prisma.$transaction(async (tx) => {
       // Clear existing data (except current admin user)
       // Delete in order respecting foreign key constraints
+      await tx.bookmark.deleteMany({})
+      await tx.like.deleteMany({})
       await tx.comment.deleteMany({})
+      await tx.image.deleteMany({})
       await tx.post.deleteMany({})
       await tx.draft.deleteMany({})
       await tx.page.deleteMany({})
@@ -351,6 +403,27 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
           await tx.comment.create({ data: comment as never })
         }
       }
+
+      // Restore bookmarks (v1.3+)
+      if (backupData.data.bookmarks?.length) {
+        for (const bookmark of backupData.data.bookmarks) {
+          await tx.bookmark.create({ data: bookmark as never })
+        }
+      }
+
+      // Restore likes (v1.3+)
+      if (backupData.data.likes?.length) {
+        for (const like of backupData.data.likes) {
+          await tx.like.create({ data: like as never })
+        }
+      }
+
+      // Restore images (v1.4+)
+      if (backupData.data.images?.length) {
+        for (const image of backupData.data.images) {
+          await tx.image.create({ data: image as never })
+        }
+      }
     })
 
     res.json({
@@ -365,6 +438,9 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
           drafts: backupData.data.drafts?.length || 0,
           pages: backupData.data.pages?.length || 0,
           comments: backupData.data.comments?.length || 0,
+          bookmarks: backupData.data.bookmarks?.length || 0,
+          likes: backupData.data.likes?.length || 0,
+          images: backupData.data.images?.length || 0,
         },
       },
     })

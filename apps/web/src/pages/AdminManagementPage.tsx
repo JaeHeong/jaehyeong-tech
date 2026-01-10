@@ -88,7 +88,7 @@ export default function AdminManagementPage() {
       const result = await api.createBackup(backupDescription.trim() || undefined)
       setBackupMessage({
         type: 'success',
-        text: `백업이 생성되었습니다. (게시물: ${result.data.stats.posts}, 임시저장: ${result.data.stats.drafts}, 댓글: ${result.data.stats.comments}, 페이지: ${result.data.stats.pages})`,
+        text: `백업이 생성되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 북마크: ${result.data.stats.bookmarks}, 좋아요: ${result.data.stats.likes}, 이미지: ${result.data.stats.images})`,
       })
       setShowBackupModal(false)
       setBackupDescription('')
@@ -124,7 +124,7 @@ export default function AdminManagementPage() {
       const result = await api.restoreBackup(fileName)
       setBackupMessage({
         type: 'success',
-        text: `백업이 복원되었습니다. (게시물: ${result.data.stats.posts}, 임시저장: ${result.data.stats.drafts}, 댓글: ${result.data.stats.comments}, 페이지: ${result.data.stats.pages})`,
+        text: `백업이 복원되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 북마크: ${result.data.stats.bookmarks}, 좋아요: ${result.data.stats.likes}, 이미지: ${result.data.stats.images})`,
       })
     } catch {
       setBackupMessage({ type: 'error', text: '백업 복원에 실패했습니다.' })
@@ -632,6 +632,18 @@ export default function AdminManagementPage() {
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
                   <p className="text-xl font-bold">{previewBackup.stats.comments}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">댓글</p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                  <p className="text-xl font-bold">{previewBackup.stats.bookmarks}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">북마크</p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                  <p className="text-xl font-bold">{previewBackup.stats.likes}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">좋아요</p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                  <p className="text-xl font-bold">{previewBackup.stats.images}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">이미지</p>
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
                   <p className="text-xl font-bold">{previewBackup.stats.pages}</p>

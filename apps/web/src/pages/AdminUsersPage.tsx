@@ -26,6 +26,10 @@ export default function AdminUsersPage() {
     user: null,
     newStatus: null,
   })
+  const [profileModal, setProfileModal] = useState<{ isOpen: boolean; user: AdminUser | null }>({
+    isOpen: false,
+    user: null,
+  })
 
   const currentPage = parseInt(searchParams.get('page') || '1', 10)
   const currentStatus = (searchParams.get('status') || 'all') as UserStatus | 'all'
@@ -101,6 +105,7 @@ export default function AdminUsersPage() {
       if (e.key === 'Escape') {
         if (deleteModal.isOpen) setDeleteModal({ isOpen: false, user: null })
         if (statusModal.isOpen) setStatusModal({ isOpen: false, user: null, newStatus: null })
+        if (profileModal.isOpen) setProfileModal({ isOpen: false, user: null })
       } else if (e.key === 'Enter') {
         if (deleteModal.isOpen) {
           e.preventDefault()
@@ -113,7 +118,7 @@ export default function AdminUsersPage() {
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [deleteModal.isOpen, statusModal.isOpen])
+  }, [deleteModal.isOpen, statusModal.isOpen, profileModal.isOpen])
 
   const handleFilterChange = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams)
@@ -353,22 +358,27 @@ export default function AdminUsersPage() {
                         <span>가입일: {formatDate(user.createdAt)}</span>
                         <span>댓글: {user.commentCount}</span>
                       </div>
-                      {user.role !== 'ADMIN' && (
-                        <div className="flex items-center gap-1 mt-2">
-                          {user.status === 'ACTIVE' ? (
-                            <button onClick={() => setStatusModal({ isOpen: true, user, newStatus: 'SUSPENDED' })} className="p-1.5 text-slate-400 hover:text-orange-500" title="정지">
-                              <span className="material-symbols-outlined text-[18px]">block</span>
+                      <div className="flex items-center gap-1 mt-2">
+                        <button onClick={() => setProfileModal({ isOpen: true, user })} className="p-1.5 text-slate-400 hover:text-primary" title="프로필 보기">
+                          <span className="material-symbols-outlined text-[18px]">person</span>
+                        </button>
+                        {user.role !== 'ADMIN' && (
+                          <>
+                            {user.status === 'ACTIVE' ? (
+                              <button onClick={() => setStatusModal({ isOpen: true, user, newStatus: 'SUSPENDED' })} className="p-1.5 text-slate-400 hover:text-orange-500" title="정지">
+                                <span className="material-symbols-outlined text-[18px]">block</span>
+                              </button>
+                            ) : (
+                              <button onClick={() => setStatusModal({ isOpen: true, user, newStatus: 'ACTIVE' })} className="p-1.5 text-primary hover:text-primary/80" title="해제">
+                                <span className="material-symbols-outlined text-[18px]">settings_backup_restore</span>
+                              </button>
+                            )}
+                            <button onClick={() => setDeleteModal({ isOpen: true, user })} className="p-1.5 text-slate-400 hover:text-red-500" title="삭제">
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
                             </button>
-                          ) : (
-                            <button onClick={() => setStatusModal({ isOpen: true, user, newStatus: 'ACTIVE' })} className="p-1.5 text-primary hover:text-primary/80" title="해제">
-                              <span className="material-symbols-outlined text-[18px]">settings_backup_restore</span>
-                            </button>
-                          )}
-                          <button onClick={() => setDeleteModal({ isOpen: true, user })} className="p-1.5 text-slate-400 hover:text-red-500" title="삭제">
-                            <span className="material-symbols-outlined text-[18px]">delete</span>
-                          </button>
-                        </div>
-                      )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -423,24 +433,27 @@ export default function AdminUsersPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {user.role !== 'ADMIN' ? (
-                          <div className="flex items-center justify-end gap-1">
-                            {user.status === 'ACTIVE' ? (
-                              <button onClick={() => setStatusModal({ isOpen: true, user, newStatus: 'SUSPENDED' })} className="p-2 text-slate-400 hover:text-orange-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="정지">
-                                <span className="material-symbols-outlined text-[20px]">block</span>
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => setProfileModal({ isOpen: true, user })} className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="프로필 보기">
+                            <span className="material-symbols-outlined text-[20px]">person</span>
+                          </button>
+                          {user.role !== 'ADMIN' && (
+                            <>
+                              {user.status === 'ACTIVE' ? (
+                                <button onClick={() => setStatusModal({ isOpen: true, user, newStatus: 'SUSPENDED' })} className="p-2 text-slate-400 hover:text-orange-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="정지">
+                                  <span className="material-symbols-outlined text-[20px]">block</span>
+                                </button>
+                              ) : (
+                                <button onClick={() => setStatusModal({ isOpen: true, user, newStatus: 'ACTIVE' })} className="p-2 text-primary hover:text-primary/80 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="해제">
+                                  <span className="material-symbols-outlined text-[20px]">settings_backup_restore</span>
+                                </button>
+                              )}
+                              <button onClick={() => setDeleteModal({ isOpen: true, user })} className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="삭제">
+                                <span className="material-symbols-outlined text-[20px]">delete</span>
                               </button>
-                            ) : (
-                              <button onClick={() => setStatusModal({ isOpen: true, user, newStatus: 'ACTIVE' })} className="p-2 text-primary hover:text-primary/80 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="해제">
-                                <span className="material-symbols-outlined text-[20px]">settings_backup_restore</span>
-                              </button>
-                            )}
-                            <button onClick={() => setDeleteModal({ isOpen: true, user })} className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="삭제">
-                              <span className="material-symbols-outlined text-[20px]">delete</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">-</span>
-                        )}
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -724,6 +737,66 @@ export default function AdminUsersPage() {
               </button>
               <button onClick={handleDelete} className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold transition-colors">
                 삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Modal */}
+      {profileModal.isOpen && profileModal.user && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setProfileModal({ isOpen: false, user: null })} />
+          <div className="relative bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl shadow-2xl p-4 md:p-6 max-w-md w-full border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-5">
+              <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg text-primary">
+                <span className="material-symbols-outlined text-[20px] md:text-[24px]">person</span>
+              </div>
+              <h3 className="text-base md:text-lg font-bold">사용자 프로필</h3>
+            </div>
+
+            <div className="flex items-center gap-4 mb-4 md:mb-5">
+              {profileModal.user.avatar ? (
+                <img src={profileModal.user.avatar} alt="" className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400 font-bold text-lg md:text-xl">
+                  {getInitials(profileModal.user.name)}
+                </div>
+              )}
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-lg md:text-xl text-slate-900 dark:text-white">{profileModal.user.name}</h4>
+                  {profileModal.user.role === 'ADMIN' && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">관리자</span>
+                  )}
+                </div>
+                <p className="text-slate-500 text-sm">{profileModal.user.email}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-4 md:mb-5">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">소개</label>
+                <p className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+                  {profileModal.user.bio || <span className="text-slate-400 italic">소개가 없습니다.</span>}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">가입일</label>
+                  <p className="text-sm text-slate-700 dark:text-slate-300">{formatDate(profileModal.user.createdAt)}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">댓글 수</label>
+                  <p className="text-sm text-slate-700 dark:text-slate-300">{profileModal.user.commentCount}개</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button onClick={() => setProfileModal({ isOpen: false, user: null })} className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium transition-colors">
+                닫기
               </button>
             </div>
           </div>

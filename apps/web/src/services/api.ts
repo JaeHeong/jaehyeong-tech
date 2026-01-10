@@ -1022,6 +1022,9 @@ export interface BackupResult {
     drafts: number
     pages: number
     comments: number
+    bookmarks: number
+    likes: number
+    images: number
   }
 }
 
@@ -1038,6 +1041,9 @@ export interface BackupInfoDetail {
     drafts: number
     pages: number
     comments: number
+    bookmarks: number
+    likes: number
+    images: number
   }
 }
 
@@ -1052,6 +1058,9 @@ export interface RestoreResult {
     drafts: number
     pages: number
     comments: number
+    bookmarks: number
+    likes: number
+    images: number
   }
 }
 
@@ -1320,6 +1329,7 @@ export interface AdminUser {
   email: string
   name: string
   avatar: string | null
+  bio: string | null
   role: 'ADMIN' | 'USER'
   status: UserStatus
   commentCount: number
