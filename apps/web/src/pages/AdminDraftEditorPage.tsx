@@ -6,6 +6,8 @@ import { useToast } from '../contexts/ToastContext'
 import TipTapEditor from '../components/TipTapEditor'
 import { convertToSmartQuotes } from '../utils/smartQuotes'
 import { common, createLowlight } from 'lowlight'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 
 // Initialize lowlight for syntax highlighting in preview
 const lowlight = createLowlight(common)
@@ -15,24 +17,61 @@ function highlightCodeBlocks(html: string): string {
   const div = document.createElement('div')
   div.innerHTML = html
 
+  // Find all code blocks and apply highlighting with language labels
   const codeBlocks = div.querySelectorAll('pre code')
   codeBlocks.forEach((codeElement) => {
     const code = codeElement.textContent || ''
-    const language = codeElement.className.replace('language-', '') || ''
+    const languageClass = Array.from(codeElement.classList).find(c => c.startsWith('language-'))
+    const language = languageClass?.replace('language-', '') || ''
 
     try {
       let highlighted
+      let detectedLanguage = language
       if (language && lowlight.registered(language)) {
         highlighted = lowlight.highlight(language, code)
       } else {
         highlighted = lowlight.highlightAuto(code)
+        // Only use auto-detected language if confidence is high enough (relevance > 5)
+        const relevance = highlighted.data?.relevance || 0
+        detectedLanguage = relevance > 5 ? (highlighted.data?.language || '') : ''
       }
 
       const highlightedHtml = hastToHtml(highlighted)
       codeElement.innerHTML = highlightedHtml
       codeElement.classList.add('hljs')
+
+      // Add language label to pre element
+      if (detectedLanguage) {
+        const pre = codeElement.closest('pre')
+        if (pre) {
+          pre.setAttribute('data-language', detectedLanguage)
+          const langLabel = document.createElement('span')
+          langLabel.className = 'code-language-label'
+          langLabel.textContent = detectedLanguage
+          pre.style.position = 'relative'
+          pre.appendChild(langLabel)
+        }
+      }
     } catch {
       // If highlighting fails, keep original content
+    }
+  })
+
+  // Render LaTeX math expressions
+  const mathElements = div.querySelectorAll('[data-type="inlineMath"]')
+  mathElements.forEach((element) => {
+    const latex = element.getAttribute('data-latex')
+    if (latex) {
+      try {
+        const displayMode = element.getAttribute('data-display') === 'yes'
+        const rendered = katex.renderToString(latex, {
+          throwOnError: false,
+          displayMode,
+        })
+        element.innerHTML = rendered
+      } catch {
+        // Keep original content if rendering fails
+      }
     }
   })
 
@@ -1005,6 +1044,21 @@ export default function AdminDraftEditorPage() {
             }
             .dark .preview-content pre code {
               color: #e6edf3;
+            }
+            /* Code Language Label */
+            .preview-content .code-language-label {
+              position: absolute;
+              top: 7px;
+              left: 72px;
+              font-size: 11px;
+              font-weight: 500;
+              color: #64748b;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              pointer-events: none;
+            }
+            .dark .preview-content .code-language-label {
+              color: #94a3b8;
             }
             /* Inline code */
             .preview-content code:not(pre code) {

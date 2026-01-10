@@ -22,6 +22,8 @@ import { api } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
 import { useToast } from '../contexts/ToastContext'
 import { SlashCommandsExtension } from './SlashCommands'
+import MathExtension from '@aarkue/tiptap-math-extension'
+import 'katex/dist/katex.min.css'
 import 'tippy.js/dist/tippy.css'
 import 'tippy.js/animations/shift-toward-subtle.css'
 
@@ -1162,6 +1164,13 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
         closeDoubleQuote: '\u201D',
         openSingleQuote: '\u2018',
         closeSingleQuote: '\u2019',
+      }),
+      MathExtension.configure({
+        evaluation: false,
+        katexOptions: {
+          throwOnError: false,
+          strict: false,
+        },
       }),
     ],
     content,

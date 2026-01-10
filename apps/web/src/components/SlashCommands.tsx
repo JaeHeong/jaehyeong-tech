@@ -304,6 +304,34 @@ export const slashMenuItems: SlashMenuItem[] = [
       editor.chain().focus().deleteRange(range).toggleHighlight().run()
     },
   },
+
+  // 수학 수식
+  {
+    title: '인라인 수식',
+    description: '텍스트 내 수식 (예: $x^2$)',
+    icon: 'functions',
+    category: '수학',
+    keywords: ['math', 'latex', 'equation', 'inline', '수식', '수학', '방정식', 'katex'],
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent({
+        type: 'inlineMath',
+        attrs: { latex: 'x^2' },
+      }).run()
+    },
+  },
+  {
+    title: '블록 수식',
+    description: '독립된 수식 블록 (예: $$\\sum_{i=1}^n$$)',
+    icon: 'calculate',
+    category: '수학',
+    keywords: ['math', 'latex', 'equation', 'block', 'display', '수식', '수학', '방정식', 'katex'],
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent({
+        type: 'inlineMath',
+        attrs: { latex: '\\sum_{i=1}^{n} x_i', display: 'yes' },
+      }).run()
+    },
+  },
 ]
 
 // Check if cursor is inside a table cell

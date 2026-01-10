@@ -7,6 +7,56 @@ import Sidebar from '../components/Sidebar'
 import CommentSection from '../components/CommentSection'
 import MobileProfileModal from '../components/MobileProfileModal'
 import { useSEO } from '../hooks/useSEO'
+import { common, createLowlight } from 'lowlight'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
+
+// Initialize lowlight for syntax highlighting
+const lowlight = createLowlight(common)
+
+// Render LaTeX math expressions in HTML content
+function renderMathExpressions(doc: Document): void {
+  const mathElements = doc.querySelectorAll('[data-type="inlineMath"]')
+  mathElements.forEach((element) => {
+    const latex = element.getAttribute('data-latex')
+    if (latex) {
+      try {
+        const displayMode = element.getAttribute('data-display') === 'yes'
+        const rendered = katex.renderToString(latex, {
+          throwOnError: false,
+          displayMode,
+        })
+        element.innerHTML = rendered
+      } catch {
+        // Keep original content if rendering fails
+      }
+    }
+  })
+}
+
+// Simple hast to HTML converter
+function hastToHtml(tree: ReturnType<typeof lowlight.highlight>): string {
+  function nodeToHtml(node: unknown): string {
+    if (!node || typeof node !== 'object') return ''
+
+    const n = node as { type?: string; value?: string; tagName?: string; properties?: { className?: string[] }; children?: unknown[] }
+
+    if (n.type === 'text') {
+      return n.value || ''
+    }
+    if (n.type === 'element' && n.tagName) {
+      const className = n.properties?.className?.join(' ') || ''
+      const children = (n.children || []).map(nodeToHtml).join('')
+      if (className) {
+        return `<span class="${className}">${children}</span>`
+      }
+      return children
+    }
+    return ''
+  }
+
+  return (tree.children || []).map(nodeToHtml).join('')
+}
 
 interface AdjacentPost {
   slug: string
@@ -201,7 +251,7 @@ export default function PostDetailPage() {
   }, [relatedPosts.length, isRelatedPaused])
 
 
-  // Extract headings from content, add IDs, and add copy buttons to code blocks
+  // Extract headings from content, add IDs, apply syntax highlighting, and add copy buttons to code blocks
   const { tocHeadings, contentWithIds } = useMemo(() => {
     if (!post?.content) return { tocHeadings: [] as TocHeading[], contentWithIds: '' }
 
@@ -221,10 +271,57 @@ export default function PostDetailPage() {
       })
     })
 
-    // Add copy buttons to all pre elements
+    // Apply syntax highlighting to code blocks and add language labels
+    const codeBlocks = doc.querySelectorAll('pre code')
+    codeBlocks.forEach((codeElement) => {
+      const code = codeElement.textContent || ''
+      const languageClass = Array.from(codeElement.classList).find(c => c.startsWith('language-'))
+      const language = languageClass?.replace('language-', '') || ''
+
+      try {
+        let highlighted
+        let detectedLanguage = language
+        if (language && lowlight.registered(language)) {
+          highlighted = lowlight.highlight(language, code)
+        } else {
+          highlighted = lowlight.highlightAuto(code)
+          // Only use auto-detected language if confidence is high enough (relevance > 5)
+          const relevance = highlighted.data?.relevance || 0
+          detectedLanguage = relevance > 5 ? (highlighted.data?.language || '') : ''
+        }
+
+        // Convert hast to HTML string
+        const highlightedHtml = hastToHtml(highlighted)
+        codeElement.innerHTML = highlightedHtml
+        codeElement.classList.add('hljs')
+
+        // Store detected language for label
+        if (detectedLanguage) {
+          const pre = codeElement.closest('pre')
+          if (pre) {
+            pre.setAttribute('data-language', detectedLanguage)
+          }
+        }
+      } catch {
+        // If highlighting fails, keep original content
+      }
+    })
+
+    // Add copy buttons and language labels to all pre elements
     const preElements = doc.querySelectorAll('pre')
     preElements.forEach((pre, index) => {
       pre.style.position = 'relative'
+
+      // Add language label
+      const language = pre.getAttribute('data-language')
+      if (language) {
+        const langLabel = doc.createElement('span')
+        langLabel.className = 'code-language-label'
+        langLabel.textContent = language
+        pre.appendChild(langLabel)
+      }
+
+      // Add copy button
       const copyBtn = doc.createElement('button')
       copyBtn.className = 'code-copy-btn'
       copyBtn.setAttribute('data-copy-index', index.toString())
@@ -232,6 +329,9 @@ export default function PostDetailPage() {
       copyBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span>'
       pre.appendChild(copyBtn)
     })
+
+    // Render LaTeX math expressions
+    renderMathExpressions(doc)
 
     return {
       tocHeadings: tocList,
@@ -816,6 +916,21 @@ export default function PostDetailPage() {
         }
         .post-content .resizable-image-wrapper.align-right {
           justify-content: flex-end;
+        }
+        /* Code Language Label */
+        .post-content .code-language-label {
+          position: absolute;
+          top: 7px;
+          left: 72px;
+          font-size: 11px;
+          font-weight: 500;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          pointer-events: none;
+        }
+        .dark .post-content .code-language-label {
+          color: #94a3b8;
         }
         /* Code Copy Button */
         .post-content pre > code {

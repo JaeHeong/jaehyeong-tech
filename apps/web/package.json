@@ -12,6 +12,7 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
+    "@aarkue/tiptap-math-extension": "^1.4.0",
     "@tiptap/core": "^3.15.0",
     "@tiptap/extension-code-block-lowlight": "^3.15.0",
     "@tiptap/extension-color": "^3.15.3",
@@ -31,6 +32,7 @@
     "@tiptap/react": "^3.15.0",
     "@tiptap/starter-kit": "^3.15.0",
     "@tiptap/suggestion": "^3.15.3",
+    "katex": "^0.16.27",
     "lowlight": "^3.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

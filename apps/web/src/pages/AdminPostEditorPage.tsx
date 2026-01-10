@@ -6,6 +6,8 @@ import { useToast } from '../contexts/ToastContext'
 import TipTapEditor from '../components/TipTapEditor'
 import { convertToSmartQuotes } from '../utils/smartQuotes'
 import { common, createLowlight } from 'lowlight'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 
 // Initialize lowlight for syntax highlighting in preview
 const lowlight = createLowlight(common)
@@ -16,26 +18,62 @@ function highlightCodeBlocks(html: string): string {
   const div = document.createElement('div')
   div.innerHTML = html
 
-  // Find all code blocks and apply highlighting
+  // Find all code blocks and apply highlighting with language labels
   const codeBlocks = div.querySelectorAll('pre code')
   codeBlocks.forEach((codeElement) => {
     const code = codeElement.textContent || ''
-    const language = codeElement.className.replace('language-', '') || ''
+    const languageClass = Array.from(codeElement.classList).find(c => c.startsWith('language-'))
+    const language = languageClass?.replace('language-', '') || ''
 
     try {
       let highlighted
+      let detectedLanguage = language
       if (language && lowlight.registered(language)) {
         highlighted = lowlight.highlight(language, code)
       } else {
         highlighted = lowlight.highlightAuto(code)
+        // Only use auto-detected language if confidence is high enough (relevance > 5)
+        const relevance = highlighted.data?.relevance || 0
+        detectedLanguage = relevance > 5 ? (highlighted.data?.language || '') : ''
       }
 
       // Convert hast to HTML string
       const highlightedHtml = hastToHtml(highlighted)
       codeElement.innerHTML = highlightedHtml
       codeElement.classList.add('hljs')
+
+      // Add language label to pre element
+      if (detectedLanguage) {
+        const pre = codeElement.closest('pre')
+        if (pre) {
+          pre.setAttribute('data-language', detectedLanguage)
+          const langLabel = document.createElement('span')
+          langLabel.className = 'code-language-label'
+          langLabel.textContent = detectedLanguage
+          pre.style.position = 'relative'
+          pre.appendChild(langLabel)
+        }
+      }
     } catch {
       // If highlighting fails, keep original content
+    }
+  })
+
+  // Render LaTeX math expressions
+  const mathElements = div.querySelectorAll('[data-type="inlineMath"]')
+  mathElements.forEach((element) => {
+    const latex = element.getAttribute('data-latex')
+    if (latex) {
+      try {
+        const displayMode = element.getAttribute('data-display') === 'yes'
+        const rendered = katex.renderToString(latex, {
+          throwOnError: false,
+          displayMode,
+        })
+        element.innerHTML = rendered
+      } catch {
+        // Keep original content if rendering fails
+      }
     }
   })
 
@@ -203,11 +241,17 @@ export default function AdminPostEditorPage() {
       setIsLoading(true)
       api.getPostById(id)
         .then(({ data: post }) => {
-          // Format publishedAt for datetime-local input (YYYY-MM-DDTHH:mm)
+          // Format publishedAt for datetime-local input (YYYY-MM-DDTHH:mm) in LOCAL timezone
           let publishedAtValue = ''
           if (post.publishedAt) {
             const date = new Date(post.publishedAt)
-            publishedAtValue = date.toISOString().slice(0, 16)
+            // Convert to local timezone format for datetime-local input
+            const year = date.getFullYear()
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const day = String(date.getDate()).padStart(2, '0')
+            const hours = String(date.getHours()).padStart(2, '0')
+            const minutes = String(date.getMinutes()).padStart(2, '0')
+            publishedAtValue = `${year}-${month}-${day}T${hours}:${minutes}`
           }
           const loadedData: PostFormData = {
             title: post.title,
@@ -721,6 +765,23 @@ export default function AdminPostEditorPage() {
             </p>
           </div>
 
+          {/* Publish Date */}
+          <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-6">
+            <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 md:mb-3">
+              발행일
+            </label>
+            <input
+              type="datetime-local"
+              name="publishedAt"
+              value={formData.publishedAt}
+              onChange={handleInputChange}
+              className="w-full bg-slate-100 dark:bg-slate-800 rounded-lg p-2.5 md:p-3 border-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs md:text-sm"
+            />
+            <p className="text-[10px] md:text-xs text-slate-500 mt-1.5 md:mt-2">
+              게시물이 발행된 날짜를 수정할 수 있습니다.
+            </p>
+          </div>
+
           {/* Cover Image */}
           <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-6">
             <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 md:mb-3">
@@ -1024,6 +1085,21 @@ export default function AdminPostEditorPage() {
             }
             .dark .preview-content pre code {
               color: #e6edf3;
+            }
+            /* Code Language Label */
+            .preview-content .code-language-label {
+              position: absolute;
+              top: 7px;
+              left: 72px;
+              font-size: 11px;
+              font-weight: 500;
+              color: #64748b;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              pointer-events: none;
+            }
+            .dark .preview-content .code-language-label {
+              color: #94a3b8;
             }
             /* Inline code */
             .preview-content code:not(pre code) {
