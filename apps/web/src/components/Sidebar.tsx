@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import api, { Tag, WeeklyVisitorsResponse, RecentComment } from '../services/api'
+import api, { Tag, WeeklyVisitorsResponse, RecentComment, VisitorStats } from '../services/api'
 
 interface Author {
   name: string
@@ -40,6 +40,7 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true, s
   const [tags, setTags] = useState<Tag[]>([])
   const [visitors, setVisitors] = useState<WeeklyVisitorsResponse | null>(null)
   const [recentComments, setRecentComments] = useState<RecentComment[]>([])
+  const [visitorStats, setVisitorStats] = useState<VisitorStats | null>(null)
 
   useEffect(() => {
     // Fetch author info
@@ -105,8 +106,21 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true, s
       }
     }
 
+    // Fetch visitor stats (IP hash based)
+    const fetchVisitorStats = async () => {
+      try {
+        const data = await api.getVisitorStats()
+        setVisitorStats(data)
+      } catch {
+        setVisitorStats(null)
+      }
+    }
+
     if (showAuthor) fetchAuthor()
-    if (showPopularTopics) fetchPopularPosts()
+    if (showPopularTopics) {
+      fetchPopularPosts()
+      fetchVisitorStats()
+    }
     if (showTags) fetchTags()
     if (showVisitors) fetchVisitors()
     if (showRecentComments) fetchRecentComments()
@@ -196,17 +210,33 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true, s
       {/* Popular Topics */}
       {showPopularTopics && (
         <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-pink-500/10 rounded-lg text-pink-500">
-                <span className="material-symbols-outlined">trending_up</span>
-              </div>
-              <h3 className="text-lg font-bold">인기 토픽</h3>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-pink-500/10 rounded-lg text-pink-500">
+              <span className="material-symbols-outlined">trending_up</span>
             </div>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500">
-              ※ 좋아요·조회수 기반
-            </span>
+            <h3 className="text-lg font-bold">인기 토픽</h3>
           </div>
+
+          {/* Visitor Stats */}
+          {visitorStats && (
+            <div className="mb-5 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <div className="text-center mb-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Total</span>
+                <p className="text-2xl font-bold text-primary">{visitorStats.total.toLocaleString()}</p>
+              </div>
+              <div className="flex justify-center gap-6 text-xs">
+                <div className="text-center">
+                  <span className="text-slate-500 dark:text-slate-400">Today</span>
+                  <p className="font-bold text-slate-700 dark:text-slate-300">{visitorStats.today}</p>
+                </div>
+                <div className="text-center">
+                  <span className="text-slate-500 dark:text-slate-400">Yesterday</span>
+                  <p className="font-bold text-slate-700 dark:text-slate-300">{visitorStats.yesterday}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col gap-4">
             {popularPosts.length > 0 ? (
               popularPosts.map((post, index) => (
@@ -237,6 +267,13 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true, s
                 아직 인기 게시글이 없습니다.
               </p>
             )}
+          </div>
+
+          {/* Note at bottom */}
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/50">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">
+              ※ 좋아요·조회수 기반
+            </span>
           </div>
         </div>
       )}

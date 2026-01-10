@@ -297,3 +297,14 @@ model BugReport {
   @@index([createdAt])
   @@map("bug_reports")
 }
+
+model SiteVisitor {
+  id        String   @id @default(cuid())
+  ipHash    String   // Hashed IP for unique tracking
+  date      DateTime @db.Date // Date only (no time) for daily counting
+  createdAt DateTime @default(now())
+
+  @@unique([ipHash, date]) // One entry per IP per day
+  @@index([date])
+  @@map("site_visitors")
+}

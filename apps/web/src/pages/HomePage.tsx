@@ -4,6 +4,7 @@ import api, { Post, Category } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
 import MobileProfileModal from '../components/MobileProfileModal'
+import NoticeModal from '../components/NoticeModal'
 
 export default function HomePage() {
   const { user } = useAuth()
@@ -364,6 +365,9 @@ export default function HomePage() {
 
       {/* Mobile Profile Modal */}
       <MobileProfileModal />
+
+      {/* Notice Modal */}
+      <NoticeModal />
     </div>
   )
 }

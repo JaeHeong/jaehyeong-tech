@@ -438,6 +438,9 @@ export async function getMyComments(req: AuthRequest, res: Response, next: NextF
     const whereClause = {
       authorId: req.user.id,
       isDeleted: false,
+      post: {
+        is: { status: 'PUBLIC' as const }, // Only show comments on public posts
+      },
     }
 
     const [comments, total] = await Promise.all([

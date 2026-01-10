@@ -17,6 +17,7 @@ import { draftRouter } from './drafts.js'
 import { analyticsRouter } from './analytics.js'
 import { usersRouter } from './users.js'
 import { bugReportRouter } from './bugReports.js'
+import { visitorsRouter } from './visitors.js'
 
 export const apiRouter: IRouter = Router()
 
@@ -38,6 +39,7 @@ apiRouter.use('/drafts', draftRouter)
 apiRouter.use('/analytics', analyticsRouter)
 apiRouter.use('/users', usersRouter)
 apiRouter.use('/bug-reports', bugReportRouter)
+apiRouter.use('/visitors', visitorsRouter)
 
 // API info
 apiRouter.get('/', (_req, res) => {
@@ -62,6 +64,7 @@ apiRouter.get('/', (_req, res) => {
       analytics: '/api/analytics',
       users: '/api/users',
       bugReports: '/api/bug-reports',
+      visitors: '/api/visitors',
     },
   })
 })

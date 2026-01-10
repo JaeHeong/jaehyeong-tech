@@ -647,6 +647,17 @@ class ApiClient {
     return response
   }
 
+  // Site visitor tracking endpoints
+  async trackVisitor() {
+    return this.request<{ success: boolean }>('/visitors/track', {
+      method: 'POST',
+    })
+  }
+
+  async getVisitorStats() {
+    return this.request<VisitorStats>('/visitors/stats')
+  }
+
   // User management endpoints
   async getUsers(params?: UsersQueryParams) {
     const searchParams = new URLSearchParams()
@@ -944,6 +955,7 @@ export interface DashboardStats {
     total: number
     totalSize: number
     linked: number
+    usedInDrafts: number
     orphaned: number
     orphanSize: number
   }
@@ -1079,6 +1091,7 @@ export interface BackupResult {
     likes: number
     images: number
     bugReports: number
+    siteVisitors: number
   }
 }
 
@@ -1099,6 +1112,7 @@ export interface BackupInfoDetail {
     likes: number
     images: number
     bugReports: number
+    siteVisitors: number
   }
 }
 
@@ -1118,6 +1132,7 @@ export interface RestoreResult {
     likes: number
     images: number
     bugReports: number
+    siteVisitors: number
   }
 }
 
@@ -1326,6 +1341,12 @@ export interface WeeklyVisitorsResponse {
   cached?: boolean
   stale?: boolean
   error?: string
+}
+
+export interface VisitorStats {
+  total: number
+  today: number
+  yesterday: number
 }
 
 export interface OverviewData {

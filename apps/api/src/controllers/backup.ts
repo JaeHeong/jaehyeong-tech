@@ -34,6 +34,7 @@ interface BackupData {
     likes?: unknown[]
     images?: unknown[]
     bugReports?: unknown[]
+    siteVisitors?: unknown[]
   }
 }
 
@@ -132,10 +133,18 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
       prisma.bugReport.findMany(),
     ])
 
+    // Fetch site visitors separately (table might not exist in older DBs)
+    let siteVisitors: unknown[] = []
+    try {
+      siteVisitors = await prisma.siteVisitor.findMany()
+    } catch {
+      // Table doesn't exist, skip
+    }
+
     const { description } = req.body as { description?: string }
 
     const backupData: BackupData = {
-      version: '1.5',
+      version: '1.6',
       description: description || undefined,
       createdAt: new Date().toISOString(),
       data: {
@@ -154,6 +163,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
         likes,
         images,
         bugReports,
+        siteVisitors,
       },
     }
 
@@ -183,6 +193,7 @@ export async function createBackup(req: AuthRequest, res: Response, next: NextFu
           likes: likes.length,
           images: images.length,
           bugReports: bugReports.length,
+          siteVisitors: siteVisitors.length,
         },
       },
     })
@@ -281,6 +292,7 @@ export async function getBackupInfo(req: AuthRequest, res: Response, next: NextF
           likes: backupData.data.likes?.length || 0,
           images: backupData.data.images?.length || 0,
           bugReports: backupData.data.bugReports?.length || 0,
+          siteVisitors: backupData.data.siteVisitors?.length || 0,
         },
       },
     })
@@ -340,9 +352,17 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
       throw new AppError('유효하지 않은 백업 파일입니다.', 400)
     }
 
+    // Get current admin user info
+    const currentAdmin = await prisma.user.findUnique({
+      where: { id: req.user.id }
+    })
+    if (!currentAdmin) {
+      throw new AppError('현재 관리자 정보를 찾을 수 없습니다.', 400)
+    }
+
     // Restore data in transaction
     await prisma.$transaction(async (tx) => {
-      // Clear existing data (except current admin user)
+      // Clear existing data
       // Delete in order respecting foreign key constraints
       await tx.bookmark.deleteMany({})
       await tx.like.deleteMany({})
@@ -357,7 +377,19 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
       await tx.category.deleteMany({})
       await tx.bugReport.deleteMany({})
 
-      // Restore users (upsert to preserve existing users and add missing ones)
+      // Handle siteVisitor deletion gracefully (table might not exist in older DBs)
+      try {
+        await tx.siteVisitor.deleteMany({})
+      } catch {
+        // Table doesn't exist, skip
+      }
+
+      // Delete all users
+      await tx.user.deleteMany({})
+
+      // Restore users with ID mapping
+      // If the current admin's email matches a backup admin, we need to preserve the backup's user IDs
+      // so that all foreign key references (authorId) remain valid
       if (backupData.data.users?.length) {
         for (const user of backupData.data.users) {
           const userData = user as {
@@ -376,26 +408,15 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
             website?: string | null
             createdAt: Date | string
           }
-          await tx.user.upsert({
-            where: { id: userData.id },
-            update: {
+
+          // For the current admin's email, use current googleId to maintain login
+          const isCurrentAdminEmail = userData.email === currentAdmin.email
+
+          await tx.user.create({
+            data: {
+              id: userData.id, // Use backup's ID to preserve foreign key references
               email: userData.email,
-              googleId: userData.googleId,
-              name: userData.name,
-              role: userData.role,
-              status: userData.status || 'ACTIVE',
-              avatar: userData.avatar,
-              bio: userData.bio,
-              title: userData.title,
-              github: userData.github,
-              twitter: userData.twitter,
-              linkedin: userData.linkedin,
-              website: userData.website,
-            },
-            create: {
-              id: userData.id,
-              email: userData.email,
-              googleId: userData.googleId,
+              googleId: isCurrentAdminEmail ? currentAdmin.googleId : userData.googleId,
               name: userData.name,
               role: userData.role,
               status: userData.status || 'ACTIVE',
@@ -407,7 +428,7 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
               linkedin: userData.linkedin,
               website: userData.website,
               createdAt: new Date(userData.createdAt),
-            },
+            }
           })
         }
       }
@@ -496,6 +517,17 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
           await tx.bugReport.create({ data: bugReport as never })
         }
       }
+
+      // Restore site visitors (v1.6+)
+      if (backupData.data.siteVisitors?.length) {
+        try {
+          for (const visitor of backupData.data.siteVisitors) {
+            await tx.siteVisitor.create({ data: visitor as never })
+          }
+        } catch {
+          // Table doesn't exist, skip
+        }
+      }
     })
 
     res.json({
@@ -515,6 +547,7 @@ export async function restoreBackup(req: AuthRequest, res: Response, next: NextF
           likes: backupData.data.likes?.length || 0,
           images: backupData.data.images?.length || 0,
           bugReports: backupData.data.bugReports?.length || 0,
+          siteVisitors: backupData.data.siteVisitors?.length || 0,
         },
       },
     })

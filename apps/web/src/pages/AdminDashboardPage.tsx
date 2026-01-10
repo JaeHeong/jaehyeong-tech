@@ -538,6 +538,10 @@ export default function AdminDashboardPage() {
                 <span className="font-bold text-sm md:text-base text-green-600 dark:text-green-400">{data.images.linked}개</span>
               </div>
               <div className="flex items-center justify-between p-2 md:p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <span className="text-xs md:text-sm text-slate-600 dark:text-slate-400">임시저장 사용</span>
+                <span className="font-bold text-sm md:text-base text-amber-600 dark:text-amber-400">{data.images.usedInDrafts}개</span>
+              </div>
+              <div className="flex items-center justify-between p-2 md:p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                 <div className="flex items-center gap-1 md:gap-2">
                   <span className="text-xs md:text-sm text-slate-600 dark:text-slate-400">고아 이미지</span>
                   {data.images.orphaned > 0 && (

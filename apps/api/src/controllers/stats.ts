@@ -6,6 +6,39 @@ import { listBackupObjects, isOCIConfigured } from '../services/oci.js'
 
 const BACKUP_FOLDER = 'backups'
 
+// Extract image URLs from draft content and coverImage
+async function getImageUrlsUsedInDrafts(): Promise<Set<string>> {
+  const drafts = await prisma.draft.findMany({
+    select: { content: true, coverImage: true },
+  })
+
+  const urls = new Set<string>()
+
+  for (const draft of drafts) {
+    // Extract coverImage
+    if (draft.coverImage) {
+      urls.add(draft.coverImage)
+    }
+
+    // Extract image URLs from content (markdown and HTML)
+    if (draft.content) {
+      // Markdown: ![alt](url)
+      const mdMatches = draft.content.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)
+      for (const match of mdMatches) {
+        if (match[1]) urls.add(match[1])
+      }
+
+      // HTML: <img src="url">
+      const htmlMatches = draft.content.matchAll(/<img[^>]+src=["']([^"']+)["']/g)
+      for (const match of htmlMatches) {
+        if (match[1]) urls.add(match[1])
+      }
+    }
+  }
+
+  return urls
+}
+
 export async function getDashboardStats(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'ADMIN') {
@@ -91,13 +124,13 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
         _count: true,
         _sum: { size: true },
       }),
-      // Orphan images (no postId and older than 24 hours)
+      // Orphan image candidates (no postId and older than 24 hours)
       prisma.image.findMany({
         where: {
           postId: null,
           createdAt: { lt: twentyFourHoursAgo },
         },
-        select: { id: true, size: true },
+        select: { id: true, size: true, url: true },
       }),
       // Recent posts (last 5, PUBLIC + PRIVATE)
       prisma.post.findMany({
@@ -179,6 +212,17 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
     // Calculate linked images count
     const linkedImages = await prisma.image.count({ where: { postId: { not: null } } })
 
+    // Calculate images used in drafts and filter real orphan images
+    const draftImageUrls = await getImageUrlsUsedInDrafts()
+    const allUnlinkedImages = await prisma.image.findMany({
+      where: { postId: null },
+      select: { url: true },
+    })
+    const usedInDraftsCount = allUnlinkedImages.filter((img) => draftImageUrls.has(img.url)).length
+
+    // Filter out images used in drafts from orphan candidates (same logic as images.ts)
+    const realOrphanImages = orphanImages.filter((img) => !draftImageUrls.has(img.url))
+
     res.json({
       data: {
         stats: {
@@ -213,8 +257,9 @@ export async function getDashboardStats(req: AuthRequest, res: Response, next: N
           total: imageStats._count,
           totalSize: imageStats._sum.size || 0,
           linked: linkedImages,
-          orphaned: orphanImages.length,
-          orphanSize: orphanImages.reduce((sum, img) => sum + img.size, 0),
+          usedInDrafts: usedInDraftsCount,
+          orphaned: realOrphanImages.length,
+          orphanSize: realOrphanImages.reduce((sum, img) => sum + img.size, 0),
         },
         backups,
         recentPosts: recentPosts.map((post) => ({

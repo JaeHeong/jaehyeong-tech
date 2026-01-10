@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import api from '../services/api'
 
 const GA_MEASUREMENT_ID = 'G-8BJSXQ1XQX'
 
@@ -43,11 +44,25 @@ function loadGtag(): Promise<void> {
   return gtagLoadPromise
 }
 
+// Track if visitor has been tracked this session
+const VISITOR_TRACKED_KEY = 'visitor_tracked'
+
 export default function PageTracker() {
   const location = useLocation()
   const { isAdmin, isLoading } = useAuth()
   const prevPathRef = useRef<string | null>(null)
   const [isGtagReady, setIsGtagReady] = useState(gtagLoaded)
+
+  // Track visitor (once per session)
+  useEffect(() => {
+    const tracked = sessionStorage.getItem(VISITOR_TRACKED_KEY)
+    if (!tracked) {
+      api.trackVisitor().catch(() => {
+        // Silently fail
+      })
+      sessionStorage.setItem(VISITOR_TRACKED_KEY, 'true')
+    }
+  }, [])
 
   // Initialize gtag for non-admin users
   useEffect(() => {
