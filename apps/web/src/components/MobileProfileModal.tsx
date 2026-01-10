@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import api, { Tag, WeeklyVisitorsResponse, RecentComment } from '../services/api'
+import api, { Tag, RecentComment, VisitorStats } from '../services/api'
 
 interface Author {
   name: string
@@ -31,8 +31,8 @@ export default function MobileProfileModal() {
   const [author, setAuthor] = useState<Author | null>(null)
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([])
   const [tags, setTags] = useState<Tag[]>([])
-  const [visitors, setVisitors] = useState<WeeklyVisitorsResponse | null>(null)
   const [recentComments, setRecentComments] = useState<RecentComment[]>([])
+  const [visitorStats, setVisitorStats] = useState<VisitorStats | null>(null)
   const modalRef = useRef<HTMLDivElement>(null)
 
   const handleClose = () => {
@@ -85,15 +85,6 @@ export default function MobileProfileModal() {
       }
     }
 
-    const fetchVisitors = async () => {
-      try {
-        const data = await api.getWeeklyVisitors()
-        setVisitors(data)
-      } catch {
-        setVisitors(null)
-      }
-    }
-
     const fetchRecentComments = async () => {
       try {
         const data = await api.getRecentComments(3)
@@ -103,11 +94,20 @@ export default function MobileProfileModal() {
       }
     }
 
+    const fetchVisitorStats = async () => {
+      try {
+        const data = await api.getVisitorStats()
+        setVisitorStats(data)
+      } catch {
+        setVisitorStats(null)
+      }
+    }
+
     fetchAuthor()
     fetchPopularPosts()
     fetchTags()
-    fetchVisitors()
     fetchRecentComments()
+    fetchVisitorStats()
   }, [])
 
   const formatViewCount = (count: number) => {
@@ -255,11 +255,28 @@ export default function MobileProfileModal() {
 
               {/* Popular Topics */}
               <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-pink-500/10 rounded-lg text-pink-500">
-                    <span className="material-symbols-outlined">trending_up</span>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-pink-500/10 rounded-lg text-pink-500">
+                      <span className="material-symbols-outlined">trending_up</span>
+                    </div>
+                    <h3 className="text-lg font-bold">인기 토픽</h3>
                   </div>
-                  <h3 className="text-lg font-bold">인기 토픽</h3>
+                  {/* Visitor Stats - inline */}
+                  {visitorStats && (
+                    <div className="text-right text-xs pr-1">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="font-bold text-slate-600 dark:text-slate-300">총 방문자</span>
+                        <span className="font-bold text-primary text-base">{visitorStats.total.toLocaleString()}</span>
+                      </div>
+                      <div className="text-slate-500 dark:text-slate-400">
+                        오늘 {visitorStats.today}
+                        <span className={`ml-1 ${visitorStats.today - visitorStats.yesterday >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          ({visitorStats.today - visitorStats.yesterday >= 0 ? '+' : ''}{visitorStats.today - visitorStats.yesterday})
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col gap-3">
                   {popularPosts.length > 0 ? (
@@ -292,6 +309,12 @@ export default function MobileProfileModal() {
                       아직 인기 게시글이 없습니다.
                     </p>
                   )}
+                </div>
+                {/* Note at bottom */}
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/50 text-right pr-1">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                    ※ 좋아요·조회수 기반
+                  </span>
                 </div>
               </div>
 
@@ -382,70 +405,6 @@ export default function MobileProfileModal() {
                 </>
               )}
 
-              {/* Weekly Visitors */}
-              {visitors && visitors.configured && visitors.daily.length > 0 && (
-                <>
-                  <div className="border-t border-slate-200 dark:border-slate-800" />
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                          <span className="material-symbols-outlined">analytics</span>
-                        </div>
-                        <h3 className="text-lg font-bold">주간 방문자</h3>
-                      </div>
-                      <span className="text-xs text-slate-400 dark:text-slate-500">
-                        최근 7일
-                      </span>
-                    </div>
-
-                    {/* Bar Chart */}
-                    <div className="flex items-end justify-between gap-1 h-24 mb-4">
-                      {visitors.daily.map((day, index) => {
-                        const maxVisitors = Math.max(...visitors.daily.map((d) => d.visitors), 1)
-                        const heightPercent = (day.visitors / maxVisitors) * 100
-                        const opacity = 0.2 + (index / (visitors.daily.length - 1)) * 0.8
-                        const isToday = index === visitors.daily.length - 1
-                        const dayLabel = new Date(day.date).toLocaleDateString('ko-KR', { weekday: 'short' }).charAt(0)
-
-                        return (
-                          <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
-                            <span className="text-[9px] text-slate-400">
-                              {day.visitors}
-                            </span>
-                            <div className="w-full flex items-end justify-center h-12">
-                              <div
-                                className="w-full max-w-[20px] rounded-t"
-                                style={{
-                                  height: `${Math.max(heightPercent, 4)}%`,
-                                  backgroundColor: `rgba(49, 130, 246, ${opacity})`,
-                                }}
-                              />
-                            </div>
-                            <span className={`text-[10px] ${isToday ? 'text-primary font-bold' : 'text-slate-400'}`}>
-                              {dayLabel}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center justify-between text-sm border-t border-slate-100 dark:border-slate-800 pt-3">
-                      <div>
-                        <span className="text-slate-500 dark:text-slate-400">총 </span>
-                        <span className="font-bold text-primary">{visitors.total.toLocaleString()}</span>
-                        <span className="text-slate-500 dark:text-slate-400">명</span>
-                      </div>
-                      {visitors.daily.length > 0 && (
-                        <div className="text-slate-400 dark:text-slate-500 text-xs">
-                          오늘 {visitors.daily[visitors.daily.length - 1]?.visitors || 0}명
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </div>
