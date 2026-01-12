@@ -26,17 +26,20 @@ export async function trackVisitor(req: Request, res: Response) {
     const today = new Date()
     today.setUTCHours(0, 0, 0, 0)
 
-    // Try to create a new visitor record (will fail silently if already exists for today)
-    try {
-      await prisma.siteVisitor.create({
-        data: {
+    // Create or update visitor record (upsert to avoid unique constraint errors)
+    await prisma.siteVisitor.upsert({
+      where: {
+        ipHash_date: {
           ipHash,
           date: today,
         },
-      })
-    } catch {
-      // Unique constraint violation - visitor already tracked today, ignore
-    }
+      },
+      update: {}, // Already exists, do nothing
+      create: {
+        ipHash,
+        date: today,
+      },
+    })
 
     res.json({ success: true })
   } catch (error) {
