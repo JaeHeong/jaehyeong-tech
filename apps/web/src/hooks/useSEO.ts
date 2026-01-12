@@ -12,7 +12,7 @@ interface SEOProps {
 
 const SITE_NAME = 'Jaehyeong Tech'
 const DEFAULT_DESCRIPTION = 'DevOps, MLOps, 클라우드 인프라 기술 블로그'
-const BASE_URL = 'https://tech.jaehyeong.site'
+const BASE_URL = 'https://tech.jaehyeong.com'
 
 function updateMetaTag(property: string, content: string, isName = false) {
   const selector = isName ? `meta[name="${property}"]` : `meta[property="${property}"]`

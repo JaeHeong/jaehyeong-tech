@@ -2,7 +2,7 @@
 
 DevOps, MLOps, 클라우드 인프라 등 기술 경험을 기록하는 개인 기술 블로그
 
-**URL**: https://tech.jaehyeong.site
+**URL**: https://tech.jaehyeong.com
 
 ## 기술 스택
 

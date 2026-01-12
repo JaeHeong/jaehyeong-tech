@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express'
 import { prisma } from '../services/prisma.js'
 
-const SITE_URL = process.env.SITE_URL || 'https://tech.jaehyeong.site'
+const SITE_URL = process.env.SITE_URL || 'https://tech.jaehyeong.com'
 
 // Generate sitemap.xml
 export async function getSitemap(_req: Request, res: Response, next: NextFunction) {
