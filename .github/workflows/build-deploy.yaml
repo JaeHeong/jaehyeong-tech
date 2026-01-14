@@ -18,22 +18,42 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  build:
+  # 공통 설정 준비
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+      owner_lc: ${{ steps.owner.outputs.owner_lc }}
+
+    steps:
+      - name: Set lowercase owner name
+        id: owner
+        run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+
+      - name: Generate image tag
+        id: meta
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          ENV="${{ inputs.environment }}"
+          if [ "${ENV}" = "prod" ]; then
+            TAG="${SHORT_SHA}"
+          else
+            TAG="${ENV}-${SHORT_SHA}"
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Image tag: ${TAG} (env: ${ENV})"
+
+  # API 빌드 (병렬)
+  build-api:
+    needs: prepare
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tag }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set lowercase owner name
-        id: owner
-        run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU (for ARM64)
         uses: docker/setup-qemu-action@v3
@@ -48,22 +68,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate image tag
-        id: meta
-        run: |
-          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          ENV="${{ inputs.environment }}"
-          if [ "${ENV}" = "prod" ]; then
-            TAG="${SHORT_SHA}"
-          else
-            TAG="${ENV}-${SHORT_SHA}"
-          fi
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "env=${ENV}" >> $GITHUB_OUTPUT
-          echo "Image tag: ${TAG} (env: ${ENV})"
-
       - name: Build and push API
-        id: build-api
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -71,9 +76,42 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ steps.owner.outputs.owner_lc }}/jaehyeong-tech-api:${{ steps.meta.outputs.tag }}
+            ghcr.io/${{ needs.prepare.outputs.owner_lc }}/jaehyeong-tech-api:${{ needs.prepare.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Make package public
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X PATCH /user/packages/container/jaehyeong-tech-api/visibility \
+            -f visibility=public || true
+
+  # Web 빌드 (병렬)
+  build-web:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (for ARM64)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Web
         uses: docker/build-push-action@v5
@@ -83,28 +121,24 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ steps.owner.outputs.owner_lc }}/jaehyeong-tech-web:${{ steps.meta.outputs.tag }}
+            ghcr.io/${{ needs.prepare.outputs.owner_lc }}/jaehyeong-tech-web:${{ needs.prepare.outputs.image_tag }}
           build-args: |
             VITE_API_URL=/api
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # 패키지를 public으로 설정 (첫 빌드 후 한 번만 필요)
-      - name: Make packages public
+      - name: Make package public
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # API 패키지
-          gh api -X PATCH /user/packages/container/jaehyeong-tech-api/visibility \
-            -f visibility=public || true
-          # Web 패키지
           gh api -X PATCH /user/packages/container/jaehyeong-tech-web/visibility \
             -f visibility=public || true
 
+  # GitOps 업데이트 (두 빌드 모두 성공 시)
   update-gitops:
-    needs: build
+    needs: [prepare, build-api, build-web]
     runs-on: ubuntu-latest
 
     steps:
@@ -121,7 +155,7 @@ jobs:
       - name: Update image tags
         run: |
           cd my-k8s-gitops
-          TAG="${{ needs.build.outputs.image_tag }}"
+          TAG="${{ needs.prepare.outputs.image_tag }}"
           ENV="${{ inputs.environment }}"
 
           if [ "${ENV}" = "prod" ]; then
@@ -140,5 +174,5 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add -A
-          git diff --staged --quiet || git commit -m "chore(${{ inputs.environment }}): update image tag to ${{ needs.build.outputs.image_tag }}"
+          git diff --staged --quiet || git commit -m "chore(${{ inputs.environment }}): update image tag to ${{ needs.prepare.outputs.image_tag }}"
           git push
