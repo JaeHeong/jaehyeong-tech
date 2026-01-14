@@ -16,8 +16,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  API_IMAGE: ghcr.io/${{ github.repository_owner }}/jaehyeong-tech-api
-  WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/jaehyeong-tech-web
 
 jobs:
   build:
@@ -32,6 +30,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set lowercase owner name
+        id: owner
+        run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU (for ARM64)
         uses: docker/setup-qemu-action@v3
@@ -69,7 +71,7 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            ${{ env.API_IMAGE }}:${{ steps.meta.outputs.tag }}
+            ghcr.io/${{ steps.owner.outputs.owner_lc }}/jaehyeong-tech-api:${{ steps.meta.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -81,7 +83,7 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            ${{ env.WEB_IMAGE }}:${{ steps.meta.outputs.tag }}
+            ghcr.io/${{ steps.owner.outputs.owner_lc }}/jaehyeong-tech-web:${{ steps.meta.outputs.tag }}
           build-args: |
             VITE_API_URL=/api
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
