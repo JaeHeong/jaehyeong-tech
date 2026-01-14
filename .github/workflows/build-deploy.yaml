@@ -1,13 +1,18 @@
 name: Build and Deploy
 
+run-name: "🚀 ${{ inputs.environment }} - ${{ github.ref_name }} by @${{ github.actor }}"
+
 on:
-  push:
-    branches:
-      - main
-      - dev
-    paths:
-      - 'apps/**'
-      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '배포 환경 (이미지 태그 업데이트 대상)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
 
 env:
   REGISTRY: ghcr.io
@@ -45,13 +50,15 @@ jobs:
         id: meta
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          ENV="${{ inputs.environment }}"
+          if [ "${ENV}" = "prod" ]; then
             TAG="${SHORT_SHA}"
           else
-            TAG="${{ github.ref_name }}-${SHORT_SHA}"
+            TAG="${ENV}-${SHORT_SHA}"
           fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "Image tag: ${TAG}"
+          echo "env=${ENV}" >> $GITHUB_OUTPUT
+          echo "Image tag: ${TAG} (env: ${ENV})"
 
       - name: Build and push API
         id: build-api
@@ -63,7 +70,6 @@ jobs:
           push: true
           tags: |
             ${{ env.API_IMAGE }}:${{ steps.meta.outputs.tag }}
-            ${{ env.API_IMAGE }}:${{ github.ref_name == 'main' && 'latest' || 'dev' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -76,7 +82,6 @@ jobs:
           push: true
           tags: |
             ${{ env.WEB_IMAGE }}:${{ steps.meta.outputs.tag }}
-            ${{ env.WEB_IMAGE }}:${{ github.ref_name == 'main' && 'latest' || 'dev' }}
           build-args: |
             VITE_API_URL=/api
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
@@ -115,8 +120,9 @@ jobs:
         run: |
           cd my-k8s-gitops
           TAG="${{ needs.build.outputs.image_tag }}"
+          ENV="${{ inputs.environment }}"
 
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          if [ "${ENV}" = "prod" ]; then
             # Prod 환경 업데이트
             sed -i "s/tag: .*/tag: ${TAG}/" apps/jaehyeong-tech/values-prod.yaml
           else
@@ -124,11 +130,13 @@ jobs:
             sed -i "s/tag: .*/tag: ${TAG}/" apps/jaehyeong-tech/values-dev.yaml
           fi
 
+          echo "Updated ${ENV} environment with tag: ${TAG}"
+
       - name: Commit and push
         run: |
           cd my-k8s-gitops
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add -A
-          git diff --staged --quiet || git commit -m "chore: update image tag to ${{ needs.build.outputs.image_tag }}"
+          git diff --staged --quiet || git commit -m "chore(${{ inputs.environment }}): update image tag to ${{ needs.build.outputs.image_tag }}"
           git push
