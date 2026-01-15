@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar'
 import MobileProfileModal from '../components/MobileProfileModal'
 import api, { type Page } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
+import { useSEO } from '../hooks/useSEO'
 
 interface AdjacentNotice {
   slug: string
@@ -18,6 +19,14 @@ export default function NoticeDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [adjacentNotices, setAdjacentNotices] = useState<{ prev: AdjacentNotice | null; next: AdjacentNotice | null }>({ prev: null, next: null })
+
+  useSEO({
+    title: notice?.title || '공지사항',
+    description: notice?.excerpt || '공지사항 상세 내용입니다.',
+    url: notice ? `/notices/${notice.slug}` : '/notices',
+    type: 'article',
+    publishedTime: notice?.publishedAt || notice?.createdAt,
+  })
 
   useEffect(() => {
     if (slug) {

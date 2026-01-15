@@ -3,12 +3,20 @@ import { Link } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import MobileProfileModal from '../components/MobileProfileModal'
 import api, { type Page } from '../services/api'
+import { useSEO } from '../hooks/useSEO'
 
 export default function NoticePage() {
   const [notices, setNotices] = useState<Page[]>([])
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 })
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
+
+  useSEO({
+    title: '공지사항',
+    description: 'Jaehyeong Tech 블로그의 주요 소식과 업데이트, 서비스 관련 안내사항을 확인하세요.',
+    url: '/notices',
+    type: 'website',
+  })
 
   useEffect(() => {
     loadNotices(currentPage)

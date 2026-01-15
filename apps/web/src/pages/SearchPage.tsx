@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import api, { Post } from '../services/api'
 import Sidebar from '../components/Sidebar'
+import { useSEO } from '../hooks/useSEO'
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -12,6 +13,15 @@ export default function SearchPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set())
+
+  useSEO({
+    title: query ? `"${query}" 검색 결과` : '검색',
+    description: query
+      ? `"${query}" 검색 결과 - 총 ${totalCount}개의 게시물을 찾았습니다.`
+      : '기술 블로그에서 원하는 글을 검색해보세요.',
+    url: query ? `/search?q=${encodeURIComponent(query)}` : '/search',
+    type: 'website',
+  })
 
   useEffect(() => {
     const fetchSearchResults = async () => {
@@ -145,6 +155,7 @@ export default function SearchPage() {
                       <img
                         src={post.coverImage}
                         alt={post.title}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (

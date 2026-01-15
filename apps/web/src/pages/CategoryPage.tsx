@@ -4,6 +4,7 @@ import api, { Category } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
 import MobileProfileModal from '../components/MobileProfileModal'
+import { useSEO } from '../hooks/useSEO'
 
 const defaultCategories = [
   { name: 'DevOps', icon: 'settings_suggest', color: 'blue', posts: 0, description: '개발과 운영의 경계를 허무는 문화와 도구. Docker, CI/CD, 자동화 프로세스 구축에 대한 이야기입니다.' },
@@ -122,6 +123,13 @@ export default function CategoryPage() {
   const { user } = useAuth()
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  useSEO({
+    title: '주제별 탐색',
+    description: 'DevOps, MLOps, Kubernetes, Cloud Native 등 다양한 기술 주제별로 글을 탐색해보세요.',
+    url: '/categories',
+    type: 'website',
+  })
 
   // Refs for dual carousel sync
   const topRowRef = useRef<HTMLDivElement>(null)

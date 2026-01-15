@@ -5,8 +5,15 @@ import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
 import MobileProfileModal from '../components/MobileProfileModal'
 import NoticeModal from '../components/NoticeModal'
+import { useSEO } from '../hooks/useSEO'
 
 export default function HomePage() {
+  useSEO({
+    title: undefined,
+    description: 'DevOps, MLOps, 클라우드 인프라 기술 블로그. 최신 기술 트렌드와 실무 노하우를 공유합니다.',
+    url: '/',
+    type: 'website',
+  })
   const { user } = useAuth()
   const [featuredPost, setFeaturedPost] = useState<Post | null>(null)
   const [latestPosts, setLatestPosts] = useState<Post[]>([])
@@ -263,6 +270,7 @@ export default function HomePage() {
                         <img
                           src={post.coverImage}
                           alt={post.title}
+                          loading="lazy"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
+import { useSEO } from '../hooks/useSEO'
 
 interface IntroduceContent {
   profile: {
@@ -82,6 +83,13 @@ const defaultContent: IntroduceContent = {
 export default function IntroducePage() {
   const [content, setContent] = useState<IntroduceContent>(defaultContent)
   const [loading, setLoading] = useState(true)
+
+  useSEO({
+    title: '소개',
+    description: `${content.profile.name} - ${content.profile.title}. DevOps, MLOps, 클라우드 인프라 전문 엔지니어입니다.`,
+    url: '/introduce',
+    type: 'website',
+  })
 
   useEffect(() => {
     loadContent()

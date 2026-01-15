@@ -7,6 +7,7 @@ import Sidebar from '../components/Sidebar'
 import CommentSection from '../components/CommentSection'
 import MobileProfileModal from '../components/MobileProfileModal'
 import { useSEO } from '../hooks/useSEO'
+import { useJsonLd, createBlogPostingSchema, createBreadcrumbSchema } from '../hooks/useJsonLd'
 import { common, createLowlight } from 'lowlight'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
@@ -200,6 +201,28 @@ export default function PostDetailPage() {
     publishedTime: post?.publishedAt || undefined,
     author: post?.author?.name,
   })
+
+  // JSON-LD structured data
+  useJsonLd(
+    post
+      ? [
+          createBlogPostingSchema({
+            title: post.title,
+            excerpt: post.excerpt || undefined,
+            coverImage: post.coverImage || undefined,
+            publishedAt: post.publishedAt || post.createdAt,
+            updatedAt: post.updatedAt,
+            authorName: post.author?.name || 'Anonymous',
+            slug: post.slug,
+          }),
+          createBreadcrumbSchema([
+            { name: '홈', url: '/' },
+            { name: post.category?.name || '카테고리', url: `/categories/${post.category?.slug || ''}` },
+            { name: post.title, url: `/posts/${post.slug}` },
+          ]),
+        ]
+      : null
+  )
 
   useEffect(() => {
     if (!slug) return
@@ -1153,6 +1176,7 @@ export default function PostDetailPage() {
                     <img
                       src={post.author.avatar}
                       alt={post.author.name}
+                      loading="lazy"
                       className="size-10 rounded-full object-cover border border-slate-200 dark:border-slate-700"
                     />
                   ) : (
@@ -1217,6 +1241,7 @@ export default function PostDetailPage() {
                               <img
                                 src={relatedPost.coverImage}
                                 alt={relatedPost.title}
+                                loading="lazy"
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                             ) : (

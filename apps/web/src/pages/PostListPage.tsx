@@ -4,6 +4,7 @@ import api, { Post, Category } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import Sidebar from '../components/Sidebar'
 import MobileProfileModal from '../components/MobileProfileModal'
+import { useSEO } from '../hooks/useSEO'
 
 export default function PostListPage() {
   const { user } = useAuth()
@@ -16,6 +17,21 @@ export default function PostListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [totalPages, setTotalPages] = useState(1)
   const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set())
+
+  // SEO - 카테고리에 따른 동적 설정
+  const currentCategorySlug = pathSlug || searchParams.get('category') || ''
+  const categoryInfo = categories.find(c => c.slug === currentCategorySlug)
+
+  useSEO({
+    title: currentCategorySlug
+      ? `${categoryInfo?.name || currentCategorySlug} 글 목록`
+      : '글 목록',
+    description: currentCategorySlug
+      ? categoryInfo?.description || `${categoryInfo?.name || currentCategorySlug} 관련 기술 글 모음`
+      : 'DevOps, MLOps, 클라우드 인프라에 대한 기술 글을 공유합니다.',
+    url: currentCategorySlug ? `/categories/${currentCategorySlug}` : '/posts',
+    type: 'website',
+  })
 
   // Refs for category buttons to enable auto-scroll
   const categoryButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
@@ -160,6 +176,7 @@ export default function PostListPage() {
                     <img
                       src={featuredPost.coverImage}
                       alt={featuredPost.title}
+                      loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
@@ -264,6 +281,7 @@ export default function PostListPage() {
                       <img
                         src={post.coverImage}
                         alt={post.title}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
