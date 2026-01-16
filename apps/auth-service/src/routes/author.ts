@@ -1,15 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { tenantPrisma } from '../services/prisma';
-import { tenantResolver, Tenant } from '../middleware/tenantResolver';
+import { resolveTenant, Tenant } from '../middleware/tenantResolver';
 
-const router = Router();
+const router: Router = Router();
 
 // Get author (blog owner) public info
-router.get('/', tenantResolver, async (req: Request, res: Response) => {
+router.get('/', resolveTenant, async (req: Request, res: Response): Promise<void> => {
   try {
     const tenant = req.tenant as Tenant;
     if (!tenant) {
-      return res.status(400).json({ message: 'Tenant을 식별할 수 없습니다.' });
+      res.status(400).json({ message: 'Tenant을 식별할 수 없습니다.' });
+      return;
     }
 
     const prisma = tenantPrisma.getClient(tenant.id);
@@ -37,7 +38,7 @@ router.get('/', tenantResolver, async (req: Request, res: Response) => {
 
     if (!author) {
       // Return default author info if no admin exists
-      return res.json({
+      res.json({
         data: {
           name: 'Jaehyeong',
           title: 'DevOps Engineer',
@@ -49,6 +50,7 @@ router.get('/', tenantResolver, async (req: Request, res: Response) => {
           website: null,
         },
       });
+      return;
     }
 
     res.json({ data: author });
