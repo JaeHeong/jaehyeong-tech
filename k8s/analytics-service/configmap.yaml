@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: analytics-service-config
+  namespace: msa-services
+data:
+  NODE_ENV: "production"
+  PORT: "3005"
+  # Database URL will be set in deployment

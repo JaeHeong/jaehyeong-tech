@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tenant model for multi-tenancy
+model Tenant {
+  id           String       @id @default(cuid())
+  name         String       @unique
+  isActive     Boolean      @default(true)
+  siteVisitors SiteVisitor[]
+  bugReports   BugReport[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("tenants")
+}
+
+// Site visitor tracking (unique visitors per day per tenant)
+model SiteVisitor {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ipHash    String // Hashed IP for privacy
+  date      DateTime @db.Date // Date only (no time) for daily counting
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, ipHash, date]) // One entry per IP per day per tenant
+  @@index([tenantId, date])
+  @@map("site_visitors")
+}
+
+// Bug report model
+model BugReport {
+  id            String            @id @default(cuid())
+  tenantId      String
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title         String
+  description   String
+  category      BugReportCategory
+  priority      BugReportPriority @default(MEDIUM)
+  status        BugReportStatus   @default(OPEN)
+  email         String? // Optional contact email
+  ipHash        String? // For spam prevention
+  adminResponse String? // Admin response/comment
+  respondedAt   DateTime? // When admin responded
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, category])
+  @@index([tenantId, createdAt])
+  @@map("bug_reports")
+}
+
+// Enums
+enum BugReportCategory {
+  UI
+  FUNCTIONAL
+  PERFORMANCE
+  SECURITY
+  ETC
+}
+
+enum BugReportPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum BugReportStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
