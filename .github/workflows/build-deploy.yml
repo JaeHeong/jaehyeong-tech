@@ -100,23 +100,24 @@ jobs:
           BUILD_ALL="${{ inputs.build_all }}"
 
           # 모든 서비스 빌드 또는 개별 선택
+          # 이미지 이름 형식: jaehyeong-tech-{service} (GitOps values.yaml과 일치)
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_auth }}" = "true" ]; then
-            SERVICES+=('{"name":"auth-service","path":"apps/auth-service","port":"3001"}')
+            SERVICES+=('{"name":"jaehyeong-tech-auth","path":"apps/auth-service","port":"3001"}')
           fi
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_blog }}" = "true" ]; then
-            SERVICES+=('{"name":"blog-service","path":"apps/blog-service","port":"3002"}')
+            SERVICES+=('{"name":"jaehyeong-tech-blog","path":"apps/blog-service","port":"3002"}')
           fi
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_comment }}" = "true" ]; then
-            SERVICES+=('{"name":"comment-service","path":"apps/comment-service","port":"3003"}')
+            SERVICES+=('{"name":"jaehyeong-tech-comment","path":"apps/comment-service","port":"3003"}')
           fi
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_page }}" = "true" ]; then
-            SERVICES+=('{"name":"page-service","path":"apps/page-service","port":"3004"}')
+            SERVICES+=('{"name":"jaehyeong-tech-page","path":"apps/page-service","port":"3004"}')
           fi
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_analytics }}" = "true" ]; then
-            SERVICES+=('{"name":"analytics-service","path":"apps/analytics-service","port":"3005"}')
+            SERVICES+=('{"name":"jaehyeong-tech-analytics","path":"apps/analytics-service","port":"3005"}')
           fi
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_storage }}" = "true" ]; then
-            SERVICES+=('{"name":"storage-service","path":"apps/storage-service","port":"3006"}')
+            SERVICES+=('{"name":"jaehyeong-tech-storage","path":"apps/storage-service","port":"3006"}')
           fi
 
           # JSON 배열 생성
@@ -225,8 +226,15 @@ jobs:
 
       - name: Clone GitOps repo
         run: |
-          git clone git@github.com:JaeHeong/my-k8s-gitops.git
-          cd my-k8s-gitops
+          # dev 환경은 msa 브랜치, prod 환경은 main 브랜치 사용
+          if [ "${{ inputs.environment }}" = "prod" ]; then
+            GITOPS_BRANCH="main"
+          else
+            GITOPS_BRANCH="msa"
+          fi
+
+          git clone -b ${GITOPS_BRANCH} git@github.com:JaeHeong/my-k8s-gitops.git
+          echo "Cloned GitOps repo (branch: ${GITOPS_BRANCH})"
 
       - name: Update image tags
         run: |
@@ -244,56 +252,46 @@ jobs:
 
           echo "Updating ${VALUES_FILE} with tag: ${TAG}"
 
+          # MSA 구조: services.{service}.image.tag
+          # yq를 사용하여 정확하게 업데이트
+
           # 선택된 서비스만 업데이트
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_web }}" = "true" ]; then
-            if grep -q "web:" $VALUES_FILE; then
-              sed -i "/web:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated web tag"
-            fi
+            sed -i "/^  web:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated web tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_auth }}" = "true" ]; then
-            if grep -q "auth:" $VALUES_FILE || grep -q "authService:" $VALUES_FILE; then
-              sed -i "/auth.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated auth-service tag"
-            fi
+            sed -i "/^  auth:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated auth tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_blog }}" = "true" ]; then
-            if grep -q "blog:" $VALUES_FILE || grep -q "blogService:" $VALUES_FILE; then
-              sed -i "/blog.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated blog-service tag"
-            fi
+            sed -i "/^  blog:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated blog tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_comment }}" = "true" ]; then
-            if grep -q "comment:" $VALUES_FILE || grep -q "commentService:" $VALUES_FILE; then
-              sed -i "/comment.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated comment-service tag"
-            fi
+            sed -i "/^  comment:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated comment tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_storage }}" = "true" ]; then
-            if grep -q "storage:" $VALUES_FILE || grep -q "storageService:" $VALUES_FILE; then
-              sed -i "/storage.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated storage-service tag"
-            fi
+            sed -i "/^  storage:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated storage tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_page }}" = "true" ]; then
-            if grep -q "page:" $VALUES_FILE || grep -q "pageService:" $VALUES_FILE; then
-              sed -i "/page.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated page-service tag"
-            fi
+            sed -i "/^  page:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated page tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_analytics }}" = "true" ]; then
-            if grep -q "analytics:" $VALUES_FILE || grep -q "analyticsService:" $VALUES_FILE; then
-              sed -i "/analytics.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated analytics-service tag"
-            fi
+            sed -i "/^  analytics:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated analytics tag"
           fi
 
+          echo "=== Updated values file ==="
           cat $VALUES_FILE
 
       - name: Commit and push
