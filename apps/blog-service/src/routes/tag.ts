@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, IRouter } from 'express';
 import * as tagController from '../controllers/tag';
 import { resolveTenant } from '../middleware/tenantResolver';
 import { requireAdmin } from '../middleware/authenticate';
 
-export const tagRouter = Router();
+export const tagRouter: IRouter = Router();
 
 // Apply tenant resolution to all routes
 tagRouter.use(resolveTenant);

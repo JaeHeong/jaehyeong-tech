@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, IRouter } from 'express';
 import {
   createComment,
   getComments,
@@ -11,7 +11,7 @@ import {
 import { resolveTenant } from '../middleware/tenantResolver';
 import { optionalAuthenticate, requireAuth, requireAdmin } from '../middleware/authenticate';
 
-const router = Router();
+const router: IRouter = Router();
 
 // 모든 Comment 라우트는 Tenant 식별 필요
 router.use(resolveTenant);

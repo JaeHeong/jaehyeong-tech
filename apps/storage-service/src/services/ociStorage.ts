@@ -33,7 +33,7 @@ class OCIStorageService {
       );
 
       // API Key 인증 사용
-      provider.getKeyId = () => accessKey;
+      provider.getKeyId = async () => accessKey;
 
       this.client = new os.ObjectStorageClient({ authenticationDetailsProvider: provider });
 

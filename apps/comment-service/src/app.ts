@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Application } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import commentRoutes from './routes/comment';
@@ -7,7 +7,7 @@ import { errorHandler } from './middleware/errorHandler';
 // 환경 변수 로드
 dotenv.config();
 
-const app = express();
+const app: Application = express();
 
 // Middleware
 app.use(cors());

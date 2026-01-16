@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, IRouter } from 'express';
 import * as bugReportController from '../controllers/bugReport';
 import { resolveTenant } from '../middleware/tenantResolver';
 import { requireAdmin } from '../middleware/authenticate';
 
-export const bugReportRouter = Router();
+export const bugReportRouter: IRouter = Router();
 
 // Apply tenant resolution to all routes
 bugReportRouter.use(resolveTenant);

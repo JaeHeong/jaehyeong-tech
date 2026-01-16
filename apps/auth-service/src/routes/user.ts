@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, IRouter } from 'express';
 import {
   updateProfile,
   changePassword,
@@ -9,7 +9,7 @@ import {
 import { resolveTenant } from '../middleware/tenantResolver';
 import { authenticate, requireAdmin } from '../middleware/authenticate';
 
-const router = Router();
+const router: IRouter = Router();
 
 // 모든 User 라우트는 Tenant 식별 및 인증 필요
 router.use(resolveTenant);

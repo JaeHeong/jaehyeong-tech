@@ -1,22 +1,10 @@
-apiVersion: v1
-kind: Service
-metadata:
-  name: analytics-service
-  namespace: msa-services
-spec:
-  selector:
-    app: analytics-service
-  ports:
-    - protocol: TCP
-      port: 3005
-      targetPort: 3005
-  type: ClusterIP
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: analytics-service
-  namespace: msa-services
+  namespace: jaehyeong-tech-dev
+  labels:
+    app: analytics-service
 spec:
   replicas: 2
   selector:
@@ -29,23 +17,27 @@ spec:
     spec:
       containers:
         - name: analytics-service
-          image: analytics-service:latest
+          image: ghcr.io/jaehyeong/analytics-service:dev-latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3005
+              name: http
           env:
-            - name: NODE_ENV
-              valueFrom:
-                configMapKeyRef:
-                  name: analytics-service-config
-                  key: NODE_ENV
             - name: PORT
               valueFrom:
                 configMapKeyRef:
                   name: analytics-service-config
                   key: PORT
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-service-config
+                  key: NODE_ENV
             - name: DATABASE_URL
-              value: "postgresql://postgres:password@postgres-analytics:5432/analytics_service"
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-secret
+                  key: ANALYTICS_DATABASE_URL
             - name: IP_HASH_SALT
               valueFrom:
                 secretKeyRef:
@@ -54,7 +46,7 @@ spec:
           resources:
             requests:
               memory: "256Mi"
-              cpu: "250m"
+              cpu: "200m"
             limits:
               memory: "512Mi"
               cpu: "500m"
@@ -70,16 +62,33 @@ spec:
             httpGet:
               path: /ready
               port: 3005
-            initialDelaySeconds: 10
+            initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
 ---
 apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-service
+  namespace: jaehyeong-tech-dev
+  labels:
+    app: analytics-service
+spec:
+  type: ClusterIP
+  selector:
+    app: analytics-service
+  ports:
+    - port: 3005
+      targetPort: 3005
+      protocol: TCP
+      name: http
+---
+apiVersion: v1
 kind: Secret
 metadata:
   name: analytics-service-secret
-  namespace: msa-services
+  namespace: jaehyeong-tech-dev
 type: Opaque
 stringData:
   IP_HASH_SALT: "change-this-in-production"
@@ -88,14 +97,14 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: analytics-service-hpa
-  namespace: msa-services
+  namespace: jaehyeong-tech-dev
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: analytics-service
   minReplicas: 2
-  maxReplicas: 10
+  maxReplicas: 5
   metrics:
     - type: Resource
       resource:

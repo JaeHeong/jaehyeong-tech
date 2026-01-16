@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -7,23 +8,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ========================================
-// Tenant Model (참조용)
-// ========================================
-model Tenant {
-  id       String    @id
-  name     String    @unique
-  comments Comment[]
-
-  @@map("tenants")
-}
-
-// ========================================
 // Comment Model (범용 리소스)
-// ========================================
 model Comment {
   id       String @id @default(cuid())
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   tenantId String
 
   // 범용 리소스 식별

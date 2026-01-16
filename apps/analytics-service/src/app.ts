@@ -1,10 +1,10 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, Application } from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler';
 import { visitorRouter } from './routes/visitor';
 import { bugReportRouter } from './routes/bugReport';
 
-const app = express();
+const app: Application = express();
 
 // Middleware
 app.use(cors());

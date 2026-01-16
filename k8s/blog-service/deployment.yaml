@@ -1,22 +1,10 @@
-apiVersion: v1
-kind: Service
-metadata:
-  name: blog-service
-  namespace: msa-services
-spec:
-  selector:
-    app: blog-service
-  ports:
-    - protocol: TCP
-      port: 3003
-      targetPort: 3003
-  type: ClusterIP
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: blog-service
-  namespace: msa-services
+  namespace: jaehyeong-tech-dev
+  labels:
+    app: blog-service
 spec:
   replicas: 2
   selector:
@@ -29,27 +17,31 @@ spec:
     spec:
       containers:
         - name: blog-service
-          image: blog-service:latest
+          image: ghcr.io/jaehyeong/blog-service:dev-latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 3003
+            - containerPort: 3002
+              name: http
           env:
-            - name: NODE_ENV
-              valueFrom:
-                configMapKeyRef:
-                  name: blog-service-config
-                  key: NODE_ENV
             - name: PORT
               valueFrom:
                 configMapKeyRef:
                   name: blog-service-config
                   key: PORT
-            - name: DATABASE_URL
-              value: "postgresql://postgres:password@postgres-blog:5432/blog_service"
-            - name: RABBITMQ_URL
+            - name: NODE_ENV
               valueFrom:
                 configMapKeyRef:
                   name: blog-service-config
+                  key: NODE_ENV
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-secret
+                  key: BLOG_DATABASE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
                   key: RABBITMQ_URL
             - name: IP_HASH_SALT
               valueFrom:
@@ -59,14 +51,14 @@ spec:
           resources:
             requests:
               memory: "256Mi"
-              cpu: "250m"
+              cpu: "200m"
             limits:
               memory: "512Mi"
               cpu: "500m"
           livenessProbe:
             httpGet:
               path: /health
-              port: 3003
+              port: 3002
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -74,17 +66,34 @@ spec:
           readinessProbe:
             httpGet:
               path: /ready
-              port: 3003
-            initialDelaySeconds: 10
+              port: 3002
+            initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
 ---
 apiVersion: v1
+kind: Service
+metadata:
+  name: blog-service
+  namespace: jaehyeong-tech-dev
+  labels:
+    app: blog-service
+spec:
+  type: ClusterIP
+  selector:
+    app: blog-service
+  ports:
+    - port: 3002
+      targetPort: 3002
+      protocol: TCP
+      name: http
+---
+apiVersion: v1
 kind: Secret
 metadata:
   name: blog-service-secret
-  namespace: msa-services
+  namespace: jaehyeong-tech-dev
 type: Opaque
 stringData:
   IP_HASH_SALT: "change-this-in-production"
@@ -93,14 +102,14 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: blog-service-hpa
-  namespace: msa-services
+  namespace: jaehyeong-tech-dev
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: blog-service
   minReplicas: 2
-  maxReplicas: 10
+  maxReplicas: 5
   metrics:
     - type: Resource
       resource:

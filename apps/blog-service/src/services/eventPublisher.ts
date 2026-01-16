@@ -1,10 +1,10 @@
-import amqp, { Connection, Channel } from 'amqplib';
+import amqp from 'amqplib';
 import { generateEventId } from '@shared/utils';
 import { Event } from '@shared/events';
 
 class EventPublisher {
-  private connection: Connection | null = null;
-  private channel: Channel | null = null;
+  private connection: Awaited<ReturnType<typeof amqp.connect>> | null = null;
+  private channel: Awaited<ReturnType<Awaited<ReturnType<typeof amqp.connect>>['createChannel']>> | null = null;
   private readonly exchangeName = 'msa-events';
 
   async connect() {

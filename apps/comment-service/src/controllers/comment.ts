@@ -3,7 +3,7 @@ import { prisma } from '../services/prisma';
 import { eventPublisher } from '../services/eventPublisher';
 import { AppError } from '../middleware/errorHandler';
 import { hashIP, getClientIP } from '@shared/utils';
-import { CommentStatus } from '@prisma/client';
+import { CommentStatus } from '@shared/types';
 
 /**
  * 댓글 생성
@@ -22,7 +22,7 @@ export async function createComment(req: Request, res: Response, next: NextFunct
     }
 
     // IP 해싱 (스팸 방지)
-    const ipHash = hashIP(getClientIP(req));
+    const ipHash = hashIP(getClientIP(req as any));
 
     // 댓글 생성
     const comment = await prisma.comment.create({
@@ -56,7 +56,7 @@ export async function createComment(req: Request, res: Response, next: NextFunct
         commentId: comment.id,
         resourceType: comment.resourceType,
         resourceId: comment.resourceId,
-        authorId: comment.authorId,
+        authorId: comment.authorId ?? undefined,
       },
     });
 

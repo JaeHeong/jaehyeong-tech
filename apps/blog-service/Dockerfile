@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ RUN pnpm prisma generate
 RUN pnpm build
 
 # Stage 2: Production
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -51,11 +51,11 @@ COPY --from=builder /app/packages ./packages
 WORKDIR /app/apps/blog-service
 
 # Expose port
-EXPOSE 3003
+EXPOSE 3006
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3003/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3006) + '/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start server
 CMD ["node", "dist/server.js"]

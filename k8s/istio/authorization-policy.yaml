@@ -1,0 +1,128 @@
+# Istio AuthorizationPolicy - 서비스 간 접근 제어
+# 기본적으로 같은 네임스페이스 내 서비스 간 통신 허용
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-internal
+  namespace: jaehyeong-tech-dev
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["jaehyeong-tech-dev", "istio-system"]
+---
+# Auth Service - 외부에서 접근 허용 (로그인, 회원가입 등)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: auth-service-policy
+  namespace: jaehyeong-tech-dev
+spec:
+  selector:
+    matchLabels:
+      app: auth-service
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["jaehyeong-tech-dev", "istio-system", "kong"]
+    # Health check 허용
+    - to:
+        - operation:
+            paths: ["/health", "/ready"]
+---
+# Blog Service - 인증된 요청만 허용 (읽기는 공개)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: blog-service-policy
+  namespace: jaehyeong-tech-dev
+spec:
+  selector:
+    matchLabels:
+      app: blog-service
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["jaehyeong-tech-dev", "istio-system", "kong"]
+    - to:
+        - operation:
+            paths: ["/health", "/ready"]
+---
+# Comment Service
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: comment-service-policy
+  namespace: jaehyeong-tech-dev
+spec:
+  selector:
+    matchLabels:
+      app: comment-service
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["jaehyeong-tech-dev", "istio-system", "kong"]
+    - to:
+        - operation:
+            paths: ["/health", "/ready"]
+---
+# Storage Service
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: storage-service-policy
+  namespace: jaehyeong-tech-dev
+spec:
+  selector:
+    matchLabels:
+      app: storage-service
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["jaehyeong-tech-dev", "istio-system", "kong"]
+    - to:
+        - operation:
+            paths: ["/health", "/ready"]
+---
+# Page Service
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: page-service-policy
+  namespace: jaehyeong-tech-dev
+spec:
+  selector:
+    matchLabels:
+      app: page-service
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["jaehyeong-tech-dev", "istio-system", "kong"]
+    - to:
+        - operation:
+            paths: ["/health", "/ready"]
+---
+# Analytics Service
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: analytics-service-policy
+  namespace: jaehyeong-tech-dev
+spec:
+  selector:
+    matchLabels:
+      app: analytics-service
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["jaehyeong-tech-dev", "istio-system", "kong"]
+    - to:
+        - operation:
+            paths: ["/health", "/ready"]

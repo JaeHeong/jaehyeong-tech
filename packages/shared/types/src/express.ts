@@ -1,11 +1,11 @@
 import { Tenant } from './tenant';
-import { User, JWTPayload } from './user';
+import { RequestUser, JWTPayload } from './user';
 
 declare global {
   namespace Express {
     interface Request {
       tenant?: Tenant;
-      user?: User;
+      user?: RequestUser;
       jwtPayload?: JWTPayload;
     }
   }

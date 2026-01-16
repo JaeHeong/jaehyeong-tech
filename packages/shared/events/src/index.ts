@@ -5,6 +5,7 @@ export * from './comment-events';
 export * from './file-events';
 export * from './analytics-events';
 export * from './like-events';
+export * from './page-events';
 
 import {
   UserRegisteredEvent,
@@ -20,7 +21,8 @@ import {
 } from './comment-events';
 import { FileUploadedEvent, FileDeletedEvent } from './file-events';
 import { PageViewEvent, UserActionEvent } from './analytics-events';
-import { LikeToggledEvent } from './like-events';
+import { LikeToggledEvent, PostLikedEvent, PostBookmarkedEvent } from './like-events';
+import { PageCreatedEvent, PageUpdatedEvent, PageDeletedEvent } from './page-events';
 
 export type Event =
   | UserRegisteredEvent
@@ -38,4 +40,9 @@ export type Event =
   | FileDeletedEvent
   | PageViewEvent
   | UserActionEvent
-  | LikeToggledEvent;
+  | LikeToggledEvent
+  | PostLikedEvent
+  | PostBookmarkedEvent
+  | PageCreatedEvent
+  | PageUpdatedEvent
+  | PageDeletedEvent;

@@ -189,7 +189,7 @@ services:
     container_name: blog-service
     environment:
       NODE_ENV: production
-      PORT: 3003
+      PORT: 3006
       DATABASE_URL: postgresql://postgres:password@postgres-blog:5432/blog_service
       RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
       IP_HASH_SALT: your-ip-hash-salt

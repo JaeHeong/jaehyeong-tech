@@ -5,7 +5,7 @@ import app from './app';
 import { prisma } from './services/prisma';
 import { eventPublisher } from './services/eventPublisher';
 
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 3006;
 
 async function startServer() {
   try {

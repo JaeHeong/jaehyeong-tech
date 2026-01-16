@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -7,24 +8,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Tenant model for multi-tenancy
-model Tenant {
-  id        String     @id @default(cuid())
-  name      String     @unique
-  isActive  Boolean    @default(true)
-  pages     Page[]
-  pageViews PageView[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  @@map("tenants")
-}
-
 // Page model
 model Page {
   id          String     @id @default(cuid())
   tenantId    String
-  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   slug        String
   title       String
   type        PageType   @default(NOTICE)
@@ -52,7 +39,6 @@ model Page {
 model PageView {
   id        String   @id @default(cuid())
   tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   pageId    String
   page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
   ipHash    String // Hashed IP for unique view tracking

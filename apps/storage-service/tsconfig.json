@@ -3,11 +3,18 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/types": ["../../packages/shared/types/src"],
-      "@shared/events": ["../../packages/shared/events/src"],
-      "@shared/utils": ["../../packages/shared/utils/src"]
+      "@shared/types": ["../../packages/shared/types/dist"],
+      "@shared/types/*": ["../../packages/shared/types/dist/*"],
+      "@shared/events": ["../../packages/shared/events/dist"],
+      "@shared/events/*": ["../../packages/shared/events/dist/*"],
+      "@shared/utils": ["../../packages/shared/utils/dist"],
+      "@shared/utils/*": ["../../packages/shared/utils/dist/*"]
     }
   },
   "include": ["src/**/*"],

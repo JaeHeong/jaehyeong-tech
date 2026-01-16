@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, Application } from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler';
 import { postRouter } from './routes/post';
@@ -6,7 +6,7 @@ import { categoryRouter } from './routes/category';
 import { tagRouter } from './routes/tag';
 import { bookmarkRouter } from './routes/bookmark';
 
-const app = express();
+const app: Application = express();
 
 // Middleware
 app.use(cors());

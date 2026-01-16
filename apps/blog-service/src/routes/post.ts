@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import { Router, IRouter } from 'express';
 import * as postController from '../controllers/post';
 import * as likeController from '../controllers/like';
 import { resolveTenant } from '../middleware/tenantResolver';
 import { optionalAuthenticate, requireAdmin } from '../middleware/authenticate';
 
-export const postRouter = Router();
+export const postRouter: IRouter = Router();
 
 // Apply tenant resolution to all routes
 postRouter.use(resolveTenant);

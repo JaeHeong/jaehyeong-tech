@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, IRouter } from 'express';
 import * as bookmarkController from '../controllers/bookmark';
 import { resolveTenant } from '../middleware/tenantResolver';
 import { requireAuth } from '../middleware/authenticate';
 
-export const bookmarkRouter = Router();
+export const bookmarkRouter: IRouter = Router();
 
 // Apply tenant resolution and authentication to all routes
 bookmarkRouter.use(resolveTenant);

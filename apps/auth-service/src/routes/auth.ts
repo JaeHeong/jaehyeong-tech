@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, IRouter } from 'express';
 import { register, login, googleLogin, getCurrentUser } from '../controllers/auth';
 import { resolveTenant } from '../middleware/tenantResolver';
 import { authenticate } from '../middleware/authenticate';
 
-const router = Router();
+const router: IRouter = Router();
 
 // 모든 Auth 라우트는 Tenant 식별 필요
 router.use(resolveTenant);

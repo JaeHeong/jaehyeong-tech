@@ -25,11 +25,14 @@ export function generateToken(
     email,
   };
 
-  return jwt.sign(payload, tenant.jwtSecret, {
-    expiresIn: tenant.jwtExpiry,
+  // Cast the options to satisfy strict TypeScript checking
+  const options = {
+    expiresIn: tenant.jwtExpiry as jwt.SignOptions['expiresIn'],
     issuer: `auth-service:${tenant.name}`,
     audience: tenant.domain,
-  });
+  };
+
+  return jwt.sign(payload, tenant.jwtSecret, options);
 }
 
 /**

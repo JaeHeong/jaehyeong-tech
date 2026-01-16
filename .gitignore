@@ -34,6 +34,14 @@ coverage/
 # Prisma
 apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
+**/generated/
+
+# TypeScript build artifacts
+*.tsbuildinfo
+packages/**/src/*.js
+packages/**/src/*.js.map
+packages/**/src/*.d.ts
+packages/**/src/*.d.ts.map
 
 # Temp
 tmp/

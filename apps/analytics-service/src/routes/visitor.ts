@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, IRouter } from 'express';
 import * as visitorController from '../controllers/visitor';
 import { resolveTenant } from '../middleware/tenantResolver';
 import { requireAdmin } from '../middleware/authenticate';
 
-export const visitorRouter = Router();
+export const visitorRouter: IRouter = Router();
 
 // Apply tenant resolution to all routes
 visitorRouter.use(resolveTenant);

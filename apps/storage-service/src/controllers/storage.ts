@@ -5,6 +5,8 @@ import { ociStorage } from '../services/ociStorage';
 import { eventPublisher } from '../services/eventPublisher';
 import { AppError } from '../middleware/errorHandler';
 import { getFileType, generateFileName } from '../middleware/upload';
+import { FileType as PrismaFileType } from '../generated/prisma';
+import { FileType as SharedFileType } from '@shared/types';
 
 /**
  * 파일 업로드
@@ -48,10 +50,11 @@ export async function uploadFile(req: Request, res: Response, next: NextFunction
       }
     }
 
-    // OCI에 업로드
-    const url = await ociStorage.uploadFile(tenant.name, folder, fileName, buffer, file.mimetype);
+    // OCI에 업로드 (tenant.name 없으면 tenant.id 사용)
+    const tenantPath = tenant.name || tenant.id;
+    const url = await ociStorage.uploadFile(tenantPath, folder, fileName, buffer, file.mimetype);
 
-    const objectName = `${tenant.name}/${folder}/${fileName}`;
+    const objectName = `${tenantPath}/${folder}/${fileName}`;
 
     // 메타데이터 저장
     const fileRecord = await prisma.file.create({
@@ -68,7 +71,7 @@ export async function uploadFile(req: Request, res: Response, next: NextFunction
         url,
         resourceType,
         resourceId,
-        fileType,
+        fileType: fileType as PrismaFileType,
         width,
         height,
         uploadedBy: req.user?.id,
@@ -82,11 +85,11 @@ export async function uploadFile(req: Request, res: Response, next: NextFunction
       data: {
         fileId: fileRecord.id,
         fileName: fileRecord.fileName,
-        fileType: fileRecord.fileType,
+        fileType: fileRecord.fileType as unknown as SharedFileType,
         size: fileRecord.size,
-        resourceType: fileRecord.resourceType,
-        resourceId: fileRecord.resourceId,
-        uploadedBy: fileRecord.uploadedBy,
+        resourceType: fileRecord.resourceType ?? undefined,
+        resourceId: fileRecord.resourceId ?? undefined,
+        uploadedBy: fileRecord.uploadedBy ?? undefined,
       },
     });
 

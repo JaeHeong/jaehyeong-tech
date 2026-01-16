@@ -1,78 +1,30 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../services/prisma';
 import { AppError } from './errorHandler';
 
-export interface Tenant {
-  id: string;
-  name: string;
-}
-
-declare global {
-  namespace Express {
-    interface Request {
-      tenant?: Tenant;
-      user?: {
-        id: string;
-        tenantId: string;
-        email: string;
-        role: string;
-      };
-    }
-  }
-}
+// Import shared types - this registers the global Express.Request extension
+import '@shared/types/express';
 
 /**
- * Tenant 식별 미들웨어
+ * Tenant 식별 미들웨어 (Istio 헤더 기반)
  *
- * 우선순위:
- * 1. X-Tenant-ID 헤더
- * 2. X-Tenant-Name 헤더
- * 3. Subdomain
+ * Istio RequestAuthentication에서 JWT 검증 후 헤더로 주입:
+ * - x-tenant-id: JWT claim에서 추출된 tenant ID
+ * - x-tenant-name: (optional) tenant name
  */
-export async function resolveTenant(req: Request, res: Response, next: NextFunction) {
+export function resolveTenant(req: Request, res: Response, next: NextFunction) {
   try {
-    let tenantIdentifier: string | undefined;
+    const tenantId = req.headers['x-tenant-id'] as string;
+    const tenantName = req.headers['x-tenant-name'] as string | undefined;
 
-    // 1. X-Tenant-ID 헤더 확인
-    if (req.headers['x-tenant-id']) {
-      tenantIdentifier = req.headers['x-tenant-id'] as string;
-    }
-    // 2. X-Tenant-Name 헤더 확인
-    else if (req.headers['x-tenant-name']) {
-      tenantIdentifier = req.headers['x-tenant-name'] as string;
-    }
-    // 3. Subdomain 확인
-    else {
-      const hostname = req.hostname;
-      const parts = hostname.split('.');
-
-      if (parts.length >= 3) {
-        tenantIdentifier = parts[0];
-      }
+    if (!tenantId) {
+      throw new AppError('Tenant 식별 불가. x-tenant-id 헤더가 필요합니다.', 400);
     }
 
-    if (!tenantIdentifier) {
-      throw new AppError(
-        'Tenant을 식별할 수 없습니다. X-Tenant-Name 헤더를 제공하거나 서브도메인을 사용하세요.',
-        400
-      );
-    }
+    req.tenant = {
+      id: tenantId,
+      name: tenantName,
+    };
 
-    // Tenant 조회
-    const tenant = await prisma.tenant.findUnique({
-      where: { name: tenantIdentifier },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
-
-    if (!tenant) {
-      throw new AppError(`Tenant를 찾을 수 없습니다: ${tenantIdentifier}`, 404);
-    }
-
-    // Request에 첨부
-    req.tenant = tenant;
     next();
   } catch (error) {
     next(error);
@@ -82,11 +34,16 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
 /**
  * 선택적 Tenant 식별 (Tenant 없어도 통과)
  */
-export async function optionalTenant(req: Request, res: Response, next: NextFunction) {
-  try {
-    await resolveTenant(req, res, () => {});
-  } catch {
-    // Tenant 없어도 계속 진행
+export function optionalTenant(req: Request, res: Response, next: NextFunction) {
+  const tenantId = req.headers['x-tenant-id'] as string;
+  const tenantName = req.headers['x-tenant-name'] as string | undefined;
+
+  if (tenantId) {
+    req.tenant = {
+      id: tenantId,
+      name: tenantName,
+    };
   }
+
   next();
 }

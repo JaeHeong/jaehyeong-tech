@@ -4,6 +4,15 @@ export enum UserRole {
   GUEST = 'GUEST',
 }
 
+// Simplified User for Request context (used in Express.Request.user)
+export interface RequestUser {
+  id: string;
+  tenantId: string;
+  email: string;
+  role: UserRole | string;
+}
+
+// Full User model for Auth Service
 export interface User {
   id: string;
   tenantId: string;
