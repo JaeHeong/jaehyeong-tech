@@ -7,6 +7,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/blog-service/package.json ./apps/blog-service/
 COPY packages/shared ./packages/shared
+COPY tsconfig.base.json ./
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -16,12 +17,16 @@ RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY apps/blog-service ./apps/blog-service
-COPY tsconfig.base.json ./
+
+# Build shared packages first
+RUN pnpm --filter @shared/types build
+RUN pnpm --filter @shared/events build
+RUN pnpm --filter @shared/utils build
 
 # Generate Prisma client
 RUN pnpm --filter blog-service exec prisma generate
 
-# Build
+# Build service
 RUN pnpm --filter blog-service build
 
 # Stage 2: Production
@@ -44,8 +49,13 @@ COPY --from=builder /app/apps/blog-service/package.json ./apps/blog-service/
 COPY --from=builder /app/apps/blog-service/dist ./apps/blog-service/dist
 COPY --from=builder /app/apps/blog-service/prisma ./apps/blog-service/prisma
 
-# Copy shared packages
-COPY --from=builder /app/packages ./packages
+# Copy shared packages (built)
+COPY --from=builder /app/packages/shared/types/dist ./packages/shared/types/dist
+COPY --from=builder /app/packages/shared/types/package.json ./packages/shared/types/
+COPY --from=builder /app/packages/shared/events/dist ./packages/shared/events/dist
+COPY --from=builder /app/packages/shared/events/package.json ./packages/shared/events/
+COPY --from=builder /app/packages/shared/utils/dist ./packages/shared/utils/dist
+COPY --from=builder /app/packages/shared/utils/package.json ./packages/shared/utils/
 
 WORKDIR /app/apps/blog-service
 
