@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// Tenant Model (참조용)
+// ========================================
+model Tenant {
+  id    String @id
+  name  String @unique
+  files File[]
+
+  @@map("tenants")
+}
+
+// ========================================
+// File Model (범용 저장소)
+// ========================================
+model File {
+  id       String @id @default(cuid())
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String
+
+  // 파일 정보
+  fileName         String // 저장된 파일명 (UUID)
+  originalFileName String // 원본 파일명
+  mimeType         String
+  size             Int // bytes
+
+  // 저장소 정보
+  storageProvider String @default("oci") // 'oci', 's3', 'gcs', 'local'
+  storagePath     String // 전체 경로
+  objectName      String // 객체 이름 (OCI, S3 등)
+  folder          String // 폴더 (posts, avatars, documents)
+  url             String // Public URL
+
+  // 범용 리소스 연결 (선택적)
+  resourceType String? // 'post', 'product', 'user-avatar', 등
+  resourceId   String? // 외부 리소스 ID
+
+  // 파일 타입 분류
+  fileType FileType @default(OTHER)
+
+  // 이미지 메타데이터
+  width  Int?
+  height Int?
+
+  // 업로드 정보
+  uploadedBy String? // Tenant User ID
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, resourceType, resourceId])
+  @@index([tenantId, folder])
+  @@index([tenantId, fileType])
+  @@map("files")
+}
+
+enum FileType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  AUDIO
+  OTHER
+}

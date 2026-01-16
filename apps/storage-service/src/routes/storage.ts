@@ -1,0 +1,24 @@
+import { Router } from 'express';
+import { uploadFile, getFiles, getFile, deleteFile } from '../controllers/storage';
+import { resolveTenant } from '../middleware/tenantResolver';
+import { optionalAuthenticate, requireAuth } from '../middleware/authenticate';
+import { upload } from '../middleware/upload';
+
+const router = Router();
+
+// 모든 Storage 라우트는 Tenant 식별 필요
+router.use(resolveTenant);
+
+// 파일 업로드 (인증 선택적)
+router.post('/upload', optionalAuthenticate, upload.single('file'), uploadFile);
+
+// 파일 목록 조회
+router.get('/', optionalAuthenticate, getFiles);
+
+// 파일 상세 조회
+router.get('/:id', optionalAuthenticate, getFile);
+
+// 파일 삭제 (인증 필수)
+router.delete('/:id', requireAuth, deleteFile);
+
+export default router;
