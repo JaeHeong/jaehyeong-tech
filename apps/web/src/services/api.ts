@@ -655,7 +655,8 @@ class ApiClient {
   }
 
   async getVisitorStats() {
-    return this.request<VisitorStats>('/visitors/stats')
+    const response = await this.request<{ data: VisitorStats }>('/visitors/stats')
+    return response.data
   }
 
   // User management endpoints

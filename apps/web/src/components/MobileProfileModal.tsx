@@ -263,16 +263,16 @@ export default function MobileProfileModal() {
                     <h3 className="text-lg font-bold">인기 토픽</h3>
                   </div>
                   {/* Visitor Stats - inline */}
-                  {visitorStats && (
+                  {visitorStats?.total != null && (
                     <div className="text-right text-xs pr-1">
                       <div className="flex items-center justify-end gap-1.5">
                         <span className="font-bold text-slate-600 dark:text-slate-300">총 방문자</span>
                         <span className="font-bold text-primary text-base">{visitorStats.total.toLocaleString()}</span>
                       </div>
                       <div className="text-slate-500 dark:text-slate-400">
-                        오늘 {visitorStats.today}
-                        <span className={`ml-1 ${visitorStats.today - visitorStats.yesterday >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                          ({visitorStats.today - visitorStats.yesterday >= 0 ? '+' : ''}{visitorStats.today - visitorStats.yesterday})
+                        오늘 {visitorStats.today ?? 0}
+                        <span className={`ml-1 ${(visitorStats.today ?? 0) - (visitorStats.yesterday ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          ({(visitorStats.today ?? 0) - (visitorStats.yesterday ?? 0) >= 0 ? '+' : ''}{(visitorStats.today ?? 0) - (visitorStats.yesterday ?? 0)})
                         </span>
                       </div>
                     </div>
