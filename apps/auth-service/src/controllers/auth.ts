@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import { tenantPrisma } from '../services/prisma';
 import { AppError } from '../middleware/errorHandler';
+import { Tenant } from '../middleware/tenantResolver';
 import { generateToken } from '../services/jwtService';
 import { validatePassword, hashPassword, verifyPassword } from '../services/passwordService';
 
@@ -10,7 +11,7 @@ import { validatePassword, hashPassword, verifyPassword } from '../services/pass
  */
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
-    const tenant = req.tenant!;
+    const tenant = req.tenant as Tenant;
     const prisma = tenantPrisma.getClient(tenant.id);
     const { email, password, name } = req.body;
 
@@ -75,7 +76,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
  */
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
-    const tenant = req.tenant!;
+    const tenant = req.tenant as Tenant;
     const prisma = tenantPrisma.getClient(tenant.id);
     const { email, password } = req.body;
 
@@ -135,7 +136,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
  */
 export async function googleLogin(req: Request, res: Response, next: NextFunction) {
   try {
-    const tenant = req.tenant!;
+    const tenant = req.tenant as Tenant;
     const prisma = tenantPrisma.getClient(tenant.id);
     const { credential } = req.body;
 
@@ -241,7 +242,7 @@ export async function googleLogin(req: Request, res: Response, next: NextFunctio
  */
 export async function getCurrentUser(req: Request, res: Response, next: NextFunction) {
   try {
-    const tenant = req.tenant!;
+    const tenant = req.tenant as Tenant;
     const prisma = tenantPrisma.getClient(tenant.id);
     const userId = req.user!.id;
 

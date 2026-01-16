@@ -19,20 +19,6 @@ export interface Tenant {
   isActive: boolean;
 }
 
-declare global {
-  namespace Express {
-    interface Request {
-      tenant?: Tenant;
-      user?: {
-        id: string;
-        tenantId: string;
-        email: string;
-        role: string;
-      };
-    }
-  }
-}
-
 /**
  * Tenant 식별 미들웨어
  *

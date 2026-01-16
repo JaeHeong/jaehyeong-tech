@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../services/jwtService';
 import { AppError } from './errorHandler';
+import { Tenant } from './tenantResolver';
 
 /**
  * JWT 인증 미들웨어
@@ -8,7 +9,7 @@ import { AppError } from './errorHandler';
  */
 export async function authenticate(req: Request, res: Response, next: NextFunction) {
   try {
-    const { tenant } = req;
+    const tenant = req.tenant as Tenant;
 
     if (!tenant) {
       throw new AppError('Tenant가 먼저 식별되어야 합니다.', 500);
