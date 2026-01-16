@@ -30,6 +30,9 @@ RUN pnpm --filter auth-service exec prisma generate
 # Auth service 빌드
 RUN pnpm --filter auth-service build
 
+# Copy generated prisma client to dist
+RUN cp -r /app/apps/auth-service/src/generated /app/apps/auth-service/dist/
+
 # Production stage
 FROM node:22-alpine
 

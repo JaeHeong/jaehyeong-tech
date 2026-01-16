@@ -29,6 +29,9 @@ RUN pnpm --filter blog-service exec prisma generate
 # Build service
 RUN pnpm --filter blog-service build
 
+# Copy generated prisma client to dist
+RUN cp -r /app/apps/blog-service/src/generated /app/apps/blog-service/dist/
+
 # Stage 2: Production
 FROM node:22-alpine
 

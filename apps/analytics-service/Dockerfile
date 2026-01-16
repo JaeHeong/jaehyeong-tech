@@ -29,6 +29,9 @@ RUN pnpm --filter analytics-service exec prisma generate
 # Build service
 RUN pnpm --filter analytics-service build
 
+# Copy generated prisma client to dist
+RUN cp -r /app/apps/analytics-service/src/generated /app/apps/analytics-service/dist/
+
 # Stage 2: Production
 FROM node:22-alpine
 

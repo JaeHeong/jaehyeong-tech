@@ -30,6 +30,9 @@ RUN pnpm --filter storage-service exec prisma generate
 # Storage service 빌드
 RUN pnpm --filter storage-service build
 
+# Copy generated prisma client to dist
+RUN cp -r /app/apps/storage-service/src/generated /app/apps/storage-service/dist/
+
 # Production stage
 FROM node:22-alpine
 

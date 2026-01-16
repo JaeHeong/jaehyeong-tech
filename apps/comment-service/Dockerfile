@@ -30,6 +30,9 @@ RUN pnpm --filter comment-service exec prisma generate
 # Comment service 빌드
 RUN pnpm --filter comment-service build
 
+# Copy generated prisma client to dist
+RUN cp -r /app/apps/comment-service/src/generated /app/apps/comment-service/dist/
+
 # Production stage
 FROM node:22-alpine
 

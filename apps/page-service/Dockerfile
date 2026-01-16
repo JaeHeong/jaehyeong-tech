@@ -29,6 +29,9 @@ RUN pnpm --filter page-service exec prisma generate
 # Build service
 RUN pnpm --filter page-service build
 
+# Copy generated prisma client to dist
+RUN cp -r /app/apps/page-service/src/generated /app/apps/page-service/dist/
+
 # Stage 2: Production
 FROM node:22-alpine
 
