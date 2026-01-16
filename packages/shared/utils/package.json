@@ -1,0 +1,23 @@
+{
+  "name": "@shared/utils",
+  "version": "1.0.0",
+  "description": "Shared utility functions for MSA",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["msa", "utils", "shared"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@shared/types": "workspace:*",
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@shared/events",
+  "version": "1.0.0",
+  "description": "Shared event definitions for MSA",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["msa", "events", "rabbitmq", "shared"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@shared/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
