@@ -43,10 +43,10 @@ jobs:
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "Image tag: ${TAG} (env: ${ENV})"
 
-  # API 빌드 (self-hosted ARM64)
+  # API 빌드 (GitHub hosted ARM64)
   build-api:
     needs: prepare
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
@@ -76,10 +76,10 @@ jobs:
         if: always()
         run: docker image prune -f
 
-  # Web 빌드 (self-hosted ARM64)
+  # Web 빌드 (GitHub hosted ARM64)
   build-web:
     needs: prepare
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
