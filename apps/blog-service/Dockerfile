@@ -20,7 +20,7 @@ COPY tsconfig.base.json ./
 
 # Generate Prisma client
 WORKDIR /app/apps/blog-service
-RUN pnpm prisma generate
+RUN pnpm prisma:generate
 
 # Build
 RUN pnpm build
