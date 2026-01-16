@@ -17,7 +17,7 @@ spec:
             prefix: "/api/auth"
       route:
         - destination:
-            host: auth-service
+            host: auth-service.jaehyeong-tech-dev.svc.cluster.local
             port:
               number: 3001
       timeout: 30s
@@ -36,13 +36,14 @@ spec:
             prefix: "/api/tags"
       route:
         - destination:
-            host: blog-service
+            host: blog-service.jaehyeong-tech-dev.svc.cluster.local
             port:
               number: 3002
       timeout: 30s
       retries:
         attempts: 3
         perTryTimeout: 10s
+        retryOn: connect-failure,refused-stream,unavailable,cancelled
 
     # Comment Service 라우팅
     - match:
@@ -50,13 +51,14 @@ spec:
             prefix: "/api/comments"
       route:
         - destination:
-            host: comment-service
+            host: comment-service.jaehyeong-tech-dev.svc.cluster.local
             port:
               number: 3003
       timeout: 30s
       retries:
         attempts: 3
         perTryTimeout: 10s
+        retryOn: connect-failure,refused-stream,unavailable,cancelled
 
     # Page Service 라우팅
     - match:
@@ -64,13 +66,14 @@ spec:
             prefix: "/api/pages"
       route:
         - destination:
-            host: page-service
+            host: page-service.jaehyeong-tech-dev.svc.cluster.local
             port:
               number: 3004
       timeout: 30s
       retries:
         attempts: 3
         perTryTimeout: 10s
+        retryOn: connect-failure,refused-stream,unavailable,cancelled
 
     # Analytics Service 라우팅
     - match:
@@ -80,13 +83,14 @@ spec:
             prefix: "/api/bug-reports"
       route:
         - destination:
-            host: analytics-service
+            host: analytics-service.jaehyeong-tech-dev.svc.cluster.local
             port:
               number: 3005
       timeout: 30s
       retries:
         attempts: 3
         perTryTimeout: 10s
+        retryOn: connect-failure,refused-stream,unavailable,cancelled
 
     # Storage Service 라우팅
     - match:
@@ -96,13 +100,14 @@ spec:
             prefix: "/api/files"
       route:
         - destination:
-            host: storage-service
+            host: storage-service.jaehyeong-tech-dev.svc.cluster.local
             port:
               number: 3006
       timeout: 30s
       retries:
         attempts: 3
         perTryTimeout: 10s
+        retryOn: connect-failure,refused-stream,unavailable,cancelled
 ---
 # Istio Gateway - 외부 트래픽 진입점
 apiVersion: networking.istio.io/v1beta1
