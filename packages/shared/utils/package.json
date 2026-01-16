@@ -4,6 +4,33 @@
   "description": "Shared utility functions for MSA",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./hash": {
+      "types": "./dist/hash.d.ts",
+      "require": "./dist/hash.js",
+      "import": "./dist/hash.js"
+    },
+    "./network": {
+      "types": "./dist/network.d.ts",
+      "require": "./dist/network.js",
+      "import": "./dist/network.js"
+    },
+    "./uuid": {
+      "types": "./dist/uuid.d.ts",
+      "require": "./dist/uuid.js",
+      "import": "./dist/uuid.js"
+    },
+    "./validation": {
+      "types": "./dist/validation.d.ts",
+      "require": "./dist/validation.js",
+      "import": "./dist/validation.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
