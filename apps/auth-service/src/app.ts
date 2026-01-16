@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import tenantRoutes from './routes/tenant';
 import userRoutes from './routes/user';
+import authorRoutes from './routes/author';
 import { errorHandler } from './middleware/errorHandler';
 
 // 환경 변수 로드
@@ -29,6 +30,7 @@ app.get('/ready', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/author', authorRoutes);
 
 // 404 Handler
 app.use((req, res) => {
