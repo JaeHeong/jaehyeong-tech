@@ -25,7 +25,7 @@ RUN pnpm --filter @shared/events build
 RUN pnpm --filter @shared/utils build
 
 # Prisma 생성
-RUN cd apps/auth-service && npx prisma generate
+RUN cd apps/auth-service && ./node_modules/.bin/prisma generate
 
 # Auth service 빌드
 RUN pnpm --filter auth-service build
@@ -57,7 +57,7 @@ COPY --from=builder /app/apps/auth-service/prisma ./apps/auth-service/prisma
 COPY --from=builder /app/apps/auth-service/node_modules/.prisma ./apps/auth-service/node_modules/.prisma
 
 # Prisma Client 복사
-RUN cd apps/auth-service && npx prisma generate
+RUN cd apps/auth-service && ./node_modules/.bin/prisma generate
 
 WORKDIR /app/apps/auth-service
 

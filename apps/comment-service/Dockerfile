@@ -25,7 +25,7 @@ RUN pnpm --filter @shared/events build
 RUN pnpm --filter @shared/utils build
 
 # Prisma 생성
-RUN cd apps/comment-service && npx prisma generate
+RUN cd apps/comment-service && ./node_modules/.bin/prisma generate
 
 # Comment service 빌드
 RUN pnpm --filter comment-service build
@@ -57,7 +57,7 @@ COPY --from=builder /app/apps/comment-service/prisma ./apps/comment-service/pris
 COPY --from=builder /app/apps/comment-service/node_modules/.prisma ./apps/comment-service/node_modules/.prisma
 
 # Prisma Client 복사
-RUN cd apps/comment-service && npx prisma generate
+RUN cd apps/comment-service && ./node_modules/.bin/prisma generate
 
 WORKDIR /app/apps/comment-service
 
