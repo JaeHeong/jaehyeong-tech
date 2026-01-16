@@ -1,7 +1,6 @@
 {
   "name": "@jaehyeong-tech/page-service",
   "version": "1.0.0",
-  "type": "module",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
