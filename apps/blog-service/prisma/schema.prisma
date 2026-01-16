@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tenant model for multi-tenancy
+model Tenant {
+  id         String      @id @default(cuid())
+  name       String      @unique
+  isActive   Boolean     @default(true)
+  posts      Post[]
+  categories Category[]
+  tags       Tag[]
+  likes      Like[]
+  bookmarks  Bookmark[]
+  postViews  PostView[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@map("tenants")
+}
+
+// Post model
+model Post {
+  id          String      @id @default(cuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slug        String
+  title       String
+  excerpt     String
+  content     String
+  coverImage  String?
+  viewCount   Int         @default(0)
+  likeCount   Int         @default(0)
+  readingTime Int         @default(0)
+  status      PostStatus  @default(DRAFT)
+  featured    Boolean     @default(false)
+  authorId    String // External reference to Auth Service user ID
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  tags        Tag[]
+  likes       Like[]
+  bookmarks   Bookmark[]
+  views       PostView[]
+  publishedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, publishedAt])
+  @@index([tenantId, categoryId])
+  @@index([tenantId, authorId])
+  @@index([tenantId, featured])
+  @@map("posts")
+}
+
+// Category model
+model Category {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  description String?
+  icon        String?
+  color       String?
+  posts       Post[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("categories")
+}
+
+// Tag model
+model Tag {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  posts     Post[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("tags")
+}
+
+// Like model (supports both authenticated and anonymous users)
+model Like {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String? // For logged-in users (external Auth Service ID)
+  ipHash    String? // For anonymous users (hashed IP)
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, postId, userId])
+  @@unique([tenantId, postId, ipHash])
+  @@index([tenantId, postId])
+  @@index([tenantId, userId])
+  @@map("likes")
+}
+
+// Bookmark model (authenticated users only)
+model Bookmark {
+  id        String   @id @default(cuid())
+  tenantId  String
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String // External Auth Service user ID
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, postId, userId])
+  @@index([tenantId, postId])
+  @@index([tenantId, userId])
+  @@map("bookmarks")
+}
+
+// PostView model for unique view tracking (24-hour based)
+model PostView {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  ipHash    String // Hashed IP for unique view tracking
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, postId, ipHash])
+  @@index([tenantId, postId])
+  @@map("post_views")
+}
+
+// Enums
+enum PostStatus {
+  DRAFT
+  PUBLIC
+  PRIVATE
+}
