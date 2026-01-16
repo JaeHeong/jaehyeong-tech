@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: page-service
+  namespace: msa-services
+spec:
+  selector:
+    app: page-service
+  ports:
+    - protocol: TCP
+      port: 3004
+      targetPort: 3004
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: page-service
+  namespace: msa-services
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: page-service
+  template:
+    metadata:
+      labels:
+        app: page-service
+    spec:
+      containers:
+        - name: page-service
+          image: page-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3004
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: page-service-config
+                  key: NODE_ENV
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: page-service-config
+                  key: PORT
+            - name: DATABASE_URL
+              value: "postgresql://postgres:password@postgres-page:5432/page_service"
+            - name: RABBITMQ_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: page-service-config
+                  key: RABBITMQ_URL
+            - name: IP_HASH_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: page-service-secret
+                  key: IP_HASH_SALT
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3004
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: page-service-secret
+  namespace: msa-services
+type: Opaque
+stringData:
+  IP_HASH_SALT: "change-this-in-production"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: page-service-hpa
+  namespace: msa-services
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: page-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

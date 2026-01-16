@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tenant model for multi-tenancy
+model Tenant {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  isActive  Boolean    @default(true)
+  pages     Page[]
+  pageViews PageView[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("tenants")
+}
+
+// Page model
+model Page {
+  id          String     @id @default(cuid())
+  tenantId    String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slug        String
+  title       String
+  type        PageType   @default(NOTICE)
+  content     String // Main content (markdown or HTML)
+  excerpt     String? // Short description for list view
+  status      PageStatus @default(DRAFT)
+  badge       String? // Badge text (e.g., "필독", "안내", "업데이트")
+  badgeColor  String? // Badge color (e.g., "primary", "slate")
+  isPinned    Boolean    @default(false)
+  template    String? // Template name for STATIC pages (e.g., "introduce", "privacy")
+  viewCount   Int        @default(0)
+  authorId    String // External reference to Auth Service user ID
+  views       PageView[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  publishedAt DateTime?
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, type, status])
+  @@index([tenantId, isPinned, publishedAt])
+  @@map("pages")
+}
+
+// PageView model for unique view tracking (24-hour based)
+model PageView {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pageId    String
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  ipHash    String // Hashed IP for unique view tracking
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, pageId, ipHash])
+  @@index([tenantId, pageId])
+  @@map("page_views")
+}
+
+// Enums
+enum PageType {
+  STATIC
+  NOTICE
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+}
