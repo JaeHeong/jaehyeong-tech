@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { eventPublisher } from '../services/eventPublisher';
 import { AppError } from '../middleware/errorHandler';
 
@@ -17,6 +17,7 @@ export async function getBookmarks(req: Request, res: Response, next: NextFuncti
       throw new AppError('인증이 필요합니다.', 401);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
 
@@ -74,6 +75,7 @@ export async function toggleBookmark(req: Request, res: Response, next: NextFunc
       throw new AppError('인증이 필요합니다.', 401);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { postId } = req.params;
 
     // Check if post exists
@@ -150,6 +152,7 @@ export async function checkBookmarkStatus(req: Request, res: Response, next: Nex
       throw new AppError('인증이 필요합니다.', 401);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { postId } = req.params;
 
     const bookmark = await prisma.bookmark.findUnique({

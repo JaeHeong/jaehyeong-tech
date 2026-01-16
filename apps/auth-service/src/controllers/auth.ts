@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { OAuth2Client } from 'google-auth-library';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { generateToken } from '../services/jwtService';
 import { validatePassword, hashPassword, verifyPassword } from '../services/passwordService';
@@ -11,6 +11,7 @@ import { validatePassword, hashPassword, verifyPassword } from '../services/pass
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { email, password, name } = req.body;
 
     // 1. 회원가입 허용 확인
@@ -75,6 +76,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { email, password } = req.body;
 
     // 1. 사용자 조회 (Tenant 격리)
@@ -134,6 +136,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 export async function googleLogin(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { credential } = req.body;
 
     // 1. Google OAuth 허용 확인
@@ -238,6 +241,8 @@ export async function googleLogin(req: Request, res: Response, next: NextFunctio
  */
 export async function getCurrentUser(req: Request, res: Response, next: NextFunction) {
   try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const userId = req.user!.id;
 
     const user = await prisma.user.findUnique({

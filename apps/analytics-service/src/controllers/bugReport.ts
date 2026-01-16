@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { hashIP, getClientIP } from '../utils/ipHash';
 
@@ -12,6 +12,8 @@ export async function createBugReport(req: Request, res: Response, next: NextFun
     if (!req.tenant) {
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
+
+    const prisma = tenantPrisma.getClient(req.tenant.id);
 
     const { title, category, priority, description, email } = req.body;
 
@@ -77,6 +79,8 @@ export async function getPublicBugReports(req: Request, res: Response, next: Nex
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
+
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(Math.max(1, parseInt(req.query.limit as string) || 20), 100);
     const skip = (page - 1) * limit;
@@ -133,6 +137,7 @@ export async function getPublicBugReport(req: Request, res: Response, next: Next
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
 
     const bugReport = await prisma.bugReport.findFirst({
@@ -177,6 +182,8 @@ export async function getBugReports(req: Request, res: Response, next: NextFunct
     if (!req.user || req.user.role !== 'ADMIN') {
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
+
+    const prisma = tenantPrisma.getClient(req.tenant.id);
 
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(Math.max(1, parseInt(req.query.limit as string) || 20), 100);
@@ -229,6 +236,7 @@ export async function getBugReport(req: Request, res: Response, next: NextFuncti
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
 
     const bugReport = await prisma.bugReport.findUnique({
@@ -259,6 +267,7 @@ export async function updateBugReport(req: Request, res: Response, next: NextFun
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
     const { status, priority, adminResponse } = req.body;
 
@@ -321,6 +330,7 @@ export async function deleteBugReport(req: Request, res: Response, next: NextFun
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
 
     const existing = await prisma.bugReport.findUnique({ where: { id } });

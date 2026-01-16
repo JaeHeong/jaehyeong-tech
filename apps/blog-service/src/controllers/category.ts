@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { AppError } from '../middleware/errorHandler';
 import slugifyLib from 'slugify';
 
@@ -18,6 +18,7 @@ export async function getCategories(req: Request, res: Response, next: NextFunct
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const categories = await prisma.category.findMany({
       where: { tenantId: req.tenant.id },
       include: {
@@ -44,6 +45,7 @@ export async function getCategoryBySlug(req: Request, res: Response, next: NextF
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { slug } = req.params;
 
     const category = await prisma.category.findUnique({
@@ -84,6 +86,7 @@ export async function createCategory(req: Request, res: Response, next: NextFunc
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { name, description, icon, color } = req.body;
 
     let slug = slugify(name, { lower: true, strict: true });
@@ -137,6 +140,7 @@ export async function updateCategory(req: Request, res: Response, next: NextFunc
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
     const { name, description, icon, color } = req.body;
 
@@ -204,6 +208,7 @@ export async function deleteCategory(req: Request, res: Response, next: NextFunc
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
 
     const existing = await prisma.category.findUnique({

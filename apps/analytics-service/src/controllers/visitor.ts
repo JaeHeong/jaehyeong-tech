@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { hashIP, getClientIP } from '../utils/ipHash';
 
@@ -12,6 +12,9 @@ export async function trackVisitor(req: Request, res: Response, next: NextFuncti
     if (!req.tenant) {
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
+
+    // Get tenant-specific database connection
+    const prisma = tenantPrisma.getClient(req.tenant.id);
 
     const clientIp = getClientIP(req);
     const ipHash = hashIP(clientIp);
@@ -54,6 +57,9 @@ export async function getVisitorStats(req: Request, res: Response, next: NextFun
     if (!req.tenant) {
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
+
+    // Get tenant-specific database connection
+    const prisma = tenantPrisma.getClient(req.tenant.id);
 
     // Get today and yesterday dates (UTC)
     const now = new Date();
@@ -116,6 +122,9 @@ export async function getDetailedVisitorStats(req: Request, res: Response, next:
     if (!req.user || req.user.role !== 'ADMIN') {
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
+
+    // Get tenant-specific database connection
+    const prisma = tenantPrisma.getClient(req.tenant.id);
 
     const days = parseInt(req.query.days as string) || 7;
     const endDate = new Date();

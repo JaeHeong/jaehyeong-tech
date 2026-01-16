@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { AppError } from '../middleware/errorHandler';
 import slugifyLib from 'slugify';
 
@@ -18,6 +18,7 @@ export async function getTags(req: Request, res: Response, next: NextFunction) {
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const tags = await prisma.tag.findMany({
       where: { tenantId: req.tenant.id },
       include: {
@@ -44,6 +45,7 @@ export async function getTagBySlug(req: Request, res: Response, next: NextFuncti
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { slug } = req.params;
 
     const tag = await prisma.tag.findUnique({
@@ -84,6 +86,7 @@ export async function createTag(req: Request, res: Response, next: NextFunction)
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { name } = req.body;
 
     let slug = slugify(name, { lower: true, strict: true });
@@ -134,6 +137,7 @@ export async function updateTag(req: Request, res: Response, next: NextFunction)
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
     const { name } = req.body;
 
@@ -197,6 +201,7 @@ export async function deleteTag(req: Request, res: Response, next: NextFunction)
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
 
     const existing = await prisma.tag.findUnique({

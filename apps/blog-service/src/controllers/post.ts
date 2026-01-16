@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { eventPublisher } from '../services/eventPublisher';
 import { AppError } from '../middleware/errorHandler';
 import { calculateReadingTime } from '../utils/readingTime';
@@ -22,6 +22,7 @@ const LIKE_WEIGHT = 5; // 1 like = 5 views worth
  */
 export async function updateFeaturedPost(tenantId: string) {
   try {
+    const prisma = tenantPrisma.getClient(tenantId);
     // Find all PUBLIC posts for this tenant and calculate score
     const posts = await prisma.post.findMany({
       where: { tenantId, status: 'PUBLIC' },
@@ -66,6 +67,7 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const category = req.query.category as string;
@@ -171,6 +173,7 @@ export async function getFeaturedPosts(req: Request, res: Response, next: NextFu
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const posts = await prisma.post.findMany({
       where: { tenantId: req.tenant.id, status: 'PUBLIC', featured: true },
       include: {
@@ -196,6 +199,7 @@ export async function getTopViewedPost(req: Request, res: Response, next: NextFu
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const categorySlug = req.query.category as string;
 
     const where: Record<string, unknown> = {
@@ -239,6 +243,7 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { slug } = req.params;
 
     const post = await prisma.post.findUnique({
@@ -336,6 +341,7 @@ export async function getAdjacentPosts(req: Request, res: Response, next: NextFu
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { slug } = req.params;
 
     const currentPost = await prisma.post.findUnique({
@@ -400,6 +406,7 @@ export async function getRelatedPosts(req: Request, res: Response, next: NextFun
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { slug } = req.params;
     const limit = 3;
 
@@ -500,6 +507,7 @@ export async function createPost(req: Request, res: Response, next: NextFunction
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { title, excerpt, content, coverImage, categoryId, tagIds, status, featured } =
       req.body;
 
@@ -597,6 +605,7 @@ export async function updatePost(req: Request, res: Response, next: NextFunction
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
     const { title, excerpt, content, coverImage, categoryId, tagIds, status, featured } =
       req.body;
@@ -696,6 +705,7 @@ export async function deletePost(req: Request, res: Response, next: NextFunction
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
 
     const existing = await prisma.post.findUnique({
@@ -737,6 +747,7 @@ export async function getPostById(req: Request, res: Response, next: NextFunctio
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
 
     const post = await prisma.post.findUnique({

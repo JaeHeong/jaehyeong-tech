@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { hashPassword, validatePassword } from '../services/passwordService';
 
@@ -8,6 +8,8 @@ import { hashPassword, validatePassword } from '../services/passwordService';
  */
 export async function updateProfile(req: Request, res: Response, next: NextFunction) {
   try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const userId = req.user!.id;
     const { name, bio, title, avatar, github, twitter, linkedin, website } = req.body;
 
@@ -50,6 +52,7 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
 export async function changePassword(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const userId = req.user!.id;
     const { currentPassword, newPassword } = req.body;
 
@@ -92,6 +95,7 @@ export async function changePassword(req: Request, res: Response, next: NextFunc
 export async function listUsers(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { role, status, page = 1, limit = 20 } = req.query;
 
     const where: any = {
@@ -150,6 +154,7 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
 export async function updateUserRole(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { userId } = req.params;
     const { role } = req.body;
 
@@ -188,6 +193,7 @@ export async function updateUserRole(req: Request, res: Response, next: NextFunc
 export async function updateUserStatus(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { userId } = req.params;
     const { status } = req.body;
 

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { eventPublisher } from '../services/eventPublisher';
 import { AppError } from '../middleware/errorHandler';
 import { hashIP, getClientIP } from '../utils/ipHash';
@@ -20,6 +20,7 @@ export async function getPages(req: Request, res: Response, next: NextFunction) 
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const type = req.query.type as 'STATIC' | 'NOTICE' | undefined;
@@ -67,6 +68,7 @@ export async function getNotices(req: Request, res: Response, next: NextFunction
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
 
@@ -110,6 +112,7 @@ export async function getPageBySlug(req: Request, res: Response, next: NextFunct
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { slug } = req.params;
 
     const page = await prisma.page.findUnique({
@@ -201,6 +204,7 @@ export async function getAdjacentNotices(req: Request, res: Response, next: Next
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { slug } = req.params;
 
     const currentNotice = await prisma.page.findUnique({
@@ -279,6 +283,7 @@ export async function getAllPagesAdmin(req: Request, res: Response, next: NextFu
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const type = req.query.type as 'STATIC' | 'NOTICE' | undefined;
@@ -333,6 +338,7 @@ export async function getPageById(req: Request, res: Response, next: NextFunctio
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
 
     const page = await prisma.page.findUnique({
@@ -363,6 +369,7 @@ export async function createPage(req: Request, res: Response, next: NextFunction
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { title, content, excerpt, type, status, badge, badgeColor, isPinned, template } =
       req.body;
 
@@ -432,6 +439,7 @@ export async function updatePage(req: Request, res: Response, next: NextFunction
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
     const { title, content, excerpt, type, status, badge, badgeColor, isPinned, template } =
       req.body;
@@ -497,6 +505,7 @@ export async function deletePage(req: Request, res: Response, next: NextFunction
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id } = req.params;
 
     const existing = await prisma.page.findUnique({ where: { id } });
@@ -536,6 +545,7 @@ export async function getPageStats(req: Request, res: Response, next: NextFuncti
       throw new AppError('관리자 권한이 필요합니다.', 403);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const [total, published, drafts, notices, staticPages] = await Promise.all([
       prisma.page.count({ where: { tenantId: req.tenant.id } }),
       prisma.page.count({ where: { tenantId: req.tenant.id, status: 'PUBLISHED' } }),

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { eventPublisher } from '../services/eventPublisher';
 import { AppError } from '../middleware/errorHandler';
 import { hashIP, getClientIP } from '../utils/ipHash';
@@ -15,6 +15,7 @@ export async function toggleLike(req: Request, res: Response, next: NextFunction
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id: postId } = req.params;
 
     // Check if post exists
@@ -121,6 +122,7 @@ export async function checkLikeStatus(req: Request, res: Response, next: NextFun
       throw new AppError('Tenant을 식별할 수 없습니다.', 400);
     }
 
+    const prisma = tenantPrisma.getClient(req.tenant.id);
     const { id: postId } = req.params;
 
     const userId = req.user?.id;

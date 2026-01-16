@@ -29,6 +29,11 @@
       "types": "./dist/validation.d.ts",
       "require": "./dist/validation.js",
       "import": "./dist/validation.js"
+    },
+    "./tenant-db": {
+      "types": "./dist/tenant-db.d.ts",
+      "require": "./dist/tenant-db.js",
+      "import": "./dist/tenant-db.js"
     }
   },
   "scripts": {

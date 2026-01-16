@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { eventPublisher } from '../services/eventPublisher';
 import { AppError } from '../middleware/errorHandler';
 import { hashIP, getClientIP } from '@shared/utils';
@@ -12,6 +12,7 @@ import { CommentStatus } from '@shared/types';
 export async function createComment(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { resourceType, resourceId, content, guestName, guestEmail, parentId } = req.body;
 
     // 인증된 사용자인지 익명 사용자인지 확인
@@ -85,6 +86,7 @@ export async function createComment(req: Request, res: Response, next: NextFunct
 export async function getComments(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { resourceType, resourceId, status, parentId } = req.query;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
@@ -166,6 +168,7 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
 export async function getComment(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { id } = req.params;
 
     const comment = await prisma.comment.findFirst({
@@ -218,6 +221,7 @@ export async function getComment(req: Request, res: Response, next: NextFunction
 export async function updateComment(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { id } = req.params;
     const { content } = req.body;
 
@@ -279,6 +283,7 @@ export async function updateComment(req: Request, res: Response, next: NextFunct
 export async function deleteComment(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { id } = req.params;
 
     // 댓글 조회
@@ -328,6 +333,7 @@ export async function deleteComment(req: Request, res: Response, next: NextFunct
 export async function approveComment(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { id } = req.params;
 
     const comment = await prisma.comment.update({
@@ -363,6 +369,7 @@ export async function approveComment(req: Request, res: Response, next: NextFunc
 export async function updateCommentStatus(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { id } = req.params;
     const { status } = req.body;
 

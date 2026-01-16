@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import sharp from 'sharp';
-import { prisma } from '../services/prisma';
+import { tenantPrisma } from '../services/prisma';
 import { ociStorage } from '../services/ociStorage';
 import { eventPublisher } from '../services/eventPublisher';
 import { AppError } from '../middleware/errorHandler';
@@ -14,6 +14,7 @@ import { FileType as SharedFileType } from '@shared/types';
 export async function uploadFile(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const file = req.file;
 
     if (!file) {
@@ -118,6 +119,7 @@ export async function uploadFile(req: Request, res: Response, next: NextFunction
 export async function getFiles(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { resourceType, resourceId, folder, fileType } = req.query;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
@@ -191,6 +193,7 @@ export async function getFiles(req: Request, res: Response, next: NextFunction) 
 export async function getFile(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { id } = req.params;
 
     const file = await prisma.file.findFirst({
@@ -216,6 +219,7 @@ export async function getFile(req: Request, res: Response, next: NextFunction) {
 export async function deleteFile(req: Request, res: Response, next: NextFunction) {
   try {
     const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
     const { id } = req.params;
 
     // 파일 조회
