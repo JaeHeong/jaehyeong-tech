@@ -4,7 +4,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/analytics-service/package.json ./apps/analytics-service/
 COPY packages/shared ./packages/shared
 
@@ -19,30 +19,29 @@ COPY apps/analytics-service ./apps/analytics-service
 COPY tsconfig.base.json ./
 
 # Generate Prisma client
-WORKDIR /app/apps/analytics-service
-RUN ./node_modules/.bin/prisma generate
+RUN pnpm --filter analytics-service exec prisma generate
 
 # Build
-RUN pnpm build
+RUN pnpm --filter analytics-service build
 
 # Stage 2: Production
 FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY --from=builder /app/package.json /app/pnpm-lock.yaml* ./
-COPY --from=builder /app/apps/analytics-service/package.json ./apps/analytics-service/
-
 # Install pnpm
 RUN npm install -g pnpm
 
-# Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile
+# Copy all node_modules from builder (includes prisma client)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/analytics-service/node_modules ./apps/analytics-service/node_modules
 
-# Copy built files and Prisma client
+# Copy package files
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/apps/analytics-service/package.json ./apps/analytics-service/
+
+# Copy built files
 COPY --from=builder /app/apps/analytics-service/dist ./apps/analytics-service/dist
-COPY --from=builder /app/apps/analytics-service/node_modules/.prisma ./apps/analytics-service/node_modules/.prisma
 COPY --from=builder /app/apps/analytics-service/prisma ./apps/analytics-service/prisma
 
 # Copy shared packages

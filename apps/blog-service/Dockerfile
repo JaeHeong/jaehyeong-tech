@@ -4,7 +4,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/blog-service/package.json ./apps/blog-service/
 COPY packages/shared ./packages/shared
 
@@ -19,30 +19,29 @@ COPY apps/blog-service ./apps/blog-service
 COPY tsconfig.base.json ./
 
 # Generate Prisma client
-WORKDIR /app/apps/blog-service
-RUN ./node_modules/.bin/prisma generate
+RUN pnpm --filter blog-service exec prisma generate
 
 # Build
-RUN pnpm build
+RUN pnpm --filter blog-service build
 
 # Stage 2: Production
 FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY --from=builder /app/package.json /app/pnpm-lock.yaml* ./
-COPY --from=builder /app/apps/blog-service/package.json ./apps/blog-service/
-
 # Install pnpm
 RUN npm install -g pnpm
 
-# Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile
+# Copy all node_modules from builder (includes prisma client)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/blog-service/node_modules ./apps/blog-service/node_modules
 
-# Copy built files and Prisma client
+# Copy package files
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/apps/blog-service/package.json ./apps/blog-service/
+
+# Copy built files
 COPY --from=builder /app/apps/blog-service/dist ./apps/blog-service/dist
-COPY --from=builder /app/apps/blog-service/node_modules/.prisma ./apps/blog-service/node_modules/.prisma
 COPY --from=builder /app/apps/blog-service/prisma ./apps/blog-service/prisma
 
 # Copy shared packages
@@ -51,11 +50,11 @@ COPY --from=builder /app/packages ./packages
 WORKDIR /app/apps/blog-service
 
 # Expose port
-EXPOSE 3006
+EXPOSE 3002
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3006) + '/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:3002/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start server
 CMD ["node", "dist/server.js"]

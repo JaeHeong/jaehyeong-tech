@@ -25,7 +25,7 @@ RUN pnpm --filter @shared/events build
 RUN pnpm --filter @shared/utils build
 
 # Prisma 생성
-RUN cd apps/comment-service && ./node_modules/.bin/prisma generate
+RUN pnpm --filter comment-service exec prisma generate
 
 # Comment service 빌드
 RUN pnpm --filter comment-service build
@@ -38,12 +38,13 @@ WORKDIR /app
 # pnpm 설치
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# 프로덕션 의존성만 설치
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY packages/shared ./packages/shared
-COPY apps/comment-service/package.json ./apps/comment-service/
+# 전체 node_modules 복사 (prisma client 포함)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/comment-service/node_modules ./apps/comment-service/node_modules
 
-RUN pnpm install --frozen-lockfile --prod
+# package.json 복사
+COPY --from=builder /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml ./
+COPY --from=builder /app/apps/comment-service/package.json ./apps/comment-service/
 
 # 빌드된 파일 복사
 COPY --from=builder /app/packages/shared/types/dist ./packages/shared/types/dist
@@ -54,10 +55,6 @@ COPY --from=builder /app/packages/shared/utils/dist ./packages/shared/utils/dist
 COPY --from=builder /app/packages/shared/utils/package.json ./packages/shared/utils/
 COPY --from=builder /app/apps/comment-service/dist ./apps/comment-service/dist
 COPY --from=builder /app/apps/comment-service/prisma ./apps/comment-service/prisma
-COPY --from=builder /app/apps/comment-service/node_modules/.prisma ./apps/comment-service/node_modules/.prisma
-
-# Prisma Client 복사
-RUN cd apps/comment-service && ./node_modules/.bin/prisma generate
 
 WORKDIR /app/apps/comment-service
 

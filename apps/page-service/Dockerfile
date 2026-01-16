@@ -4,7 +4,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/page-service/package.json ./apps/page-service/
 COPY packages/shared ./packages/shared
 
@@ -19,30 +19,29 @@ COPY apps/page-service ./apps/page-service
 COPY tsconfig.base.json ./
 
 # Generate Prisma client
-WORKDIR /app/apps/page-service
-RUN ./node_modules/.bin/prisma generate
+RUN pnpm --filter page-service exec prisma generate
 
 # Build
-RUN pnpm build
+RUN pnpm --filter page-service build
 
 # Stage 2: Production
 FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY --from=builder /app/package.json /app/pnpm-lock.yaml* ./
-COPY --from=builder /app/apps/page-service/package.json ./apps/page-service/
-
 # Install pnpm
 RUN npm install -g pnpm
 
-# Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile
+# Copy all node_modules from builder (includes prisma client)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/page-service/node_modules ./apps/page-service/node_modules
 
-# Copy built files and Prisma client
+# Copy package files
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/apps/page-service/package.json ./apps/page-service/
+
+# Copy built files
 COPY --from=builder /app/apps/page-service/dist ./apps/page-service/dist
-COPY --from=builder /app/apps/page-service/node_modules/.prisma ./apps/page-service/node_modules/.prisma
 COPY --from=builder /app/apps/page-service/prisma ./apps/page-service/prisma
 
 # Copy shared packages
