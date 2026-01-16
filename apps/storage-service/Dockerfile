@@ -25,7 +25,7 @@ RUN pnpm --filter @shared/events build
 RUN pnpm --filter @shared/utils build
 
 # Prisma 생성
-RUN cd apps/storage-service && pnpm prisma:generate
+RUN cd apps/storage-service && npx prisma generate
 
 # Storage service 빌드
 RUN pnpm --filter storage-service build
@@ -57,7 +57,7 @@ COPY --from=builder /app/apps/storage-service/prisma ./apps/storage-service/pris
 COPY --from=builder /app/apps/storage-service/node_modules/.prisma ./apps/storage-service/node_modules/.prisma
 
 # Prisma Client 복사
-RUN cd apps/storage-service && pnpm prisma:generate
+RUN cd apps/storage-service && npx prisma generate
 
 WORKDIR /app/apps/storage-service
 
