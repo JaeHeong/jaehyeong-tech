@@ -3,6 +3,7 @@ import {
   createComment,
   getComments,
   getComment,
+  getRecentComments,
   updateComment,
   deleteComment,
   approveComment,
@@ -18,6 +19,9 @@ router.use(resolveTenant);
 
 // 댓글 목록 조회 (인증 선택적)
 router.get('/', optionalAuthenticate, getComments);
+
+// 최근 댓글 조회 (공개) - /:id 보다 먼저 정의해야 함
+router.get('/recent', getRecentComments);
 
 // 댓글 생성 (인증 선택적 - 익명 댓글 가능)
 router.post('/', optionalAuthenticate, createComment);

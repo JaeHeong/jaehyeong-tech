@@ -388,3 +388,50 @@ export async function updateCommentStatus(req: Request, res: Response, next: Nex
     next(error);
   }
 }
+
+/**
+ * 최근 댓글 목록 조회 (공개)
+ * 사이드바나 대시보드에서 사용
+ */
+export async function getRecentComments(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const limit = Math.min(Number(req.query.limit) || 5, 10);
+
+    const comments = await prisma.comment.findMany({
+      where: {
+        tenantId: tenant.id,
+        isDeleted: false,
+        isPrivate: false,
+        status: 'APPROVED',
+        resourceType: 'post', // 블로그 포스트 댓글만
+      },
+      select: {
+        id: true,
+        content: true,
+        authorId: true,
+        guestName: true,
+        resourceId: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    res.json({
+      data: comments.map((comment) => ({
+        id: comment.id,
+        content: comment.content.length > 80
+          ? comment.content.substring(0, 80) + '...'
+          : comment.content,
+        authorName: comment.guestName || '익명',
+        authorId: comment.authorId,
+        resourceId: comment.resourceId,
+        createdAt: comment.createdAt.toISOString(),
+      })),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
