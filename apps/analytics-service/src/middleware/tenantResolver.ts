@@ -32,6 +32,12 @@ export function resolveTenant(req: Request, res: Response, next: NextFunction) {
     let tenantId: string | undefined = req.headers['x-tenant-id'] as string | undefined;
     let tenantName: string | undefined = req.headers['x-tenant-name'] as string | undefined;
 
+    // Normalize tenantId from header (add tenant- prefix if missing)
+    if (tenantId && !tenantId.startsWith('tenant-')) {
+      tenantName = tenantName || tenantId;
+      tenantId = `tenant-${tenantId}`;
+    }
+
     // Host header fallback
     if (!tenantId) {
       const host = req.headers['host'] || req.headers['x-forwarded-host'] as string;
@@ -63,6 +69,12 @@ export function resolveTenant(req: Request, res: Response, next: NextFunction) {
 export function optionalTenant(req: Request, res: Response, next: NextFunction) {
   let tenantId: string | undefined = req.headers['x-tenant-id'] as string | undefined;
   let tenantName: string | undefined = req.headers['x-tenant-name'] as string | undefined;
+
+  // Normalize tenantId from header (add tenant- prefix if missing)
+  if (tenantId && !tenantId.startsWith('tenant-')) {
+    tenantName = tenantName || tenantId;
+    tenantId = `tenant-${tenantId}`;
+  }
 
   if (!tenantId) {
     const host = req.headers['host'] || req.headers['x-forwarded-host'] as string;
