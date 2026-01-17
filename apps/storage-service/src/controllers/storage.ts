@@ -267,3 +267,141 @@ export async function deleteFile(req: Request, res: Response, next: NextFunction
     next(error);
   }
 }
+
+/**
+ * 고아 파일 목록 조회 (관리자 전용)
+ * 리소스에 연결되지 않고 24시간 이상 경과한 파일
+ */
+export async function getOrphanFiles(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user || req.user.role !== 'ADMIN') {
+      throw new AppError('관리자 권한이 필요합니다.', 403);
+    }
+
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    // 리소스에 연결되지 않고 24시간 이상 경과한 파일 조회
+    const orphans = await prisma.file.findMany({
+      where: {
+        tenantId: tenant.id,
+        resourceId: null,
+        createdAt: { lt: twentyFourHoursAgo },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // 통계 계산
+    const [total, linked, totalSizeResult] = await Promise.all([
+      prisma.file.count({ where: { tenantId: tenant.id } }),
+      prisma.file.count({ where: { tenantId: tenant.id, resourceId: { not: null } } }),
+      prisma.file.aggregate({
+        where: { tenantId: tenant.id },
+        _sum: { size: true },
+      }),
+    ]);
+
+    const orphanSize = orphans.reduce((sum, file) => sum + file.size, 0);
+
+    res.json({
+      data: {
+        orphans: orphans.map((file) => ({
+          id: file.id,
+          url: file.url,
+          objectName: file.objectName,
+          fileName: file.fileName,
+          originalFileName: file.originalFileName,
+          size: file.size,
+          fileType: file.fileType,
+          createdAt: file.createdAt.toISOString(),
+        })),
+        stats: {
+          total,
+          linked,
+          orphaned: orphans.length,
+          totalSize: totalSizeResult._sum.size || 0,
+          orphanSize,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 고아 파일 일괄 삭제 (관리자 전용)
+ */
+export async function deleteOrphanFiles(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user || req.user.role !== 'ADMIN') {
+      throw new AppError('관리자 권한이 필요합니다.', 403);
+    }
+
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    // 고아 파일 조회
+    const orphans = await prisma.file.findMany({
+      where: {
+        tenantId: tenant.id,
+        resourceId: null,
+        createdAt: { lt: twentyFourHoursAgo },
+      },
+    });
+
+    if (orphans.length === 0) {
+      return res.json({
+        data: {
+          deleted: 0,
+          freedSpace: 0,
+        },
+      });
+    }
+
+    let freedSpace = 0;
+    const deleteErrors: string[] = [];
+    const successIds: string[] = [];
+
+    // OCI에서 삭제
+    for (const file of orphans) {
+      try {
+        await ociStorage.deleteFile(file.objectName);
+        freedSpace += file.size;
+        successIds.push(file.id);
+      } catch (error) {
+        console.error(`Failed to delete from OCI: ${file.objectName}`, error);
+        deleteErrors.push(file.objectName);
+      }
+    }
+
+    // DB에서 성공적으로 삭제된 파일만 제거
+    if (successIds.length > 0) {
+      await prisma.file.deleteMany({
+        where: { id: { in: successIds } },
+      });
+    }
+
+    // 이벤트 발행
+    await eventPublisher.publish({
+      eventType: 'files.cleanup',
+      tenantId: tenant.id,
+      data: {
+        deletedCount: successIds.length,
+        freedSpace,
+      },
+    });
+
+    res.json({
+      data: {
+        deleted: successIds.length,
+        freedSpace,
+        errors: deleteErrors.length > 0 ? deleteErrors : undefined,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}

@@ -4,10 +4,12 @@ import {
   getComments,
   getComment,
   getRecentComments,
+  getMyComments,
   updateComment,
   deleteComment,
   approveComment,
   updateCommentStatus,
+  bulkDeleteComments,
 } from '../controllers/comment';
 import { resolveTenant } from '../middleware/tenantResolver';
 import { optionalAuthenticate, requireAuth, requireAdmin } from '../middleware/authenticate';
@@ -22,6 +24,12 @@ router.get('/', optionalAuthenticate, getComments);
 
 // 최근 댓글 조회 (공개) - /:id 보다 먼저 정의해야 함
 router.get('/recent', getRecentComments);
+
+// 내 댓글 목록 조회 (인증 필수) - /:id 보다 먼저 정의해야 함
+router.get('/me', requireAuth, getMyComments);
+
+// 관리자 일괄 삭제 - /:id 보다 먼저 정의해야 함
+router.post('/bulk-delete', requireAuth, requireAdmin, bulkDeleteComments);
 
 // 댓글 생성 (인증 선택적 - 익명 댓글 가능)
 router.post('/', optionalAuthenticate, createComment);

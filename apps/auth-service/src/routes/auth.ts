@@ -1,5 +1,5 @@
 import { Router, IRouter } from 'express';
-import { register, login, googleLogin, getCurrentUser } from '../controllers/auth';
+import { register, login, googleLogin, getCurrentUser, updateCurrentUser } from '../controllers/auth';
 import { resolveTenant } from '../middleware/tenantResolver';
 import { authenticate } from '../middleware/authenticate';
 
@@ -19,5 +19,8 @@ router.post('/google', googleLogin);
 
 // 현재 사용자 정보 조회 (인증 필요)
 router.get('/me', authenticate, getCurrentUser);
+
+// 현재 사용자 정보 수정 (인증 필요)
+router.put('/me', authenticate, updateCurrentUser);
 
 export default router;

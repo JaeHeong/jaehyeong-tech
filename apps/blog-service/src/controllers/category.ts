@@ -73,6 +73,73 @@ export async function getCategoryBySlug(req: Request, res: Response, next: NextF
 }
 
 /**
+ * GET /api/categories/:slug/posts
+ * Public: Get posts by category slug
+ */
+export async function getCategoryPosts(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.tenant) {
+      throw new AppError('Tenant을 식별할 수 없습니다.', 400);
+    }
+
+    const prisma = tenantPrisma.getClient(req.tenant.id);
+    const { slug } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const isAdmin = req.user?.role === 'ADMIN';
+
+    const category = await prisma.category.findUnique({
+      where: {
+        tenantId_slug: {
+          tenantId: req.tenant.id,
+          slug,
+        },
+      },
+    });
+
+    if (!category) {
+      throw new AppError('카테고리를 찾을 수 없습니다.', 404);
+    }
+
+    // Admin sees PUBLIC + PRIVATE, others see PUBLIC only
+    const statuses: ('PUBLIC' | 'PRIVATE')[] = isAdmin ? ['PUBLIC', 'PRIVATE'] : ['PUBLIC'];
+    const where = {
+      tenantId: req.tenant.id,
+      categoryId: category.id,
+      status: { in: statuses },
+    };
+
+    const [posts, total] = await Promise.all([
+      prisma.post.findMany({
+        where,
+        include: {
+          author: { select: { id: true, name: true, avatar: true } },
+          category: true,
+          tags: true,
+        },
+        orderBy: { publishedAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.post.count({ where }),
+    ]);
+
+    res.json({
+      data: posts,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        category,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * POST /api/categories
  * Admin: Create category
  */

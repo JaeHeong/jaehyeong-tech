@@ -767,3 +767,63 @@ export async function getPostById(req: Request, res: Response, next: NextFunctio
     next(error);
   }
 }
+
+/**
+ * POST /api/posts/bulk-delete
+ * Admin: Bulk delete posts
+ */
+export async function bulkDeletePosts(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.tenant) {
+      throw new AppError('Tenant을 식별할 수 없습니다.', 400);
+    }
+
+    if (!req.user || req.user.role !== 'ADMIN') {
+      throw new AppError('관리자 권한이 필요합니다.', 403);
+    }
+
+    const { ids } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new AppError('삭제할 게시글 ID 목록이 필요합니다.', 400);
+    }
+
+    const prisma = tenantPrisma.getClient(req.tenant.id);
+
+    // Get all posts to delete (verify tenant ownership)
+    const posts = await prisma.post.findMany({
+      where: {
+        id: { in: ids },
+        tenantId: req.tenant.id,
+      },
+      select: { id: true },
+    });
+
+    if (posts.length === 0) {
+      throw new AppError('삭제할 게시글을 찾을 수 없습니다.', 404);
+    }
+
+    const postIds = posts.map((p) => p.id);
+
+    // Delete the posts (cascades to related records)
+    const result = await prisma.post.deleteMany({
+      where: { id: { in: postIds } },
+    });
+
+    // Publish events for each deleted post
+    for (const postId of postIds) {
+      await eventPublisher.publish({
+        eventType: 'post.deleted',
+        tenantId: req.tenant.id,
+        data: { postId },
+      });
+    }
+
+    // Update featured post
+    await updateFeaturedPost(req.tenant.id);
+
+    res.json({ data: { deletedCount: result.count } });
+  } catch (error) {
+    next(error);
+  }
+}

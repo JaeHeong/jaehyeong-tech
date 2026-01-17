@@ -1,7 +1,14 @@
 import { Router, IRouter } from 'express';
-import { uploadFile, getFiles, getFile, deleteFile } from '../controllers/storage';
+import {
+  uploadFile,
+  getFiles,
+  getFile,
+  deleteFile,
+  getOrphanFiles,
+  deleteOrphanFiles,
+} from '../controllers/storage';
 import { resolveTenant } from '../middleware/tenantResolver';
-import { optionalAuthenticate, requireAuth } from '../middleware/authenticate';
+import { optionalAuthenticate, requireAuth, requireAdmin } from '../middleware/authenticate';
 import { upload } from '../middleware/upload';
 
 const router: IRouter = Router();
@@ -14,6 +21,10 @@ router.post('/upload', optionalAuthenticate, upload.single('file') as any, uploa
 
 // 파일 목록 조회
 router.get('/', optionalAuthenticate, getFiles);
+
+// 고아 파일 관리 (관리자 전용) - /:id 보다 먼저 정의
+router.get('/orphans', requireAdmin, getOrphanFiles);
+router.delete('/orphans', requireAdmin, deleteOrphanFiles);
 
 // 파일 상세 조회
 router.get('/:id', optionalAuthenticate, getFile);

@@ -435,3 +435,114 @@ export async function getRecentComments(req: Request, res: Response, next: NextF
     next(error);
   }
 }
+
+/**
+ * 내 댓글 목록 조회 (인증된 사용자 전용)
+ */
+export async function getMyComments(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user) {
+      throw new AppError('로그인이 필요합니다.', 401);
+    }
+
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const order = (req.query.order as string) === 'asc' ? 'asc' : 'desc';
+
+    const where = {
+      tenantId: tenant.id,
+      authorId: req.user.id,
+      isDeleted: false,
+    };
+
+    const [comments, total] = await Promise.all([
+      prisma.comment.findMany({
+        where,
+        select: {
+          id: true,
+          content: true,
+          resourceType: true,
+          resourceId: true,
+          isPrivate: true,
+          parentId: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: { replies: true },
+          },
+        },
+        orderBy: { createdAt: order },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.comment.count({ where }),
+    ]);
+
+    res.json({
+      data: comments.map((c) => ({
+        id: c.id,
+        content: c.content,
+        resourceType: c.resourceType,
+        resourceId: c.resourceId,
+        isPrivate: c.isPrivate,
+        parentId: c.parentId,
+        status: c.status,
+        replyCount: c._count.replies,
+        createdAt: c.createdAt.toISOString(),
+        updatedAt: c.updatedAt.toISOString(),
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 관리자 댓글 일괄 삭제
+ */
+export async function bulkDeleteComments(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user || req.user.role !== 'ADMIN') {
+      throw new AppError('관리자 권한이 필요합니다.', 403);
+    }
+
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const { ids } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new AppError('삭제할 댓글 ID 목록이 필요합니다.', 400);
+    }
+
+    // Soft delete (tenant 확인 포함)
+    const result = await prisma.comment.updateMany({
+      where: {
+        id: { in: ids },
+        tenantId: tenant.id,
+      },
+      data: { isDeleted: true },
+    });
+
+    // 이벤트 발행
+    for (const commentId of ids) {
+      await eventPublisher.publish({
+        eventType: 'comment.deleted',
+        tenantId: tenant.id,
+        data: { commentId },
+      });
+    }
+
+    res.json({ data: { deletedCount: result.count } });
+  } catch (error) {
+    next(error);
+  }
+}

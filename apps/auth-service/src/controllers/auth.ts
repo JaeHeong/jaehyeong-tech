@@ -289,3 +289,76 @@ export async function getCurrentUser(req: Request, res: Response, next: NextFunc
     next(error);
   }
 }
+
+/**
+ * 현재 사용자 정보 수정
+ */
+export async function updateCurrentUser(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant as Tenant;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const userId = req.user!.id;
+
+    const { name, avatar, bio } = req.body;
+
+    // Validate name
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        throw new AppError('이름은 필수입니다.', 400);
+      }
+      if (name.length > 50) {
+        throw new AppError('이름은 50자 이내로 입력해주세요.', 400);
+      }
+    }
+
+    // Validate bio
+    if (bio !== undefined && bio !== null) {
+      if (typeof bio !== 'string') {
+        throw new AppError('소개는 문자열이어야 합니다.', 400);
+      }
+      if (bio.length > 200) {
+        throw new AppError('소개는 200자 이내로 입력해주세요.', 400);
+      }
+    }
+
+    const updateData: { name?: string; avatar?: string | null; bio?: string | null } = {};
+
+    if (name !== undefined) {
+      updateData.name = name.trim();
+    }
+    if (avatar !== undefined) {
+      updateData.avatar = avatar || null;
+    }
+    if (bio !== undefined) {
+      updateData.bio = bio || null;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        bio: true,
+        title: true,
+        github: true,
+        twitter: true,
+        linkedin: true,
+        website: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    res.json({
+      data: {
+        ...updatedUser,
+        createdAt: updatedUser.createdAt.toISOString(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}

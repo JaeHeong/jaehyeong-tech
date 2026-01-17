@@ -23,6 +23,7 @@ postRouter.get('/:id/like', optionalAuthenticate, likeController.checkLikeStatus
 
 // Admin routes
 postRouter.get('/admin/:id', requireAdmin, postController.getPostById);
+postRouter.post('/bulk-delete', requireAdmin, postController.bulkDeletePosts);
 postRouter.post('/', requireAdmin, postController.createPost);
 postRouter.put('/:id', requireAdmin, postController.updatePost);
 postRouter.delete('/:id', requireAdmin, postController.deletePost);
