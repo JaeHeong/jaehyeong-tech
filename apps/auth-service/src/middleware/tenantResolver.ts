@@ -57,9 +57,14 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
       );
     }
 
+    // Strip "tenant-" prefix if present (Istio EnvoyFilter sets x-tenant-id with prefix)
+    const tenantName = tenantIdentifier.startsWith('tenant-')
+      ? tenantIdentifier.slice(7)
+      : tenantIdentifier;
+
     // Tenant 조회
     const tenant = await prisma.tenant.findUnique({
-      where: { name: tenantIdentifier },
+      where: { name: tenantName },
     });
 
     if (!tenant) {
