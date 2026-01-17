@@ -29,8 +29,8 @@ function extractTenantFromHost(host: string | undefined): string | undefined {
  */
 export function resolveTenant(req: Request, res: Response, next: NextFunction) {
   try {
-    let tenantId = req.headers['x-tenant-id'] as string;
-    let tenantName = req.headers['x-tenant-name'] as string | undefined;
+    let tenantId: string | undefined = req.headers['x-tenant-id'] as string | undefined;
+    let tenantName: string | undefined = req.headers['x-tenant-name'] as string | undefined;
 
     // Host header fallback
     if (!tenantId) {
@@ -61,8 +61,8 @@ export function resolveTenant(req: Request, res: Response, next: NextFunction) {
  * 선택적 Tenant 식별
  */
 export function optionalTenant(req: Request, res: Response, next: NextFunction) {
-  let tenantId = req.headers['x-tenant-id'] as string;
-  let tenantName = req.headers['x-tenant-name'] as string | undefined;
+  let tenantId: string | undefined = req.headers['x-tenant-id'] as string | undefined;
+  let tenantName: string | undefined = req.headers['x-tenant-name'] as string | undefined;
 
   if (!tenantId) {
     const host = req.headers['host'] || req.headers['x-forwarded-host'] as string;
