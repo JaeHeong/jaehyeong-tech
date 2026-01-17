@@ -532,15 +532,6 @@ export async function bulkDeleteComments(req: Request, res: Response, next: Next
       data: { isDeleted: true },
     });
 
-    // 이벤트 발행
-    for (const commentId of ids) {
-      await eventPublisher.publish({
-        eventType: 'comment.deleted',
-        tenantId: tenant.id,
-        data: { commentId },
-      });
-    }
-
     res.json({ data: { deletedCount: result.count } });
   } catch (error) {
     next(error);
