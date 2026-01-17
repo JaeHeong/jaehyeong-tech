@@ -52,19 +52,15 @@ export async function resolveTenant(req: Request, res: Response, next: NextFunct
 
     if (!tenantIdentifier) {
       throw new AppError(
-        'Tenant을 식별할 수 없습니다. X-Tenant-Name 헤더를 제공하거나 서브도메인을 사용하세요.',
+        'Tenant을 식별할 수 없습니다. X-Tenant-ID 헤더를 제공하세요.',
         400
       );
     }
 
-    // Strip "tenant-" prefix if present (Istio EnvoyFilter sets x-tenant-id with prefix)
-    const tenantName = tenantIdentifier.startsWith('tenant-')
-      ? tenantIdentifier.slice(7)
-      : tenantIdentifier;
-
-    // Tenant 조회
+    // Tenant 조회 - x-tenant-id가 있으면 ID로, 아니면 name으로 검색
+    const isById = tenantIdentifier.startsWith('tenant-');
     const tenant = await prisma.tenant.findUnique({
-      where: { name: tenantName },
+      where: isById ? { id: tenantIdentifier } : { name: tenantIdentifier },
     });
 
     if (!tenant) {
