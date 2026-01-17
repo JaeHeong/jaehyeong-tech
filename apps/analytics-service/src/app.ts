@@ -3,7 +3,6 @@ import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler';
 import { visitorRouter } from './routes/visitor';
 import { bugReportRouter } from './routes/bugReport';
-import { ga4Router } from './routes/ga4';
 
 const app: Application = express();
 
@@ -24,7 +23,8 @@ app.get('/ready', async (_req: Request, res: Response) => {
 // Routes
 app.use('/api/visitors', visitorRouter);
 app.use('/api/bug-reports', bugReportRouter);
-app.use('/api/analytics', ga4Router);
+// TODO: GA4 integration requires @google-analytics/data package
+// app.use('/api/analytics', ga4Router);
 
 // Error handler (must be last)
 app.use(errorHandler);
