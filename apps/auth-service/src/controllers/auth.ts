@@ -6,6 +6,12 @@ import { Tenant } from '../middleware/tenantResolver';
 import { generateToken } from '../services/jwtService';
 import { validatePassword, hashPassword, verifyPassword } from '../services/passwordService';
 
+// Admin email whitelist - only these emails get ADMIN role
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(email => email.length > 0);
+
 /**
  * 회원가입
  */
@@ -192,7 +198,8 @@ export async function googleLogin(req: Request, res: Response, next: NextFunctio
           },
         });
       } else {
-        // 새 사용자 생성
+        // 새 사용자 생성 - admin 이메일이면 ADMIN role
+        const role = ADMIN_EMAILS.includes(payload.email!.toLowerCase()) ? 'ADMIN' : 'USER';
         user = await prisma.user.create({
           data: {
             tenantId: tenant.id,
@@ -200,10 +207,18 @@ export async function googleLogin(req: Request, res: Response, next: NextFunctio
             googleId: payload.sub,
             name: payload.name || payload.email!,
             avatar: payload.picture,
-            role: 'USER',
+            role,
           },
         });
       }
+    }
+
+    // 기존 사용자도 admin 이메일이면 role 업데이트
+    if (ADMIN_EMAILS.includes(payload.email!.toLowerCase()) && user.role !== 'ADMIN') {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { role: 'ADMIN' },
+      });
     }
 
     // 4. 계정 상태 확인
