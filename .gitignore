@@ -47,3 +47,4 @@ packages/**/src/*.d.ts.map
 tmp/
 temp/
 .cache/
+keys/

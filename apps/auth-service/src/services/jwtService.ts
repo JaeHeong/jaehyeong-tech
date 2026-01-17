@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { Tenant } from '../middleware/tenantResolver';
 import { AppError } from '../middleware/errorHandler';
 
@@ -9,8 +10,15 @@ export interface JWTPayload {
   email: string;
 }
 
+// RS256 키 (환경변수에서 로드)
+const privateKey = process.env.JWT_PRIVATE_KEY?.replace(/\\n/g, '\n') || '';
+const publicKey = process.env.JWT_PUBLIC_KEY?.replace(/\\n/g, '\n') || '';
+
+// 키 ID (고정값 또는 키 해시)
+const keyId = 'jaehyeong-tech-jwt-key-1';
+
 /**
- * JWT 발급 (Tenant별 Secret 사용)
+ * JWT 발급 (RS256)
  */
 export function generateToken(
   tenant: Tenant,
@@ -18,6 +26,10 @@ export function generateToken(
   role: string,
   email: string
 ): string {
+  if (!privateKey) {
+    throw new AppError('JWT private key not configured', 500);
+  }
+
   const payload: JWTPayload = {
     userId,
     tenantId: tenant.id,
@@ -25,23 +37,29 @@ export function generateToken(
     email,
   };
 
-  // Cast the options to satisfy strict TypeScript checking
-  const options = {
+  const options: jwt.SignOptions = {
+    algorithm: 'RS256',
     expiresIn: tenant.jwtExpiry as jwt.SignOptions['expiresIn'],
-    issuer: `auth-service:${tenant.name}`,
+    issuer: `https://${tenant.domain}`,
     audience: tenant.domain,
+    keyid: keyId,
   };
 
-  return jwt.sign(payload, tenant.jwtSecret, options);
+  return jwt.sign(payload, privateKey, options);
 }
 
 /**
- * JWT 검증 (Tenant별 Secret 사용)
+ * JWT 검증 (RS256)
  */
 export function verifyToken(tenant: Tenant, token: string): JWTPayload {
+  if (!publicKey) {
+    throw new AppError('JWT public key not configured', 500);
+  }
+
   try {
-    const decoded = jwt.verify(token, tenant.jwtSecret, {
-      issuer: `auth-service:${tenant.name}`,
+    const decoded = jwt.verify(token, publicKey, {
+      algorithms: ['RS256'],
+      issuer: `https://${tenant.domain}`,
       audience: tenant.domain,
     }) as JWTPayload;
 
@@ -69,4 +87,34 @@ export function refreshToken(tenant: Tenant, oldToken: string): string {
   const decoded = verifyToken(tenant, oldToken);
 
   return generateToken(tenant, decoded.userId, decoded.role, decoded.email);
+}
+
+/**
+ * JWKS (JSON Web Key Set) 생성
+ * Istio RequestAuthentication에서 사용
+ */
+export function getJWKS(): { keys: any[] } {
+  if (!publicKey) {
+    return { keys: [] };
+  }
+
+  try {
+    // PEM을 JWK로 변환
+    const keyObject = crypto.createPublicKey(publicKey);
+    const jwk = keyObject.export({ format: 'jwk' });
+
+    return {
+      keys: [
+        {
+          ...jwk,
+          kid: keyId,
+          use: 'sig',
+          alg: 'RS256',
+        },
+      ],
+    };
+  } catch (error) {
+    console.error('Failed to generate JWKS:', error);
+    return { keys: [] };
+  }
 }

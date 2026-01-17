@@ -6,6 +6,7 @@ import tenantRoutes from './routes/tenant';
 import userRoutes from './routes/user';
 import authorRoutes from './routes/author';
 import { errorHandler } from './middleware/errorHandler';
+import { getJWKS } from './services/jwtService';
 
 // 환경 변수 로드
 dotenv.config();
@@ -24,6 +25,11 @@ app.get('/health', (req, res) => {
 
 app.get('/ready', (req, res) => {
   res.json({ status: 'ready', service: 'auth-service' });
+});
+
+// JWKS Endpoint (for Istio RequestAuthentication)
+app.get('/.well-known/jwks.json', (req, res) => {
+  res.json(getJWKS());
 });
 
 // API Routes
