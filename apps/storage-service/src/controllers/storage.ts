@@ -353,12 +353,13 @@ export async function deleteOrphanFiles(req: Request, res: Response, next: NextF
     });
 
     if (orphans.length === 0) {
-      return res.json({
+      res.json({
         data: {
           deleted: 0,
           freedSpace: 0,
         },
       });
+      return;
     }
 
     let freedSpace = 0;
@@ -383,16 +384,6 @@ export async function deleteOrphanFiles(req: Request, res: Response, next: NextF
         where: { id: { in: successIds } },
       });
     }
-
-    // 이벤트 발행
-    await eventPublisher.publish({
-      eventType: 'files.cleanup',
-      tenantId: tenant.id,
-      data: {
-        deletedCount: successIds.length,
-        freedSpace,
-      },
-    });
 
     res.json({
       data: {

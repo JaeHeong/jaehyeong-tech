@@ -113,7 +113,6 @@ export async function getCategoryPosts(req: Request, res: Response, next: NextFu
       prisma.post.findMany({
         where,
         include: {
-          author: { select: { id: true, name: true, avatar: true } },
           category: true,
           tags: true,
         },

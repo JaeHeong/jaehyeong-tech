@@ -317,14 +317,15 @@ export async function publishDraft(req: Request, res: Response, next: NextFuncti
     // Update featured post
     await updateFeaturedPost(req.tenant.id);
 
-    // Publish event for file linking
+    // Publish event
     await eventPublisher.publish({
-      eventType: 'draft.published',
+      eventType: 'post.created',
       tenantId: req.tenant.id,
       data: {
         postId: post.id,
-        content: post.content,
-        coverImage: post.coverImage,
+        title: post.title,
+        authorId: post.authorId,
+        categoryId: post.categoryId,
       },
     });
 
