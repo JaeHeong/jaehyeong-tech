@@ -2,6 +2,7 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import storageRoutes from './routes/storage';
+import metadataRoutes from './routes/metadata';
 import { errorHandler } from './middleware/errorHandler';
 
 // 환경 변수 로드
@@ -25,6 +26,7 @@ app.get('/ready', (req, res) => {
 
 // API Routes
 app.use('/api/files', storageRoutes);
+app.use('/api/metadata', metadataRoutes);
 
 // 404 Handler
 app.use((req, res) => {

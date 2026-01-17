@@ -120,6 +120,25 @@ model PostView {
   @@map("post_views")
 }
 
+// Draft model for post drafts (auto-save)
+model Draft {
+  id         String   @id @default(cuid())
+  tenantId   String
+  title      String? // Optional - can save without title
+  content    String   @default("")
+  excerpt    String?
+  coverImage String?
+  categoryId String? // Optional - select when publishing
+  tagIds     String[] // Tag IDs array (simplified)
+  authorId   String // External Auth Service user ID
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId, authorId])
+  @@index([tenantId, updatedAt])
+  @@map("drafts")
+}
+
 // Enums
 enum PostStatus {
   DRAFT
