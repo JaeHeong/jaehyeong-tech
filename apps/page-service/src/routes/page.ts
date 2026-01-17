@@ -1,7 +1,7 @@
 import { Router, IRouter } from 'express';
 import * as pageController from '../controllers/page';
 import { resolveTenant } from '../middleware/tenantResolver';
-import { optionalAuthenticate, requireAdmin } from '../middleware/authenticate';
+import { authenticate, optionalAuthenticate, requireAdmin } from '../middleware/authenticate';
 
 export const pageRouter: IRouter = Router();
 
@@ -14,10 +14,10 @@ pageRouter.get('/notices', pageController.getNotices);
 pageRouter.get('/:slug', optionalAuthenticate, pageController.getPageBySlug);
 pageRouter.get('/notices/:slug/adjacent', pageController.getAdjacentNotices);
 
-// Admin routes
-pageRouter.get('/admin/all', requireAdmin, pageController.getAllPagesAdmin);
-pageRouter.get('/admin/stats', requireAdmin, pageController.getPageStats);
-pageRouter.get('/admin/:id', requireAdmin, pageController.getPageById);
-pageRouter.post('/', requireAdmin, pageController.createPage);
-pageRouter.put('/:id', requireAdmin, pageController.updatePage);
-pageRouter.delete('/:id', requireAdmin, pageController.deletePage);
+// Admin routes (authenticate -> requireAdmin)
+pageRouter.get('/admin/all', authenticate, requireAdmin, pageController.getAllPagesAdmin);
+pageRouter.get('/admin/stats', authenticate, requireAdmin, pageController.getPageStats);
+pageRouter.get('/admin/:id', authenticate, requireAdmin, pageController.getPageById);
+pageRouter.post('/', authenticate, requireAdmin, pageController.createPage);
+pageRouter.put('/:id', authenticate, requireAdmin, pageController.updatePage);
+pageRouter.delete('/:id', authenticate, requireAdmin, pageController.deletePage);

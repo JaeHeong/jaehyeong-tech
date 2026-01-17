@@ -1,7 +1,7 @@
 import { Router, IRouter } from 'express';
 import * as bugReportController from '../controllers/bugReport';
 import { resolveTenant } from '../middleware/tenantResolver';
-import { requireAdmin } from '../middleware/authenticate';
+import { authenticate, requireAdmin } from '../middleware/authenticate';
 
 export const bugReportRouter: IRouter = Router();
 
@@ -13,8 +13,8 @@ bugReportRouter.post('/', bugReportController.createBugReport);
 bugReportRouter.get('/public', bugReportController.getPublicBugReports);
 bugReportRouter.get('/public/:id', bugReportController.getPublicBugReport);
 
-// Admin routes
-bugReportRouter.get('/admin', requireAdmin, bugReportController.getBugReports);
-bugReportRouter.get('/admin/:id', requireAdmin, bugReportController.getBugReport);
-bugReportRouter.put('/admin/:id', requireAdmin, bugReportController.updateBugReport);
-bugReportRouter.delete('/admin/:id', requireAdmin, bugReportController.deleteBugReport);
+// Admin routes (authenticate -> requireAdmin)
+bugReportRouter.get('/admin', authenticate, requireAdmin, bugReportController.getBugReports);
+bugReportRouter.get('/admin/:id', authenticate, requireAdmin, bugReportController.getBugReport);
+bugReportRouter.put('/admin/:id', authenticate, requireAdmin, bugReportController.updateBugReport);
+bugReportRouter.delete('/admin/:id', authenticate, requireAdmin, bugReportController.deleteBugReport);

@@ -1,7 +1,7 @@
 import { Router, IRouter } from 'express';
 import * as tagController from '../controllers/tag';
 import { resolveTenant } from '../middleware/tenantResolver';
-import { requireAdmin, optionalAuthenticate } from '../middleware/authenticate';
+import { authenticate, requireAdmin, optionalAuthenticate } from '../middleware/authenticate';
 
 export const tagRouter: IRouter = Router();
 
@@ -13,7 +13,7 @@ tagRouter.get('/', tagController.getTags);
 tagRouter.get('/:slug', tagController.getTagBySlug);
 tagRouter.get('/:slug/posts', optionalAuthenticate, tagController.getTagPosts);
 
-// Admin routes
-tagRouter.post('/', requireAdmin, tagController.createTag);
-tagRouter.put('/:id', requireAdmin, tagController.updateTag);
-tagRouter.delete('/:id', requireAdmin, tagController.deleteTag);
+// Admin routes (authenticate -> requireAdmin)
+tagRouter.post('/', authenticate, requireAdmin, tagController.createTag);
+tagRouter.put('/:id', authenticate, requireAdmin, tagController.updateTag);
+tagRouter.delete('/:id', authenticate, requireAdmin, tagController.deleteTag);
