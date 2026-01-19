@@ -15,13 +15,14 @@ const router = Router();
  * Middleware to verify internal request
  * Only allows requests from within the cluster (via Istio mesh)
  */
-function verifyInternalRequest(req: Request, res: Response, next: NextFunction) {
+function verifyInternalRequest(req: Request, res: Response, next: NextFunction): void {
   const internalHeader = req.headers['x-internal-request'];
   if (internalHeader !== 'true') {
-    return res.status(403).json({
+    res.status(403).json({
       error: 'Forbidden',
       message: 'This endpoint is only accessible for internal service communication'
     });
+    return;
   }
   next();
 }
