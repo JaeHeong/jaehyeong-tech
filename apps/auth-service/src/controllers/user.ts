@@ -486,7 +486,7 @@ export async function getSignupPattern(req: Request, res: Response, next: NextFu
 }
 
 /**
- * 사용자 통계 조회 (Internal API - 서비스간 통신용)
+ * 사용자 통계 조회
  * GET /api/users/stats
  */
 export async function getUserStats(req: Request, res: Response, next: NextFunction) {
@@ -494,11 +494,60 @@ export async function getUserStats(req: Request, res: Response, next: NextFuncti
     const tenant = req.tenant as Tenant;
     const prisma = tenantPrisma.getClient(tenant.id);
 
-    const total = await prisma.user.count({
-      where: { tenantId: tenant.id, role: 'USER' },
-    });
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
 
-    res.json({ data: { total } });
+    // 이번 주 시작 (월요일)
+    const dayOfWeek = now.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const thisWeekStart = new Date(todayStart.getTime() - daysToMonday * 24 * 60 * 60 * 1000);
+    const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // 이번 달 시작
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const baseWhere = { tenantId: tenant.id };
+
+    const [
+      totalUsers,
+      activeUsers,
+      todayNewUsers,
+      yesterdayNewUsers,
+      thisWeekNewUsers,
+      lastWeekNewUsers,
+      thisMonthNewUsers,
+      lastMonthNewUsers,
+    ] = await Promise.all([
+      prisma.user.count({ where: baseWhere }),
+      prisma.user.count({ where: { ...baseWhere, status: 'ACTIVE' } }),
+      prisma.user.count({ where: { ...baseWhere, createdAt: { gte: todayStart } } }),
+      prisma.user.count({
+        where: { ...baseWhere, createdAt: { gte: yesterdayStart, lt: todayStart } },
+      }),
+      prisma.user.count({ where: { ...baseWhere, createdAt: { gte: thisWeekStart } } }),
+      prisma.user.count({
+        where: { ...baseWhere, createdAt: { gte: lastWeekStart, lt: thisWeekStart } },
+      }),
+      prisma.user.count({ where: { ...baseWhere, createdAt: { gte: thisMonthStart } } }),
+      prisma.user.count({
+        where: { ...baseWhere, createdAt: { gte: lastMonthStart, lt: thisMonthStart } },
+      }),
+    ]);
+
+    res.json({
+      data: {
+        totalUsers,
+        activeUsers,
+        todayNewUsers,
+        yesterdayNewUsers,
+        thisWeekNewUsers,
+        lastWeekNewUsers,
+        thisMonthNewUsers,
+        lastMonthNewUsers,
+      },
+    });
   } catch (error) {
     next(error);
   }
