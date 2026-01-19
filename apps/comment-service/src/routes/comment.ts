@@ -15,7 +15,7 @@ import {
   getCommentStats,
 } from '../controllers/comment';
 import { resolveTenant } from '../middleware/tenantResolver';
-import { optionalAuthenticate, requireAuth, requireAdmin } from '../middleware/authenticate';
+import { authenticate, optionalAuthenticate, requireAuth, requireAdmin } from '../middleware/authenticate';
 
 const router: IRouter = Router();
 
@@ -32,12 +32,12 @@ router.get('/recent', getRecentComments);
 router.get('/stats', getCommentStats);
 
 // 내 댓글 목록 조회 (인증 필수) - /:id 보다 먼저 정의해야 함
-router.get('/me', requireAuth, getMyComments);
+router.get('/me', authenticate, getMyComments);
 
 // Admin routes - /:id 보다 먼저 정의해야 함
-router.get('/admin', requireAuth, requireAdmin, getAllComments);
-router.delete('/admin/:id', requireAuth, requireAdmin, adminDeleteComment);
-router.post('/admin/bulk-delete', requireAuth, requireAdmin, bulkDeleteComments);
+router.get('/admin', authenticate, requireAdmin, getAllComments);
+router.delete('/admin/:id', authenticate, requireAdmin, adminDeleteComment);
+router.post('/admin/bulk-delete', authenticate, requireAdmin, bulkDeleteComments);
 
 // 댓글 생성 (인증 선택적 - 익명 댓글 가능)
 router.post('/', optionalAuthenticate, createComment);
@@ -46,13 +46,13 @@ router.post('/', optionalAuthenticate, createComment);
 router.get('/:id', optionalAuthenticate, getComment);
 
 // 댓글 수정 (인증 필수 - 본인만)
-router.patch('/:id', requireAuth, updateComment);
+router.patch('/:id', authenticate, updateComment);
 
 // 댓글 삭제 (인증 필수 - 본인만)
-router.delete('/:id', requireAuth, deleteComment);
+router.delete('/:id', authenticate, deleteComment);
 
 // 관리자 기능
-router.post('/:id/approve', requireAuth, requireAdmin, approveComment);
-router.patch('/:id/status', requireAuth, requireAdmin, updateCommentStatus);
+router.post('/:id/approve', authenticate, requireAdmin, approveComment);
+router.patch('/:id/status', authenticate, requireAdmin, updateCommentStatus);
 
 export default router;
