@@ -404,14 +404,14 @@ class ApiClient {
 
   // Backup endpoints
   async createBackup(description?: string) {
-    return this.request<{ data: BackupResult }>('/backups', {
+    return this.request<{ data: BackupResult }>('/backup', {
       method: 'POST',
       body: { description },
     })
   }
 
   async listBackups() {
-    const response = await this.request<{ data: BackupInfo[] }>('/backups')
+    const response = await this.request<{ data: BackupInfo[] }>('/backup')
     return response.data
   }
 
