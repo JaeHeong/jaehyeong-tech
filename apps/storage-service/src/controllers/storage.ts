@@ -7,6 +7,12 @@ import { AppError } from '../middleware/errorHandler';
 import { getFileType, generateFileName } from '../middleware/upload';
 import { FileType as PrismaFileType } from '../generated/prisma';
 import { FileType as SharedFileType } from '@shared/types';
+import {
+  optimizeImage,
+  getOptimizedFilename,
+  getOptimizedMimetype,
+  type OptimizeOptions,
+} from '../services/imageOptimizer';
 
 const BLOG_SERVICE_URL = process.env.BLOG_SERVICE_URL || 'http://blog-service:3002';
 
@@ -52,53 +58,83 @@ export async function uploadFile(req: Request, res: Response, next: NextFunction
     }
 
     const { resourceType, resourceId, folder = 'uploads' } = req.body;
+    const uploadType = req.query.type as string | undefined;
 
-    // 파일명 생성
-    const fileName = generateFileName(file.originalname);
+    // Determine folder based on type
+    const actualFolder = uploadType === 'avatar' ? 'avatars' : folder;
+
     const fileType = getFileType(file.mimetype);
+    const originalSize = file.size;
 
     let buffer = file.buffer;
     let width: number | undefined;
     let height: number | undefined;
+    let finalMimetype = file.mimetype;
+    let finalFileName = generateFileName(file.originalname);
+    let format: string | undefined;
 
-    // 이미지 파일인 경우 메타데이터 추출 및 최적화
+    // 이미지 파일인 경우 최적화 (WebP 변환 + 리사이즈)
     if (fileType === 'IMAGE') {
       try {
-        const metadata = await sharp(buffer).metadata();
-        width = metadata.width;
-        height = metadata.height;
-
-        // 이미지 최적화 (옵션)
-        if (width && width > 2000) {
-          buffer = await sharp(buffer).resize(2000, undefined, { withoutEnlargement: true }).toBuffer();
-
-          const newMetadata = await sharp(buffer).metadata();
-          width = newMetadata.width;
-          height = newMetadata.height;
+        // Determine optimization type
+        let optimizeType: OptimizeOptions['type'] = 'post';
+        if (uploadType === 'avatar') {
+          optimizeType = 'avatar';
+        } else if (uploadType === 'cover') {
+          optimizeType = 'cover';
         }
+
+        // Optimize image (WebP conversion + resize)
+        const optimized = await optimizeImage(file.buffer, file.mimetype, { type: optimizeType });
+
+        buffer = optimized.buffer;
+        width = optimized.width;
+        height = optimized.height;
+        format = optimized.format;
+
+        // Update filename and mimetype for optimized image
+        finalFileName = getOptimizedFilename(finalFileName, optimized.format);
+        finalMimetype = getOptimizedMimetype(optimized.format);
+
+        // Log compression info
+        const savings = originalSize - optimized.size;
+        const savingsPercent = ((savings / originalSize) * 100).toFixed(1);
+        console.log(
+          `Image optimized: ${file.originalname} (${optimizeType}) - ` +
+            `${(originalSize / 1024).toFixed(1)}KB → ${(optimized.size / 1024).toFixed(1)}KB ` +
+            `(${savingsPercent}% saved, ${width}x${height})`
+        );
       } catch (error) {
-        console.warn('⚠️ Image processing failed, using original:', error);
+        console.warn('⚠️ Image optimization failed, using original:', error);
+        // Fallback: get basic metadata
+        try {
+          const metadata = await sharp(buffer).metadata();
+          width = metadata.width;
+          height = metadata.height;
+        } catch {
+          // Ignore metadata error
+        }
       }
     }
 
     // OCI에 업로드 (tenant.name 없으면 tenant.id 사용)
     const tenantPath = tenant.name || tenant.id;
-    const url = await ociStorage.uploadFile(tenantPath, folder, fileName, buffer, file.mimetype);
+    const url = await ociStorage.uploadFile(tenantPath, actualFolder, finalFileName, buffer, finalMimetype);
 
-    const objectName = `${tenantPath}/${folder}/${fileName}`;
+    const objectName = `${tenantPath}/${actualFolder}/${finalFileName}`;
 
     // 메타데이터 저장
     const fileRecord = await prisma.file.create({
       data: {
         tenantId: tenant.id,
-        fileName,
+        fileName: finalFileName,
         originalFileName: file.originalname,
-        mimeType: file.mimetype,
+        mimeType: finalMimetype,
         size: buffer.length,
         storageProvider: 'oci',
         storagePath: objectName,
         objectName,
-        folder,
+        folder: actualFolder,
         url,
         resourceType,
         resourceId,
@@ -131,10 +167,12 @@ export async function uploadFile(req: Request, res: Response, next: NextFunction
         originalFileName: fileRecord.originalFileName,
         mimeType: fileRecord.mimeType,
         size: fileRecord.size,
+        originalSize,
         url: fileRecord.url,
         fileType: fileRecord.fileType,
         width: fileRecord.width,
         height: fileRecord.height,
+        format: format || fileType.toLowerCase(),
         createdAt: fileRecord.createdAt,
       },
     });
