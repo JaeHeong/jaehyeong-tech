@@ -528,7 +528,7 @@ export default function AdminUsersPage() {
                 {trendData.trend.map((item, index) => {
                   const maxCount = Math.max(...trendData.trend.map(d => d.count), 1)
                   const heightPercent = (item.count / maxCount) * 100
-                  const opacity = 0.3 + (index / (trendData.trend.length - 1)) * 0.7
+                  const opacity = trendData.trend.length <= 1 ? 1 : 0.3 + (index / (trendData.trend.length - 1)) * 0.7
                   const isLast = index === trendData.trend.length - 1
 
                   return (
