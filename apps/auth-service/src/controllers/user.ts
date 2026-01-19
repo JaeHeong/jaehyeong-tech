@@ -409,18 +409,24 @@ export async function getSignupTrend(req: Request, res: Response, next: NextFunc
       grouped[key] = (grouped[key] || 0) + 1;
     });
 
-    // Convert to array and fill gaps
-    const result = Object.entries(grouped)
+    // Convert to array and sort
+    const trend = Object.entries(grouped)
       .map(([date, count]) => ({ date, count }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
+    // Calculate summary
+    const total = trend.reduce((sum, item) => sum + item.count, 0);
+    const average = trend.length > 0 ? Math.round((total / trend.length) * 10) / 10 : 0;
+    const maxItem = trend.reduce((max, item) => (item.count > max.count ? item : max), { date: '', count: 0 });
+
     res.json({
       data: {
-        period,
-        trend: result,
-        totalSignups: users.length,
-        startDate: startDate.toISOString(),
-        endDate: now.toISOString(),
+        trend,
+        summary: {
+          total,
+          average,
+          max: { date: maxItem.date, count: maxItem.count },
+        },
       },
     });
   } catch (error) {
@@ -444,40 +450,30 @@ export async function getSignupPattern(req: Request, res: Response, next: NextFu
 
     // Group by day of week (0 = Sunday, 6 = Saturday)
     const dayOfWeekCounts: number[] = [0, 0, 0, 0, 0, 0, 0];
-    const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
     users.forEach((user) => {
       const dayOfWeek = new Date(user.createdAt).getDay();
       dayOfWeekCounts[dayOfWeek]++;
     });
 
-    // Group by hour (0-23)
-    const hourCounts: number[] = Array(24).fill(0);
-    users.forEach((user) => {
-      const hour = new Date(user.createdAt).getHours();
-      hourCounts[hour]++;
-    });
+    // Calculate average per day (total users / 7 days as baseline)
+    const totalWeeks = Math.max(1, Math.ceil(users.length / 7));
 
     const pattern = dayOfWeekCounts.map((count, index) => ({
-      day: index,
-      dayName: dayNames[index],
+      day: dayNames[index],
       count,
-      percentage: users.length > 0 ? Math.round((count / users.length) * 100 * 10) / 10 : 0,
+      average: Math.round((count / totalWeeks) * 10) / 10,
     }));
 
-    const hourlyPattern = hourCounts.map((count, hour) => ({
-      hour,
-      count,
-      percentage: users.length > 0 ? Math.round((count / users.length) * 100 * 10) / 10 : 0,
-    }));
+    // Find peak day
+    const maxCount = Math.max(...dayOfWeekCounts);
+    const peakDayIndex = dayOfWeekCounts.indexOf(maxCount);
 
     res.json({
       data: {
-        dayOfWeek: pattern,
-        hourly: hourlyPattern,
-        totalUsers: users.length,
-        peakDay: dayNames[dayOfWeekCounts.indexOf(Math.max(...dayOfWeekCounts))],
-        peakHour: hourCounts.indexOf(Math.max(...hourCounts)),
+        pattern,
+        peakDay: dayNames[peakDayIndex],
       },
     });
   } catch (error) {
