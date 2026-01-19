@@ -202,11 +202,18 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
     };
 
     const results = {
-      users: { restored: 0, skipped: 0 },
+      users: { deleted: 0, restored: 0, skipped: 0 },
       tenant: { restored: false },
     };
 
-    // Restore tenant config (update only, do not create new tenant)
+    // 1. Delete all existing users for this tenant (full restore)
+    const deleteResult = await prisma.user.deleteMany({
+      where: { tenantId: req.tenant!.id },
+    });
+    results.users.deleted = deleteResult.count;
+    console.info(`[Restore] Deleted ${deleteResult.count} existing users for tenant ${req.tenant!.id}`);
+
+    // 2. Restore tenant config (update only, do not create new tenant)
     if (tenant) {
       await prisma.tenant.updateMany({
         where: { id: tenant.id },
@@ -227,65 +234,34 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
       results.tenant.restored = true;
     }
 
-    // Restore users (upsert to preserve existing passwords)
+    // 3. Restore users (all users were deleted, so create new ones)
     if (users && Array.isArray(users)) {
       for (const user of users) {
         try {
-          // Check if user exists
-          const existing = await prisma.user.findUnique({
-            where: { id: user.id },
+          await prisma.user.create({
+            data: {
+              id: user.id,
+              tenantId: user.tenantId,
+              email: user.email,
+              password: '', // Empty password - user must reset
+              googleId: user.googleId,
+              githubId: user.githubId,
+              name: user.name,
+              avatar: user.avatar,
+              bio: user.bio,
+              title: user.title,
+              github: user.github,
+              twitter: user.twitter,
+              linkedin: user.linkedin,
+              website: user.website,
+              role: user.role,
+              status: user.status,
+              lastLoginAt: user.lastLoginAt ? new Date(user.lastLoginAt) : null,
+              createdAt: new Date(user.createdAt),
+              updatedAt: new Date(),
+            },
           });
-
-          if (existing) {
-            // Update existing user (preserve password)
-            await prisma.user.update({
-              where: { id: user.id },
-              data: {
-                email: user.email,
-                googleId: user.googleId,
-                githubId: user.githubId,
-                name: user.name,
-                avatar: user.avatar,
-                bio: user.bio,
-                title: user.title,
-                github: user.github,
-                twitter: user.twitter,
-                linkedin: user.linkedin,
-                website: user.website,
-                role: user.role,
-                status: user.status,
-                lastLoginAt: user.lastLoginAt ? new Date(user.lastLoginAt) : null,
-                updatedAt: new Date(),
-              },
-            });
-            results.users.restored++;
-          } else {
-            // Create new user with a placeholder password (they'll need to reset)
-            await prisma.user.create({
-              data: {
-                id: user.id,
-                tenantId: user.tenantId,
-                email: user.email,
-                password: '', // Empty password - user must reset
-                googleId: user.googleId,
-                githubId: user.githubId,
-                name: user.name,
-                avatar: user.avatar,
-                bio: user.bio,
-                title: user.title,
-                github: user.github,
-                twitter: user.twitter,
-                linkedin: user.linkedin,
-                website: user.website,
-                role: user.role,
-                status: user.status,
-                lastLoginAt: user.lastLoginAt ? new Date(user.lastLoginAt) : null,
-                createdAt: new Date(user.createdAt),
-                updatedAt: new Date(),
-              },
-            });
-            results.users.restored++;
-          }
+          results.users.restored++;
         } catch (error) {
           console.error(`[Restore] Failed to restore user ${user.id}:`, error);
           results.users.skipped++;

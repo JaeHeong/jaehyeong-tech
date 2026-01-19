@@ -97,21 +97,25 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
     };
 
     const results = {
-      siteVisitors: { restored: 0, skipped: 0 },
-      bugReports: { restored: 0, skipped: 0 },
+      siteVisitors: { deleted: 0, restored: 0, skipped: 0 },
+      bugReports: { deleted: 0, restored: 0, skipped: 0 },
     };
 
-    // 1. Restore siteVisitors
+    const tenantId = req.tenant!.id;
+
+    // 1. Delete existing data
+    const deletedVisitors = await prisma.siteVisitor.deleteMany({ where: { tenantId } });
+    const deletedBugReports = await prisma.bugReport.deleteMany({ where: { tenantId } });
+    results.siteVisitors.deleted = deletedVisitors.count;
+    results.bugReports.deleted = deletedBugReports.count;
+    console.info(`[Restore] Deleted ${deletedVisitors.count} siteVisitors and ${deletedBugReports.count} bugReports for tenant ${tenantId}`);
+
+    // 2. Restore siteVisitors
     if (siteVisitors && Array.isArray(siteVisitors)) {
       for (const sv of siteVisitors) {
         try {
-          await prisma.siteVisitor.upsert({
-            where: { id: sv.id },
-            update: {
-              ipHash: sv.ipHash,
-              date: new Date(sv.date),
-            },
-            create: {
+          await prisma.siteVisitor.create({
+            data: {
               id: sv.id,
               tenantId: sv.tenantId,
               ipHash: sv.ipHash,
@@ -127,25 +131,12 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
       }
     }
 
-    // 2. Restore bugReports
+    // 3. Restore bugReports
     if (bugReports && Array.isArray(bugReports)) {
       for (const br of bugReports) {
         try {
-          await prisma.bugReport.upsert({
-            where: { id: br.id },
-            update: {
-              title: br.title,
-              description: br.description,
-              category: br.category,
-              priority: br.priority,
-              status: br.status,
-              email: br.email,
-              ipHash: br.ipHash,
-              adminResponse: br.adminResponse,
-              respondedAt: br.respondedAt ? new Date(br.respondedAt) : null,
-              updatedAt: new Date(),
-            },
-            create: {
+          await prisma.bugReport.create({
+            data: {
               id: br.id,
               tenantId: br.tenantId,
               title: br.title,

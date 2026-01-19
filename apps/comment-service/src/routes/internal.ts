@@ -84,12 +84,20 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
     };
 
     const results = {
-      comments: { restored: 0, skipped: 0 },
+      comments: { deleted: 0, restored: 0, skipped: 0 },
     };
 
-    // Restore comments (need to handle parent-child relationships)
+    const tenantId = req.tenant!.id;
+
+    // 1. Delete all existing comments for this tenant
+    const deleteResult = await prisma.comment.deleteMany({
+      where: { tenantId },
+    });
+    results.comments.deleted = deleteResult.count;
+    console.info(`[Restore] Deleted ${deleteResult.count} comments for tenant ${tenantId}`);
+
+    // 2. Restore comments (sort by parentId to restore parents first)
     if (comments && Array.isArray(comments)) {
-      // Sort by parentId to restore parent comments first
       const sortedComments = [...comments].sort((a, b) => {
         if (!a.parentId && b.parentId) return -1;
         if (a.parentId && !b.parentId) return 1;
@@ -98,23 +106,8 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
 
       for (const comment of sortedComments) {
         try {
-          await prisma.comment.upsert({
-            where: { id: comment.id },
-            update: {
-              resourceType: comment.resourceType,
-              resourceId: comment.resourceId,
-              content: comment.content,
-              authorId: comment.authorId,
-              guestName: comment.guestName,
-              guestEmail: comment.guestEmail,
-              parentId: comment.parentId,
-              status: comment.status,
-              isPrivate: comment.isPrivate,
-              isDeleted: comment.isDeleted,
-              ipHash: comment.ipHash,
-              updatedAt: new Date(),
-            },
-            create: {
+          await prisma.comment.create({
+            data: {
               id: comment.id,
               tenantId: comment.tenantId,
               resourceType: comment.resourceType,

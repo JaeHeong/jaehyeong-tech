@@ -101,32 +101,25 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
     };
 
     const results = {
-      pages: { restored: 0, skipped: 0 },
-      pageViews: { restored: 0, skipped: 0 },
+      pages: { deleted: 0, restored: 0, skipped: 0 },
+      pageViews: { deleted: 0, restored: 0, skipped: 0 },
     };
 
-    // 1. Restore pages first (pageViews reference them)
+    const tenantId = req.tenant!.id;
+
+    // 1. Delete existing data (pageViews first due to FK)
+    const deletedPageViews = await prisma.pageView.deleteMany({ where: { tenantId } });
+    const deletedPages = await prisma.page.deleteMany({ where: { tenantId } });
+    results.pageViews.deleted = deletedPageViews.count;
+    results.pages.deleted = deletedPages.count;
+    console.info(`[Restore] Deleted ${deletedPages.count} pages and ${deletedPageViews.count} pageViews for tenant ${tenantId}`);
+
+    // 2. Restore pages first (pageViews reference them)
     if (pages && Array.isArray(pages)) {
       for (const page of pages) {
         try {
-          await prisma.page.upsert({
-            where: { id: page.id },
-            update: {
-              slug: page.slug,
-              title: page.title,
-              type: page.type,
-              content: page.content,
-              excerpt: page.excerpt,
-              status: page.status,
-              badge: page.badge,
-              badgeColor: page.badgeColor,
-              isPinned: page.isPinned,
-              template: page.template,
-              viewCount: page.viewCount,
-              publishedAt: page.publishedAt ? new Date(page.publishedAt) : null,
-              updatedAt: new Date(),
-            },
-            create: {
+          await prisma.page.create({
+            data: {
               id: page.id,
               tenantId: page.tenantId,
               slug: page.slug,
@@ -154,17 +147,12 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
       }
     }
 
-    // 2. Restore pageViews
+    // 3. Restore pageViews
     if (pageViews && Array.isArray(pageViews)) {
       for (const pv of pageViews) {
         try {
-          await prisma.pageView.upsert({
-            where: { id: pv.id },
-            update: {
-              pageId: pv.pageId,
-              ipHash: pv.ipHash,
-            },
-            create: {
+          await prisma.pageView.create({
+            data: {
               id: pv.id,
               tenantId: pv.tenantId,
               pageId: pv.pageId,

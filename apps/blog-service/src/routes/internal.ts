@@ -245,27 +245,36 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
     };
 
     const results = {
-      categories: { restored: 0, skipped: 0 },
-      tags: { restored: 0, skipped: 0 },
-      posts: { restored: 0, skipped: 0 },
-      drafts: { restored: 0, skipped: 0 },
+      categories: { deleted: 0, restored: 0, skipped: 0 },
+      tags: { deleted: 0, restored: 0, skipped: 0 },
+      posts: { deleted: 0, restored: 0, skipped: 0 },
+      drafts: { deleted: 0, restored: 0, skipped: 0 },
     };
 
-    // 1. Restore categories first (posts depend on them)
+    const tenantId = req.tenant!.id;
+
+    // 1. Delete existing data (order matters due to FK constraints)
+    // Delete in reverse dependency order: views/likes/bookmarks -> posts -> drafts -> categories/tags
+    const deletedPostViews = await prisma.postView.deleteMany({ where: { tenantId } });
+    const deletedLikes = await prisma.like.deleteMany({ where: { tenantId } });
+    const deletedBookmarks = await prisma.bookmark.deleteMany({ where: { tenantId } });
+    const deletedPosts = await prisma.post.deleteMany({ where: { tenantId } });
+    const deletedDrafts = await prisma.draft.deleteMany({ where: { tenantId } });
+    const deletedCategories = await prisma.category.deleteMany({ where: { tenantId } });
+    const deletedTags = await prisma.tag.deleteMany({ where: { tenantId } });
+
+    results.posts.deleted = deletedPosts.count;
+    results.drafts.deleted = deletedDrafts.count;
+    results.categories.deleted = deletedCategories.count;
+    results.tags.deleted = deletedTags.count;
+    console.info(`[Restore] Deleted blog data for tenant ${tenantId}: ${deletedPosts.count} posts, ${deletedDrafts.count} drafts, ${deletedCategories.count} categories, ${deletedTags.count} tags, ${deletedPostViews.count} views, ${deletedLikes.count} likes, ${deletedBookmarks.count} bookmarks`);
+
+    // 2. Restore categories first (posts depend on them)
     if (categories && Array.isArray(categories)) {
       for (const category of categories) {
         try {
-          await prisma.category.upsert({
-            where: { id: category.id },
-            update: {
-              name: category.name,
-              slug: category.slug,
-              description: category.description,
-              icon: category.icon,
-              color: category.color,
-              updatedAt: new Date(),
-            },
-            create: {
+          await prisma.category.create({
+            data: {
               id: category.id,
               tenantId: category.tenantId,
               name: category.name,
@@ -285,18 +294,12 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
       }
     }
 
-    // 2. Restore tags (posts depend on them)
+    // 3. Restore tags (posts depend on them)
     if (tags && Array.isArray(tags)) {
       for (const tag of tags) {
         try {
-          await prisma.tag.upsert({
-            where: { id: tag.id },
-            update: {
-              name: tag.name,
-              slug: tag.slug,
-              updatedAt: new Date(),
-            },
-            create: {
+          await prisma.tag.create({
+            data: {
               id: tag.id,
               tenantId: tag.tenantId,
               name: tag.name,
@@ -313,34 +316,13 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
       }
     }
 
-    // 3. Restore posts (with category and tag relationships)
+    // 4. Restore posts (with category and tag relationships)
     if (posts && Array.isArray(posts)) {
       for (const post of posts) {
         try {
-          // Extract tag IDs from the included tags
           const tagIds = post.tags?.map(t => t.id) || [];
-
-          await prisma.post.upsert({
-            where: { id: post.id },
-            update: {
-              slug: post.slug,
-              title: post.title,
-              excerpt: post.excerpt,
-              content: post.content,
-              coverImage: post.coverImage,
-              viewCount: post.viewCount,
-              likeCount: post.likeCount,
-              readingTime: post.readingTime,
-              status: post.status,
-              featured: post.featured,
-              publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
-              categoryId: post.categoryId,
-              tags: {
-                set: tagIds.map(id => ({ id })),
-              },
-              updatedAt: new Date(),
-            },
-            create: {
+          await prisma.post.create({
+            data: {
               id: post.id,
               tenantId: post.tenantId,
               slug: post.slug,
@@ -371,22 +353,12 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
       }
     }
 
-    // 4. Restore drafts
+    // 5. Restore drafts
     if (drafts && Array.isArray(drafts)) {
       for (const draft of drafts) {
         try {
-          await prisma.draft.upsert({
-            where: { id: draft.id },
-            update: {
-              title: draft.title,
-              content: draft.content,
-              excerpt: draft.excerpt,
-              coverImage: draft.coverImage,
-              categoryId: draft.categoryId,
-              tagIds: draft.tagIds || [],
-              updatedAt: new Date(),
-            },
-            create: {
+          await prisma.draft.create({
+            data: {
               id: draft.id,
               tenantId: draft.tenantId,
               title: draft.title,
