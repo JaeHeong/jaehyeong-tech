@@ -433,19 +433,19 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
     // Filter out images used in drafts
     const orphans = candidates.filter((file) => !draftImageUrls.has(file.url));
 
-    // Get all unlinked files for usedInDrafts calculation
+    // Get all unlinked files for usedInDrafts calculation (exclude avatars)
     const allUnlinkedFiles = await prisma.file.findMany({
-      where: { tenantId: tenant.id, resourceId: null },
+      where: { tenantId: tenant.id, resourceId: null, folder: { not: 'avatars' } },
       select: { url: true },
     });
     const usedInDrafts = allUnlinkedFiles.filter((file) => draftImageUrls.has(file.url)).length;
 
-    // 통계 계산
+    // 통계 계산 (exclude avatars folder)
     const [total, linked, totalSizeResult] = await Promise.all([
-      prisma.file.count({ where: { tenantId: tenant.id } }),
-      prisma.file.count({ where: { tenantId: tenant.id, resourceId: { not: null } } }),
+      prisma.file.count({ where: { tenantId: tenant.id, folder: { not: 'avatars' } } }),
+      prisma.file.count({ where: { tenantId: tenant.id, resourceId: { not: null }, folder: { not: 'avatars' } } }),
       prisma.file.aggregate({
-        where: { tenantId: tenant.id },
+        where: { tenantId: tenant.id, folder: { not: 'avatars' } },
         _sum: { size: true },
       }),
     ]);
