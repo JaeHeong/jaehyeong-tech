@@ -226,15 +226,9 @@ jobs:
 
       - name: Clone GitOps repo
         run: |
-          # dev 환경은 msa 브랜치, prod 환경은 main 브랜치 사용
-          if [ "${{ inputs.environment }}" = "prod" ]; then
-            GITOPS_BRANCH="main"
-          else
-            GITOPS_BRANCH="msa"
-          fi
-
-          git clone -b ${GITOPS_BRANCH} git@github.com:JaeHeong/my-k8s-gitops.git
-          echo "Cloned GitOps repo (branch: ${GITOPS_BRANCH})"
+          # Unified single branch structure
+          git clone git@github.com:JaeHeong/my-k8s-gitops.git
+          echo "Cloned GitOps repo"
 
       - name: Update image tags
         run: |
