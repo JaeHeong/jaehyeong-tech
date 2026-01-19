@@ -239,7 +239,8 @@ class ApiClient {
     if (params?.limit) searchParams.set('limit', params.limit.toString())
 
     const query = searchParams.toString()
-    return this.request<PostsResponse>(`/tags/${slug}/posts${query ? `?${query}` : ''}`)
+    const response = await this.request<{ data: Post[]; meta: PostsResponse['meta'] & { tag?: Tag } }>(`/tags/${slug}/posts${query ? `?${query}` : ''}`)
+    return { posts: response.data, meta: response.meta }
   }
 
   async createTag(data: CreateTagData) {

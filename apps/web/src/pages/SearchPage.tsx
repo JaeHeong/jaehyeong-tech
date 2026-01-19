@@ -37,7 +37,7 @@ export default function SearchPage() {
 
         if (tagSlug) {
           // Tag filtering
-          const { posts: results, meta } = await api.getPostsByTag(tagSlug, { page, limit: 10 })
+          const { posts: results, meta } = await api.getTagPosts(tagSlug, { page, limit: 10 })
           setPosts(results)
           setTotalCount(meta.total)
           setTotalPages(meta.totalPages)
