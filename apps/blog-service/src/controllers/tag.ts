@@ -23,13 +23,20 @@ export async function getTags(req: Request, res: Response, next: NextFunction) {
       where: { tenantId: req.tenant.id },
       include: {
         _count: {
-          select: { posts: true },
+          select: { posts: { where: { status: 'PUBLIC' } } },
         },
       },
       orderBy: { name: 'asc' },
     });
 
-    res.json({ data: tags });
+    // Transform _count.posts to postCount for frontend compatibility
+    const data = tags.map((tag) => ({
+      ...tag,
+      postCount: tag._count.posts,
+      _count: undefined,
+    }));
+
+    res.json({ data });
   } catch (error) {
     next(error);
   }
@@ -57,7 +64,7 @@ export async function getTagBySlug(req: Request, res: Response, next: NextFuncti
       },
       include: {
         _count: {
-          select: { posts: true },
+          select: { posts: { where: { status: 'PUBLIC' } } },
         },
       },
     });
@@ -66,7 +73,13 @@ export async function getTagBySlug(req: Request, res: Response, next: NextFuncti
       throw new AppError('태그를 찾을 수 없습니다.', 404);
     }
 
-    res.json({ data: tag });
+    res.json({
+      data: {
+        ...tag,
+        postCount: tag._count.posts,
+        _count: undefined,
+      },
+    });
   } catch (error) {
     next(error);
   }
