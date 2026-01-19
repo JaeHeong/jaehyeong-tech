@@ -122,9 +122,17 @@ export default function AdminManagementPage() {
     setBackupMessage(null)
     try {
       const result = await api.restoreBackup(fileName)
+      // MSA response format: results.{service}.{entity}.restored
+      const r = result.data.results
+      const posts = r?.blog?.posts?.restored ?? 0
+      const drafts = r?.blog?.drafts?.restored ?? 0
+      const comments = r?.comment?.comments?.restored ?? 0
+      const pages = r?.page?.pages?.restored ?? 0
+      const users = r?.auth?.users?.restored ?? 0
+      const visitors = r?.analytics?.siteVisitors?.restored ?? 0
       setBackupMessage({
         type: 'success',
-        text: `백업이 복원되었습니다. (게시물: ${result.data.stats.posts}, 댓글: ${result.data.stats.comments}, 북마크: ${result.data.stats.bookmarks}, 좋아요: ${result.data.stats.likes}, 이미지: ${result.data.stats.images}, 버그리포트: ${result.data.stats.bugReports}, 방문자: ${result.data.stats.siteVisitors || 0})`,
+        text: `백업이 복원되었습니다. (게시물: ${posts}, 임시저장: ${drafts}, 댓글: ${comments}, 페이지: ${pages}, 사용자: ${users}, 방문자: ${visitors})`,
       })
     } catch {
       setBackupMessage({ type: 'error', text: '백업 복원에 실패했습니다.' })
