@@ -416,7 +416,7 @@ class ApiClient {
   }
 
   async downloadBackup(fileName: string) {
-    const response = await fetch(`${this.baseUrl}/backups/${fileName}`, {
+    const response = await fetch(`${this.baseUrl}/backup/${fileName}`, {
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
     })
 
@@ -436,17 +436,17 @@ class ApiClient {
   }
 
   async getBackupInfo(fileName: string) {
-    return this.request<{ data: BackupInfoDetail }>(`/backups/${fileName}/info`)
+    return this.request<{ data: BackupInfoDetail }>(`/backup/${fileName}/info`)
   }
 
   async restoreBackup(fileName: string) {
-    return this.request<{ data: RestoreResult }>(`/backups/${fileName}/restore`, {
+    return this.request<{ data: RestoreResult }>(`/backup/${fileName}/restore`, {
       method: 'POST',
     })
   }
 
   async deleteBackup(fileName: string) {
-    return this.request<{ data: { success: boolean } }>(`/backups/${fileName}`, {
+    return this.request<{ data: { success: boolean } }>(`/backup/${fileName}`, {
       method: 'DELETE',
     })
   }
