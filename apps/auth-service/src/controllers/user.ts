@@ -151,6 +151,7 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
 
 /**
  * 사용자 역할 변경 (관리자 전용)
+ * Admin protection: Cannot modify other admins
  */
 export async function updateUserRole(req: Request, res: Response, next: NextFunction) {
   try {
@@ -169,6 +170,11 @@ export async function updateUserRole(req: Request, res: Response, next: NextFunc
 
     if (!user) {
       throw new AppError('사용자를 찾을 수 없습니다.', 404);
+    }
+
+    // Admin protection: Cannot modify other admin's role
+    if (user.role === 'ADMIN' && user.id !== req.user!.id) {
+      throw new AppError('다른 관리자의 역할은 변경할 수 없습니다.', 403);
     }
 
     const updatedUser = await prisma.user.update({
@@ -190,6 +196,7 @@ export async function updateUserRole(req: Request, res: Response, next: NextFunc
 
 /**
  * 사용자 정지/활성화 (관리자 전용)
+ * Admin protection: Cannot modify other admins
  */
 export async function updateUserStatus(req: Request, res: Response, next: NextFunction) {
   try {
@@ -210,6 +217,11 @@ export async function updateUserStatus(req: Request, res: Response, next: NextFu
       throw new AppError('사용자를 찾을 수 없습니다.', 404);
     }
 
+    // Admin protection: Cannot modify other admin's status
+    if (user.role === 'ADMIN' && user.id !== req.user!.id) {
+      throw new AppError('다른 관리자의 상태는 변경할 수 없습니다.', 403);
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: { status },
@@ -222,6 +234,252 @@ export async function updateUserStatus(req: Request, res: Response, next: NextFu
     });
 
     res.json({ data: updatedUser });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 사용자 삭제 (관리자 전용)
+ * Admin protection: Cannot delete admins
+ * DELETE /api/users/:userId
+ */
+export async function deleteUser(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant as Tenant;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const { userId } = req.params;
+
+    // Tenant 격리 확인
+    const user = await prisma.user.findFirst({
+      where: {
+        id: userId,
+        tenantId: tenant.id,
+      },
+    });
+
+    if (!user) {
+      throw new AppError('사용자를 찾을 수 없습니다.', 404);
+    }
+
+    // Admin protection: Cannot delete admins
+    if (user.role === 'ADMIN') {
+      throw new AppError('관리자 계정은 삭제할 수 없습니다.', 403);
+    }
+
+    // Delete user
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    res.json({
+      data: {
+        success: true,
+        message: '사용자가 삭제되었습니다.',
+        deletedUserId: userId,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 사용자 검색 (관리자 전용)
+ * GET /api/users/search?q=검색어
+ */
+export async function searchUsers(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant as Tenant;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const { q, page = 1, limit = 20 } = req.query;
+
+    if (!q || typeof q !== 'string') {
+      throw new AppError('검색어를 입력해주세요.', 400);
+    }
+
+    const searchTerm = q.trim();
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          tenantId: tenant.id,
+          OR: [
+            { name: { contains: searchTerm, mode: 'insensitive' } },
+            { email: { contains: searchTerm, mode: 'insensitive' } },
+          ],
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          role: true,
+          status: true,
+          lastLoginAt: true,
+          createdAt: true,
+        },
+        skip,
+        take: Number(limit),
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.user.count({
+        where: {
+          tenantId: tenant.id,
+          OR: [
+            { name: { contains: searchTerm, mode: 'insensitive' } },
+            { email: { contains: searchTerm, mode: 'insensitive' } },
+          ],
+        },
+      }),
+    ]);
+
+    res.json({
+      data: users,
+      meta: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+        searchTerm,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 가입 추이 분석 (관리자 전용)
+ * GET /api/users/signup-trend?period=daily|weekly|monthly
+ */
+export async function getSignupTrend(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant as Tenant;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const { period = 'daily' } = req.query;
+
+    const now = new Date();
+    let startDate: Date;
+    let groupFormat: string;
+
+    switch (period) {
+      case 'weekly':
+        startDate = new Date(now.getTime() - 12 * 7 * 24 * 60 * 60 * 1000); // 12 weeks
+        groupFormat = 'week';
+        break;
+      case 'monthly':
+        startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1); // 12 months
+        groupFormat = 'month';
+        break;
+      case 'daily':
+      default:
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days
+        groupFormat = 'day';
+        break;
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        tenantId: tenant.id,
+        createdAt: { gte: startDate },
+      },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Group by period
+    const grouped: Record<string, number> = {};
+    users.forEach((user) => {
+      const date = new Date(user.createdAt);
+      let key: string;
+
+      if (groupFormat === 'day') {
+        key = date.toISOString().split('T')[0];
+      } else if (groupFormat === 'week') {
+        // Get the Monday of the week
+        const monday = new Date(date);
+        monday.setDate(date.getDate() - date.getDay() + 1);
+        key = monday.toISOString().split('T')[0];
+      } else {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+
+      grouped[key] = (grouped[key] || 0) + 1;
+    });
+
+    // Convert to array and fill gaps
+    const result = Object.entries(grouped)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    res.json({
+      data: {
+        period,
+        trend: result,
+        totalSignups: users.length,
+        startDate: startDate.toISOString(),
+        endDate: now.toISOString(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 요일별 가입 패턴 분석 (관리자 전용)
+ * GET /api/users/signup-pattern
+ */
+export async function getSignupPattern(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant as Tenant;
+    const prisma = tenantPrisma.getClient(tenant.id);
+
+    const users = await prisma.user.findMany({
+      where: { tenantId: tenant.id },
+      select: { createdAt: true },
+    });
+
+    // Group by day of week (0 = Sunday, 6 = Saturday)
+    const dayOfWeekCounts: number[] = [0, 0, 0, 0, 0, 0, 0];
+    const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+
+    users.forEach((user) => {
+      const dayOfWeek = new Date(user.createdAt).getDay();
+      dayOfWeekCounts[dayOfWeek]++;
+    });
+
+    // Group by hour (0-23)
+    const hourCounts: number[] = Array(24).fill(0);
+    users.forEach((user) => {
+      const hour = new Date(user.createdAt).getHours();
+      hourCounts[hour]++;
+    });
+
+    const pattern = dayOfWeekCounts.map((count, index) => ({
+      day: index,
+      dayName: dayNames[index],
+      count,
+      percentage: users.length > 0 ? Math.round((count / users.length) * 100 * 10) / 10 : 0,
+    }));
+
+    const hourlyPattern = hourCounts.map((count, hour) => ({
+      hour,
+      count,
+      percentage: users.length > 0 ? Math.round((count / users.length) * 100 * 10) / 10 : 0,
+    }));
+
+    res.json({
+      data: {
+        dayOfWeek: pattern,
+        hourly: hourlyPattern,
+        totalUsers: users.length,
+        peakDay: dayNames[dayOfWeekCounts.indexOf(Math.max(...dayOfWeekCounts))],
+        peakHour: hourCounts.indexOf(Math.max(...hourCounts)),
+      },
+    });
   } catch (error) {
     next(error);
   }

@@ -5,6 +5,7 @@ import authRoutes from './routes/auth';
 import tenantRoutes from './routes/tenant';
 import userRoutes from './routes/user';
 import authorRoutes from './routes/author';
+import internalRoutes from './routes/internal';
 import { errorHandler } from './middleware/errorHandler';
 import { getJWKS } from './services/jwtService';
 
@@ -37,6 +38,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/author', authorRoutes);
+
+// Internal routes (service-to-service communication)
+app.use('/internal', internalRoutes);
 
 // 404 Handler
 app.use((req, res) => {

@@ -2,6 +2,7 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import commentRoutes from './routes/comment';
+import internalRoutes from './routes/internal';
 import { errorHandler } from './middleware/errorHandler';
 
 // 환경 변수 로드
@@ -25,6 +26,9 @@ app.get('/ready', (req, res) => {
 
 // API Routes
 app.use('/api/comments', commentRoutes);
+
+// Internal routes (service-to-service communication)
+app.use('/internal', internalRoutes);
 
 // 404 Handler
 app.use((req, res) => {

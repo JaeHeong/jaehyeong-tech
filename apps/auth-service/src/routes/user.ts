@@ -7,6 +7,10 @@ import {
   updateUserStatus,
   getUserPublicInfo,
   getUserStats,
+  deleteUser,
+  searchUsers,
+  getSignupTrend,
+  getSignupPattern,
 } from '../controllers/user';
 import { resolveTenant } from '../middleware/tenantResolver';
 import { authenticate, requireAdmin } from '../middleware/authenticate';
@@ -27,7 +31,11 @@ router.post('/change-password', changePassword);
 
 // 사용자 관리 (관리자 전용)
 router.get('/', requireAdmin, listUsers);
+router.get('/search', requireAdmin, searchUsers);
+router.get('/signup-trend', requireAdmin, getSignupTrend);
+router.get('/signup-pattern', requireAdmin, getSignupPattern);
 router.patch('/:userId/role', requireAdmin, updateUserRole);
 router.patch('/:userId/status', requireAdmin, updateUserStatus);
+router.delete('/:userId', requireAdmin, deleteUser);
 
 export default router;

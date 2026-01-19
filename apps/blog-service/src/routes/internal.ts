@@ -1,0 +1,161 @@
+/**
+ * Internal API Routes for Blog Service
+ *
+ * These endpoints are only accessible within the Kubernetes cluster
+ * for service-to-service communication (e.g., backup aggregation).
+ */
+import { Router, Request, Response, NextFunction } from 'express';
+import { tenantPrisma } from '../services/prisma';
+import { resolveTenant } from '../middleware/tenantResolver';
+import '@shared/types/express';
+
+const router = Router();
+
+/**
+ * Middleware to verify internal request
+ * Only allows requests from within the cluster (via Istio mesh)
+ */
+function verifyInternalRequest(req: Request, res: Response, next: NextFunction) {
+  const internalHeader = req.headers['x-internal-request'];
+  if (internalHeader !== 'true') {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'This endpoint is only accessible for internal service communication'
+    });
+  }
+  next();
+}
+
+/**
+ * GET /internal/export
+ * Export all blog data for backup purposes
+ *
+ * Returns: posts, drafts, categories, tags, images with all relationships
+ */
+router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = tenantPrisma.getClient(req.tenant!.id);
+
+    // Fetch all data in parallel
+    const [posts, drafts, categories, tags, images] = await Promise.all([
+      prisma.post.findMany({
+        include: {
+          category: true,
+          tags: { include: { tag: true } },
+          images: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.draft.findMany({
+        include: {
+          category: true,
+          tags: { include: { tag: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.category.findMany({
+        orderBy: { order: 'asc' },
+      }),
+      prisma.tag.findMany({
+        orderBy: { name: 'asc' },
+      }),
+      prisma.image.findMany({
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    // Transform posts to include flat tags array
+    const postsWithFlatTags = posts.map(post => ({
+      ...post,
+      tags: post.tags.map(pt => pt.tag),
+    }));
+
+    const draftsWithFlatTags = drafts.map(draft => ({
+      ...draft,
+      tags: draft.tags.map(dt => dt.tag),
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        posts: postsWithFlatTags,
+        drafts: draftsWithFlatTags,
+        categories,
+        tags,
+        images,
+      },
+      meta: {
+        counts: {
+          posts: posts.length,
+          drafts: drafts.length,
+          categories: categories.length,
+          tags: tags.length,
+          images: images.length,
+        },
+        exportedAt: new Date().toISOString(),
+        tenantId: req.tenant!.id,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /internal/draft-image-urls
+ * Get image URLs used in draft content (for orphan detection)
+ */
+router.get('/draft-image-urls', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = tenantPrisma.getClient(req.tenant!.id);
+
+    // Get all drafts with content
+    const drafts = await prisma.draft.findMany({
+      select: { content: true },
+    });
+
+    // Extract image URLs from draft content
+    const imageUrls = new Set<string>();
+    const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+    const mdImgRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
+
+    for (const draft of drafts) {
+      if (!draft.content) continue;
+
+      // HTML img tags
+      let match;
+      while ((match = imgRegex.exec(draft.content)) !== null) {
+        imageUrls.add(match[1]);
+      }
+
+      // Markdown images
+      while ((match = mdImgRegex.exec(draft.content)) !== null) {
+        imageUrls.add(match[1]);
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        urls: Array.from(imageUrls),
+        count: imageUrls.size,
+      },
+      meta: {
+        draftsScanned: drafts.length,
+        tenantId: req.tenant!.id,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /internal/health
+ * Internal health check for service mesh
+ */
+router.get('/health', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', service: 'blog-service', internal: true });
+});
+
+export const internalRouter = router;

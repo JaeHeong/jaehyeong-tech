@@ -8,6 +8,36 @@ import { getFileType, generateFileName } from '../middleware/upload';
 import { FileType as PrismaFileType } from '../generated/prisma';
 import { FileType as SharedFileType } from '@shared/types';
 
+const BLOG_SERVICE_URL = process.env.BLOG_SERVICE_URL || 'http://blog-service:3002';
+
+/**
+ * Fetch image URLs used in drafts from blog-service
+ */
+async function getDraftImageUrls(tenantId: string, tenantName: string): Promise<Set<string>> {
+  try {
+    const response = await fetch(`${BLOG_SERVICE_URL}/internal/draft-image-urls`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-request': 'true',
+        'x-tenant-id': tenantId,
+        'x-tenant-name': tenantName,
+      },
+    });
+
+    if (!response.ok) {
+      console.warn('[Storage] Failed to fetch draft image URLs:', response.status);
+      return new Set();
+    }
+
+    const result = await response.json() as { success: boolean; data: { urls: string[] } };
+    return new Set(result.data?.urls || []);
+  } catch (error) {
+    console.error('[Storage] Error fetching draft image URLs:', error);
+    return new Set();
+  }
+}
+
 /**
  * 파일 업로드
  */
@@ -315,6 +345,7 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
 /**
  * 고아 파일 목록 조회 (관리자 전용)
  * 리소스에 연결되지 않고 24시간 이상 경과한 파일
+ * Excludes images used in draft content
  */
 export async function getOrphanFiles(req: Request, res: Response, next: NextFunction) {
   try {
@@ -326,8 +357,11 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
     const prisma = tenantPrisma.getClient(tenant.id);
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+    // Fetch image URLs used in drafts from blog-service
+    const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
+
     // 리소스에 연결되지 않고 24시간 이상 경과한 파일 조회
-    const orphans = await prisma.file.findMany({
+    const candidates = await prisma.file.findMany({
       where: {
         tenantId: tenant.id,
         resourceId: null,
@@ -335,6 +369,16 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Filter out images used in drafts
+    const orphans = candidates.filter((file) => !draftImageUrls.has(file.url));
+
+    // Get all unlinked files for usedInDrafts calculation
+    const allUnlinkedFiles = await prisma.file.findMany({
+      where: { tenantId: tenant.id, resourceId: null },
+      select: { url: true },
+    });
+    const usedInDrafts = allUnlinkedFiles.filter((file) => draftImageUrls.has(file.url)).length;
 
     // 통계 계산
     const [total, linked, totalSizeResult] = await Promise.all([
@@ -363,6 +407,7 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
         stats: {
           total,
           linked,
+          usedInDrafts,
           orphaned: orphans.length,
           totalSize: totalSizeResult._sum.size || 0,
           orphanSize,
@@ -376,6 +421,7 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
 
 /**
  * 고아 파일 일괄 삭제 (관리자 전용)
+ * Excludes images used in draft content
  */
 export async function deleteOrphanFiles(req: Request, res: Response, next: NextFunction) {
   try {
@@ -387,8 +433,11 @@ export async function deleteOrphanFiles(req: Request, res: Response, next: NextF
     const prisma = tenantPrisma.getClient(tenant.id);
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // 고아 파일 조회
-    const orphans = await prisma.file.findMany({
+    // Fetch image URLs used in drafts from blog-service
+    const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
+
+    // 고아 파일 후보 조회
+    const candidates = await prisma.file.findMany({
       where: {
         tenantId: tenant.id,
         resourceId: null,
@@ -396,11 +445,15 @@ export async function deleteOrphanFiles(req: Request, res: Response, next: NextF
       },
     });
 
+    // Filter out images used in drafts
+    const orphans = candidates.filter((file) => !draftImageUrls.has(file.url));
+
     if (orphans.length === 0) {
       res.json({
         data: {
           deleted: 0,
           freedSpace: 0,
+          skippedInDrafts: candidates.length,
         },
       });
       return;
@@ -433,6 +486,7 @@ export async function deleteOrphanFiles(req: Request, res: Response, next: NextF
       data: {
         deleted: successIds.length,
         freedSpace,
+        skippedInDrafts: candidates.length - orphans.length,
         errors: deleteErrors.length > 0 ? deleteErrors : undefined,
       },
     });

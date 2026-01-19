@@ -2,6 +2,7 @@ import express, { Request, Response, Application } from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler';
 import { pageRouter } from './routes/page';
+import { internalRouter } from './routes/internal';
 
 const app: Application = express();
 
@@ -21,6 +22,9 @@ app.get('/ready', async (_req: Request, res: Response) => {
 
 // Routes
 app.use('/api/pages', pageRouter);
+
+// Internal routes (service-to-service communication)
+app.use('/internal', internalRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);

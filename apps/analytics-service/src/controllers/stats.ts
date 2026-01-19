@@ -3,11 +3,12 @@ import { tenantPrisma } from '../services/prisma';
 import { AppError } from '../middleware/errorHandler';
 import '@shared/types/express';
 
-const BLOG_SERVICE_URL = process.env.BLOG_SERVICE_URL || 'http://jaehyeong-tech-dev-blog:3002';
-const COMMENT_SERVICE_URL = process.env.COMMENT_SERVICE_URL || 'http://jaehyeong-tech-dev-comment:3003';
-const PAGE_SERVICE_URL = process.env.PAGE_SERVICE_URL || 'http://jaehyeong-tech-dev-page:3004';
-const STORAGE_SERVICE_URL = process.env.STORAGE_SERVICE_URL || 'http://jaehyeong-tech-dev-storage:3006';
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://jaehyeong-tech-dev-auth:3001';
+// Service URLs using Kubernetes service DNS names
+const BLOG_SERVICE_URL = process.env.BLOG_SERVICE_URL || 'http://blog-service:3002';
+const COMMENT_SERVICE_URL = process.env.COMMENT_SERVICE_URL || 'http://comment-service:3003';
+const PAGE_SERVICE_URL = process.env.PAGE_SERVICE_URL || 'http://page-service:3004';
+const STORAGE_SERVICE_URL = process.env.STORAGE_SERVICE_URL || 'http://storage-service:3006';
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
 
 interface ServiceResponse<T> {
   data?: T;
@@ -68,39 +69,92 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
       }),
     ]);
 
+    // Define types for service responses
+    interface PostStats {
+      total: number;
+      published: number;
+      totalViews: number;
+      totalLikes: number;
+    }
+
+    interface RecentPost {
+      id: string;
+      title: string;
+      slug: string;
+      status: string;
+      viewCount: number;
+      createdAt: string;
+    }
+
+    interface RecentDraft {
+      id: string;
+      title: string;
+      createdAt: string;
+      updatedAt: string;
+    }
+
+    interface RecentComment {
+      id: string;
+      content: string;
+      guestName?: string;
+      authorId?: string;
+      resourceId: string;
+      createdAt: string;
+    }
+
+    interface Backup {
+      name: string;
+      fullPath: string;
+      createdAt: string | null;
+      description: string | null;
+    }
+
     // Fetch data from other services in parallel
-    const [postsData, draftsData, commentsData, pagesData, usersData, imagesData, categoriesData, tagsData] = await Promise.all([
-      // Blog service - posts
-      fetchFromService<{ total: number; published: number }>(
+    const [
+      postsData,
+      draftsData,
+      commentsData,
+      pagesData,
+      usersData,
+      imagesData,
+      categoriesData,
+      tagsData,
+      recentPostsData,
+      recentDraftsData,
+      recentCommentsData,
+      backupsData,
+    ] = await Promise.all([
+      // Blog service - posts stats (includes totalViews and totalLikes)
+      fetchFromService<PostStats>(
         `${BLOG_SERVICE_URL}/api/posts/stats`,
         tenant.id,
         token
       ),
-      // Blog service - drafts
+      // Blog service - drafts stats
       fetchFromService<{ total: number }>(
         `${BLOG_SERVICE_URL}/api/drafts/stats`,
         tenant.id,
         token
       ),
-      // Comment service - comments
+      // Comment service - comments stats
       fetchFromService<{ total: number; recent: number; new: number }>(
         `${COMMENT_SERVICE_URL}/api/comments/stats`,
         tenant.id,
         token
       ),
-      // Page service - pages
+      // Page service - pages stats
       fetchFromService<{ static: number; notice: number }>(
         `${PAGE_SERVICE_URL}/api/pages/admin/stats`,
         tenant.id,
         token
       ),
-      // Auth service - users
+      // Auth service - users stats
       fetchFromService<{ total: number }>(
         `${AUTH_SERVICE_URL}/api/users/stats`,
         tenant.id,
         token
       ),
-      // Storage service - images
+      // Storage service - images stats
       fetchFromService<{ total: number; totalSize: number; orphaned: number }>(
         `${STORAGE_SERVICE_URL}/api/images/stats`,
         tenant.id,
@@ -118,6 +172,30 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
         tenant.id,
         token
       ),
+      // Blog service - recent posts
+      fetchFromService<RecentPost[]>(
+        `${BLOG_SERVICE_URL}/api/posts?limit=5&sort=createdAt&order=desc`,
+        tenant.id,
+        token
+      ),
+      // Blog service - recent drafts
+      fetchFromService<RecentDraft[]>(
+        `${BLOG_SERVICE_URL}/api/drafts?limit=5`,
+        tenant.id,
+        token
+      ),
+      // Comment service - recent comments
+      fetchFromService<RecentComment[]>(
+        `${COMMENT_SERVICE_URL}/api/comments?limit=5`,
+        tenant.id,
+        token
+      ),
+      // Storage service - backups list
+      fetchFromService<Backup[]>(
+        `${STORAGE_SERVICE_URL}/api/backup`,
+        tenant.id,
+        token
+      ),
     ]);
 
     res.json({
@@ -129,8 +207,8 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
           totalComments: commentsData.data?.total ?? 0,
           recentComments: commentsData.data?.recent ?? 0,
           newComments: commentsData.data?.new ?? 0,
-          totalViews: 0, // TODO: implement view tracking
-          totalLikes: 0, // TODO: implement likes
+          totalViews: postsData.data?.totalViews ?? 0,
+          totalLikes: postsData.data?.totalLikes ?? 0,
           totalUsers: usersData.data?.total ?? 0,
           totalVisitors,
           recentVisitors,
@@ -140,10 +218,10 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
         tags: tagsData.data ?? [],
         pages: pagesData.data ?? { static: 0, notice: 0 },
         images: imagesData.data ?? { total: 0, totalSize: 0, orphaned: 0 },
-        backups: [], // TODO: implement backup list from storage-service
-        recentPosts: [],
-        recentDrafts: [],
-        recentComments: [],
+        backups: backupsData.data ?? [],
+        recentPosts: recentPostsData.data ?? [],
+        recentDrafts: recentDraftsData.data ?? [],
+        recentComments: recentCommentsData.data ?? [],
       },
     });
   } catch (error) {

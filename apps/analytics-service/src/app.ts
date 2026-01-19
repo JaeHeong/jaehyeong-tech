@@ -5,6 +5,7 @@ import { visitorRouter } from './routes/visitor';
 import { bugReportRouter } from './routes/bugReport';
 import { statsRouter } from './routes/stats';
 import { analyticsRouter } from './routes/analytics';
+import { internalRouter } from './routes/internal';
 
 const app: Application = express();
 
@@ -27,6 +28,9 @@ app.use('/api/visitors', visitorRouter);
 app.use('/api/bug-reports', bugReportRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/analytics', analyticsRouter);
+
+// Internal routes (service-to-service communication)
+app.use('/internal', internalRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);
