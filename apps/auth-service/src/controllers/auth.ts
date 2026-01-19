@@ -299,7 +299,7 @@ export async function updateCurrentUser(req: Request, res: Response, next: NextF
     const prisma = tenantPrisma.getClient(tenant.id);
     const userId = req.user!.id;
 
-    const { name, avatar, bio } = req.body;
+    const { name, avatar, bio, title, github, twitter, linkedin, website } = req.body;
 
     // Validate name
     if (name !== undefined) {
@@ -321,7 +321,21 @@ export async function updateCurrentUser(req: Request, res: Response, next: NextF
       }
     }
 
-    const updateData: { name?: string; avatar?: string | null; bio?: string | null } = {};
+    // Validate title
+    if (title !== undefined && title !== null && typeof title === 'string' && title.length > 100) {
+      throw new AppError('타이틀은 100자 이내로 입력해주세요.', 400);
+    }
+
+    const updateData: {
+      name?: string;
+      avatar?: string | null;
+      bio?: string | null;
+      title?: string | null;
+      github?: string | null;
+      twitter?: string | null;
+      linkedin?: string | null;
+      website?: string | null;
+    } = {};
 
     if (name !== undefined) {
       updateData.name = name.trim();
@@ -331,6 +345,21 @@ export async function updateCurrentUser(req: Request, res: Response, next: NextF
     }
     if (bio !== undefined) {
       updateData.bio = bio || null;
+    }
+    if (title !== undefined) {
+      updateData.title = title || null;
+    }
+    if (github !== undefined) {
+      updateData.github = github || null;
+    }
+    if (twitter !== undefined) {
+      updateData.twitter = twitter || null;
+    }
+    if (linkedin !== undefined) {
+      updateData.linkedin = linkedin || null;
+    }
+    if (website !== undefined) {
+      updateData.website = website || null;
     }
 
     const updatedUser = await prisma.user.update({

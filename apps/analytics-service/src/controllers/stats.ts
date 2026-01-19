@@ -155,7 +155,7 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
         token
       ),
       // Storage service - images stats
-      fetchFromService<{ total: number; totalSize: number; orphaned: number }>(
+      fetchFromService<{ total: number; totalSize: number; linked: number; usedInDrafts: number; orphaned: number; orphanSize: number }>(
         `${STORAGE_SERVICE_URL}/api/images/stats`,
         tenant.id,
         token
@@ -217,7 +217,7 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
         categories: categoriesData.data ?? [],
         tags: tagsData.data ?? [],
         pages: pagesData.data ?? { static: 0, notice: 0 },
-        images: imagesData.data ?? { total: 0, totalSize: 0, orphaned: 0 },
+        images: imagesData.data ?? { total: 0, totalSize: 0, linked: 0, usedInDrafts: 0, orphaned: 0, orphanSize: 0 },
         backups: backupsData.data ?? [],
         recentPosts: recentPostsData.data ?? [],
         recentDrafts: recentDraftsData.data ?? [],

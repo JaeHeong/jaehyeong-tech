@@ -5,6 +5,7 @@ import storageRoutes from './routes/storage';
 import metadataRoutes from './routes/metadata';
 import imagesRoutes from './routes/images';
 import backupRoutes from './routes/backup';
+import uploadRoutes from './routes/upload';
 import { errorHandler } from './middleware/errorHandler';
 
 // 환경 변수 로드
@@ -31,6 +32,7 @@ app.use('/api/files', storageRoutes);
 app.use('/api/metadata', metadataRoutes);
 app.use('/api/images', imagesRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // 404 Handler
 app.use((req, res) => {

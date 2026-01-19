@@ -534,6 +534,7 @@ export async function getUserStats(req: Request, res: Response, next: NextFuncti
 
     res.json({
       data: {
+        total: totalUsers, // For analytics-service compatibility
         totalUsers,
         activeUsers,
         todayNewUsers,

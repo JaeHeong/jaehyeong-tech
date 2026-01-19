@@ -308,7 +308,24 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
     const prisma = tenantPrisma.getClient(tenant.id);
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const [total, linked, totalSizeResult, orphanedCount] = await Promise.all([
+    // Get draft image URLs to calculate usedInDrafts
+    const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
+
+    // Get all unlinked files
+    const unlinkedFiles = await prisma.file.findMany({
+      where: { tenantId: tenant.id, fileType: 'IMAGE', resourceId: null },
+      select: { url: true, size: true, createdAt: true },
+    });
+
+    // Calculate usedInDrafts and orphan candidates
+    const usedInDrafts = unlinkedFiles.filter((file) => draftImageUrls.has(file.url)).length;
+    const orphanCandidates = unlinkedFiles.filter(
+      (file) => !draftImageUrls.has(file.url) && file.createdAt < twentyFourHoursAgo
+    );
+    const orphaned = orphanCandidates.length;
+    const orphanSize = orphanCandidates.reduce((sum, file) => sum + file.size, 0);
+
+    const [total, linked, totalSizeResult] = await Promise.all([
       prisma.file.count({
         where: { tenantId: tenant.id, fileType: 'IMAGE' },
       }),
@@ -319,14 +336,6 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
         where: { tenantId: tenant.id, fileType: 'IMAGE' },
         _sum: { size: true },
       }),
-      prisma.file.count({
-        where: {
-          tenantId: tenant.id,
-          fileType: 'IMAGE',
-          resourceId: null,
-          createdAt: { lt: twentyFourHoursAgo },
-        },
-      }),
     ]);
 
     res.json({
@@ -334,7 +343,9 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
         total,
         totalSize: totalSizeResult._sum.size || 0,
         linked,
-        orphaned: orphanedCount,
+        usedInDrafts,
+        orphaned,
+        orphanSize,
       },
     });
   } catch (error) {
