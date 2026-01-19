@@ -6,6 +6,7 @@ import { categoryRouter } from './routes/category';
 import { tagRouter } from './routes/tag';
 import { bookmarkRouter } from './routes/bookmark';
 import { draftRouter } from './routes/draft';
+import { seoRouter } from './routes/seo';
 
 const app: Application = express();
 
@@ -29,6 +30,9 @@ app.use('/api/categories', categoryRouter);
 app.use('/api/tags', tagRouter);
 app.use('/api/bookmarks', bookmarkRouter);
 app.use('/api/drafts', draftRouter);
+
+// SEO routes (served at root level)
+app.use('/', seoRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);
