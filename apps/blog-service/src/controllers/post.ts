@@ -254,6 +254,7 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
         },
       },
       include: {
+        author: { select: { id: true, name: true, avatar: true, bio: true } },
         category: true,
         tags: true,
       },
@@ -753,6 +754,7 @@ export async function getPostById(req: Request, res: Response, next: NextFunctio
     const post = await prisma.post.findUnique({
       where: { id },
       include: {
+        author: { select: { id: true, name: true, avatar: true, bio: true } },
         category: true,
         tags: true,
       },
