@@ -6,6 +6,7 @@ import metadataRoutes from './routes/metadata';
 import imagesRoutes from './routes/images';
 import backupRoutes from './routes/backup';
 import uploadRoutes from './routes/upload';
+import internalRoutes from './routes/internal';
 import { errorHandler } from './middleware/errorHandler';
 
 // 환경 변수 로드
@@ -33,6 +34,9 @@ app.use('/api/metadata', metadataRoutes);
 app.use('/api/images', imagesRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/upload', uploadRoutes);
+
+// Internal Routes (service-to-service communication)
+app.use('/internal', internalRoutes);
 
 // 404 Handler
 app.use((req, res) => {

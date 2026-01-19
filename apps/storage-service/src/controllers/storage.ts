@@ -337,6 +337,66 @@ export async function deleteFile(req: Request, res: Response, next: NextFunction
 }
 
 /**
+ * URL로 파일 삭제 (Internal API - 서비스간 통신용)
+ * POST /internal/delete-by-url
+ * Used by auth-service when avatar changes
+ */
+export async function deleteFileByUrl(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const { url } = req.body;
+
+    if (!url) {
+      throw new AppError('URL이 필요합니다.', 400);
+    }
+
+    // 파일 조회 by URL
+    const file = await prisma.file.findFirst({
+      where: {
+        url,
+        tenantId: tenant.id,
+      },
+    });
+
+    if (!file) {
+      // File not found in DB - might be external URL or already deleted
+      console.log(`File not found for URL: ${url}`);
+      res.json({ message: '파일을 찾을 수 없거나 이미 삭제되었습니다.', deleted: false });
+      return;
+    }
+
+    // OCI에서 삭제
+    try {
+      await ociStorage.deleteFile(file.objectName);
+      console.log(`Deleted file from OCI: ${file.objectName}`);
+    } catch (error) {
+      console.error('Failed to delete from OCI:', error);
+      // OCI 삭제 실패해도 DB에서는 삭제
+    }
+
+    // DB에서 삭제
+    await prisma.file.delete({
+      where: { id: file.id },
+    });
+
+    // 이벤트 발행
+    await eventPublisher.publish({
+      eventType: 'file.deleted',
+      tenantId: tenant.id,
+      data: {
+        fileId: file.id,
+        fileName: file.fileName,
+      },
+    });
+
+    res.json({ message: '파일이 삭제되었습니다.', deleted: true });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * 파일/이미지 통계 조회 (Internal API)
  * GET /api/images/stats
  * Note: Avatars are managed separately (old deleted on new upload)

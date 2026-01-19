@@ -326,6 +326,12 @@ export async function updateCurrentUser(req: Request, res: Response, next: NextF
       throw new AppError('타이틀은 100자 이내로 입력해주세요.', 400);
     }
 
+    // Get current user to check if avatar is being changed
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatar: true },
+    });
+
     const updateData: {
       name?: string;
       avatar?: string | null;
@@ -360,6 +366,24 @@ export async function updateCurrentUser(req: Request, res: Response, next: NextF
     }
     if (website !== undefined) {
       updateData.website = website || null;
+    }
+
+    // Delete old avatar from storage-service if avatar is being changed or removed
+    if (avatar !== undefined && currentUser?.avatar && currentUser.avatar !== avatar) {
+      const storageServiceUrl = process.env.STORAGE_SERVICE_URL || 'http://storage-service:3000';
+      try {
+        await fetch(`${storageServiceUrl}/internal/delete-by-url`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant-id': tenant.id,
+          },
+          body: JSON.stringify({ url: currentUser.avatar }),
+        });
+      } catch (err) {
+        // Log error but don't fail the update
+        console.error('Failed to delete old avatar from storage:', err);
+      }
     }
 
     const updatedUser = await prisma.user.update({
