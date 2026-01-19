@@ -10,6 +10,9 @@ importers:
 
   apps/analytics-service:
     dependencies:
+      '@google-analytics/data':
+        specifier: ^5.2.1
+        version: 5.2.1
       '@prisma/client':
         specifier: ^6.1.0
         version: 6.19.1(prisma@6.19.1(typescript@5.7.3))(typescript@5.7.3)
