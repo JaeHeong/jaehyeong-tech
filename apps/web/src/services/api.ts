@@ -1231,11 +1231,13 @@ export interface AdminComment {
     avatar: string | null
   } | null
   guestName: string | null
-  post: {
+  post?: {
     id: string
     title: string
     slug: string
   }
+  resourceType?: string
+  resourceId?: string
   parentId: string | null
   createdAt: string
 }

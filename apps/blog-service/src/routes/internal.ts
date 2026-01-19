@@ -131,6 +131,54 @@ router.get('/draft-image-urls', verifyInternalRequest, resolveTenant, async (req
 });
 
 /**
+ * GET /internal/posts/basic
+ * Get basic post info (id, slug, title) for multiple post IDs
+ * Used by comment-service for admin comments enrichment
+ */
+router.get('/posts/basic', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = tenantPrisma.getClient(req.tenant!.id);
+    const idsParam = req.query.ids as string;
+
+    if (!idsParam) {
+      res.json({ success: true, data: {} });
+      return;
+    }
+
+    const ids = idsParam.split(',').filter(Boolean);
+
+    if (ids.length === 0) {
+      res.json({ success: true, data: {} });
+      return;
+    }
+
+    const posts = await prisma.post.findMany({
+      where: {
+        id: { in: ids },
+      },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+      },
+    });
+
+    // Return as a map for easy lookup
+    const postsMap: Record<string, { id: string; slug: string; title: string }> = {};
+    for (const post of posts) {
+      postsMap[post.id] = post;
+    }
+
+    res.json({
+      success: true,
+      data: postsMap,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /internal/health
  * Internal health check for service mesh
  */

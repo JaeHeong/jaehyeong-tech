@@ -315,16 +315,23 @@ export default function AdminCommentsPage() {
                           </p>
 
                           <div className="flex flex-wrap items-center justify-between gap-2 md:gap-4">
-                            <Link
-                              to={`/posts/${comment.post.slug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-[10px] md:text-xs text-primary hover:underline flex items-center gap-0.5 md:gap-1 line-clamp-1"
-                            >
-                              <span className="material-symbols-outlined text-[12px] md:text-[14px]">article</span>
-                              <span className="line-clamp-1">{comment.post.title}</span>
-                            </Link>
+                            {comment.post ? (
+                              <Link
+                                to={`/posts/${comment.post.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-[10px] md:text-xs text-primary hover:underline flex items-center gap-0.5 md:gap-1 line-clamp-1"
+                              >
+                                <span className="material-symbols-outlined text-[12px] md:text-[14px]">article</span>
+                                <span className="line-clamp-1">{comment.post.title}</span>
+                              </Link>
+                            ) : (
+                              <span className="text-[10px] md:text-xs text-slate-400 flex items-center gap-0.5 md:gap-1">
+                                <span className="material-symbols-outlined text-[12px] md:text-[14px]">article</span>
+                                <span>알 수 없는 게시물</span>
+                              </span>
+                            )}
 
                             <div className="flex gap-2">
                               <button

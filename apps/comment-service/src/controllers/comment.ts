@@ -551,12 +551,16 @@ export async function getAllComments(req: Request, res: Response, next: NextFunc
     const prisma = tenantPrisma.getClient(tenant.id);
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
-    const { status, resourceType } = req.query;
+    const { status, resourceType, includeDeleted } = req.query;
 
     const where: any = {
       tenantId: tenant.id,
-      isDeleted: false,
     };
+
+    // includeDeleted가 true이면 삭제된 댓글도 포함
+    if (includeDeleted !== 'true') {
+      where.isDeleted = false;
+    }
 
     if (status) {
       where.status = status;
@@ -582,6 +586,7 @@ export async function getAllComments(req: Request, res: Response, next: NextFunc
           status: true,
           parentId: true,
           isPrivate: true,
+          isDeleted: true,
           ipHash: true,
           createdAt: true,
           updatedAt: true,
@@ -593,8 +598,80 @@ export async function getAllComments(req: Request, res: Response, next: NextFunc
       prisma.comment.count({ where }),
     ]);
 
+    // Collect unique post IDs and author IDs for enrichment
+    const postIds = new Set<string>();
+    const authorIds = new Set<string>();
+
+    for (const comment of comments) {
+      if (comment.resourceType === 'POST' && comment.resourceId) {
+        postIds.add(comment.resourceId);
+      }
+      if (comment.authorId) {
+        authorIds.add(comment.authorId);
+      }
+    }
+
+    // Fetch post info from blog-service
+    let postsMap: Record<string, { id: string; slug: string; title: string }> = {};
+    if (postIds.size > 0) {
+      try {
+        const blogServiceUrl = process.env.BLOG_SERVICE_URL || 'http://blog-service:3002';
+        const response = await fetch(`${blogServiceUrl}/internal/posts/basic?ids=${Array.from(postIds).join(',')}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-request': 'true',
+            'x-tenant-id': tenant.id,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          postsMap = data.data || {};
+        }
+      } catch (err) {
+        console.error('Failed to fetch post info from blog-service:', err);
+      }
+    }
+
+    // Fetch author info from auth-service
+    let authorsMap: Record<string, { id: string; name: string; avatar: string | null }> = {};
+    if (authorIds.size > 0) {
+      try {
+        const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+        const response = await fetch(`${authServiceUrl}/internal/users/basic?ids=${Array.from(authorIds).join(',')}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-request': 'true',
+            'x-tenant-id': tenant.id,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          authorsMap = data.data || {};
+        }
+      } catch (err) {
+        console.error('Failed to fetch author info from auth-service:', err);
+      }
+    }
+
+    // Enrich comments with post and author info
+    const enrichedComments = comments.map((comment) => ({
+      id: comment.id,
+      content: comment.content,
+      isPrivate: comment.isPrivate,
+      isDeleted: comment.isDeleted,
+      guestName: comment.guestName,
+      parentId: comment.parentId,
+      createdAt: comment.createdAt,
+      author: comment.authorId ? authorsMap[comment.authorId] || null : null,
+      post: comment.resourceType === 'POST' && comment.resourceId
+        ? postsMap[comment.resourceId] || null
+        : null,
+    }));
+
     res.json({
-      data: comments,
+      data: enrichedComments,
       meta: {
         total,
         page,

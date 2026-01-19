@@ -105,6 +105,54 @@ router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request,
 });
 
 /**
+ * GET /internal/users/basic
+ * Get basic user info (id, name, avatar) for multiple user IDs
+ * Used by comment-service for admin comments enrichment
+ */
+router.get('/users/basic', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = tenantPrisma.getClient(req.tenant!.id);
+    const idsParam = req.query.ids as string;
+
+    if (!idsParam) {
+      res.json({ success: true, data: {} });
+      return;
+    }
+
+    const ids = idsParam.split(',').filter(Boolean);
+
+    if (ids.length === 0) {
+      res.json({ success: true, data: {} });
+      return;
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        id: { in: ids },
+      },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+      },
+    });
+
+    // Return as a map for easy lookup
+    const usersMap: Record<string, { id: string; name: string; avatar: string | null }> = {};
+    for (const user of users) {
+      usersMap[user.id] = user;
+    }
+
+    res.json({
+      success: true,
+      data: usersMap,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /internal/health
  * Internal health check for service mesh
  */
