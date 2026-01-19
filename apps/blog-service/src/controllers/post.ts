@@ -42,8 +42,8 @@ async function fetchAuthorFromAuthService(
       return null;
     }
 
-    const json = await response.json();
-    return json.data as AuthorInfo;
+    const json = (await response.json()) as { data: AuthorInfo };
+    return json.data;
   } catch (error) {
     console.error(`Error fetching author ${authorId}:`, error);
     return null;
