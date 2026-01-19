@@ -409,7 +409,7 @@ export async function getDetailedAnalytics(req: Request, res: Response, _next: N
       });
     }
 
-    res.json({
+    return res.json({
       data: null,
       configured: true,
       error: 'Failed to fetch detailed analytics',
@@ -429,7 +429,7 @@ export async function getDetailedAnalytics(req: Request, res: Response, _next: N
       });
     }
 
-    res.json({
+    return res.json({
       data: null,
       configured: true,
       error: 'Failed to fetch detailed analytics',
@@ -493,7 +493,7 @@ export async function getWeeklyVisitors(_req: Request, res: Response, _next: Nex
       });
     }
 
-    res.json({
+    return res.json({
       data: {
         daily: [],
         total: 0,
@@ -516,7 +516,7 @@ export async function getWeeklyVisitors(_req: Request, res: Response, _next: Nex
       });
     }
 
-    res.json({
+    return res.json({
       data: {
         daily: [],
         total: 0,
@@ -710,10 +710,10 @@ export async function getPageAnalytics(req: Request, res: Response, _next: NextF
       referrers,
     };
 
-    res.json({ data, configured: true });
+    return res.json({ data, configured: true });
   } catch (error) {
     console.error('GA4 Page Analytics Error:', error);
-    res.json({
+    return res.json({
       data: null,
       configured: true,
       error: 'Failed to fetch page analytics',
