@@ -4,6 +4,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { visitorRouter } from './routes/visitor';
 import { bugReportRouter } from './routes/bugReport';
 import { statsRouter } from './routes/stats';
+import { analyticsRouter } from './routes/analytics';
 
 const app: Application = express();
 
@@ -25,8 +26,7 @@ app.get('/ready', async (_req: Request, res: Response) => {
 app.use('/api/visitors', visitorRouter);
 app.use('/api/bug-reports', bugReportRouter);
 app.use('/api/stats', statsRouter);
-// TODO: GA4 integration requires @google-analytics/data package
-// app.use('/api/analytics', ga4Router);
+app.use('/api/analytics', analyticsRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);
