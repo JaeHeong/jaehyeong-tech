@@ -9,7 +9,7 @@ import { tenantPrisma } from '../services/prisma';
 import { resolveTenant } from '../middleware/tenantResolver';
 import '@shared/types/express';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * Middleware to verify internal request
