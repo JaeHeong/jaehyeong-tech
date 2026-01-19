@@ -464,6 +464,13 @@ class ApiClient {
     return response.data
   }
 
+  async deleteImage(url: string) {
+    return this.request<{ message: string; deleted: boolean }>('/files/delete-by-url', {
+      method: 'POST',
+      body: { url },
+    })
+  }
+
   // Comment endpoints
   async getRecentComments(limit: number = 5) {
     const response = await this.request<{ data: RecentComment[] }>(`/comments/recent?limit=${limit}`)

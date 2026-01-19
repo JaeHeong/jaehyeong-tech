@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useModal } from '../contexts/ModalContext'
 import { api } from '../services/api'
 import {
   getPaginationSettings,
@@ -10,12 +11,15 @@ import {
 
 export default function AdminSettingsPage() {
   const { user, refreshUser } = useAuth()
+  const { confirm } = useModal()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isInitializedRef = useRef(false)
   const avatarRef = useRef<string>('')  // Track avatar separately to avoid stale closure
+  const initialAvatarRef = useRef<string>('')  // Track initial avatar to detect changes
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const formRef = useRef<HTMLFormElement>(null)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -32,11 +36,17 @@ export default function AdminSettingsPage() {
     getPaginationSettings()
   )
 
+  // Check if avatar has unsaved changes
+  const hasUnsavedAvatarChanges = useCallback(() => {
+    return avatarRef.current !== initialAvatarRef.current
+  }, [])
+
   // 초기 로드 시에만 user 데이터로 폼 초기화
   useEffect(() => {
     if (user && !isInitializedRef.current) {
       const avatarValue = user.avatar || ''
       avatarRef.current = avatarValue
+      initialAvatarRef.current = avatarValue  // Track initial value for change detection
       setFormData({
         name: user.name || '',
         title: user.title || '',
@@ -50,6 +60,54 @@ export default function AdminSettingsPage() {
       isInitializedRef.current = true
     }
   }, [user])
+
+  // beforeunload handler for browser refresh/close
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedAvatarChanges()) {
+        e.preventDefault()
+        // Show browser's native dialog
+        e.returnValue = '저장하지 않은 프로필 사진 변경사항이 있습니다.'
+        return e.returnValue
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedAvatarChanges])
+
+  // Show custom modal when user tries to navigate away with unsaved avatar
+  const handleBeforeNavigate = useCallback(async (): Promise<boolean> => {
+    if (!hasUnsavedAvatarChanges()) {
+      return true // Allow navigation
+    }
+
+    const shouldSave = await confirm({
+      title: '저장하지 않은 변경사항',
+      message: '업로드한 프로필 사진이 저장되지 않았습니다.\n저장하지 않고 나가면 업로드한 이미지가 삭제됩니다.',
+      cancelText: '삭제하고 나가기',
+      confirmText: '저장하기',
+      type: 'warning',
+    })
+
+    if (shouldSave) {
+      // Save and continue
+      if (formRef.current) {
+        formRef.current.requestSubmit()
+      }
+      return false // Don't navigate yet, wait for save
+    } else {
+      // Discard - delete the uploaded avatar
+      if (avatarRef.current && avatarRef.current !== initialAvatarRef.current) {
+        try {
+          await api.deleteImage(avatarRef.current)
+        } catch {
+          // Ignore deletion error
+        }
+      }
+      return true // Allow navigation
+    }
+  }, [hasUnsavedAvatarChanges, confirm])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -115,6 +173,7 @@ export default function AdminSettingsPage() {
       if (response.data) {
         const responseAvatar = response.data.avatar || ''
         avatarRef.current = responseAvatar
+        initialAvatarRef.current = responseAvatar  // Update initial value after save
         setFormData({
           name: response.data.name || '',
           title: response.data.title || '',
@@ -168,7 +227,7 @@ export default function AdminSettingsPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-8">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 md:space-y-8">
           {/* Basic Info */}
           <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-8">
             <h2 className="text-base md:text-xl font-bold mb-4 md:mb-6 flex items-center gap-2">
@@ -424,7 +483,12 @@ export default function AdminSettingsPage() {
           <div className="flex items-center justify-end gap-2 md:gap-4 pt-2 md:pt-4">
             <button
               type="button"
-              onClick={() => window.history.back()}
+              onClick={async () => {
+                const canNavigate = await handleBeforeNavigate()
+                if (canNavigate) {
+                  window.history.back()
+                }
+              }}
               className="px-4 md:px-6 py-2 md:py-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-xs md:text-sm font-medium transition-colors"
             >
               취소
