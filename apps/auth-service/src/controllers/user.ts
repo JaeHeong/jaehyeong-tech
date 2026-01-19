@@ -226,3 +226,37 @@ export async function updateUserStatus(req: Request, res: Response, next: NextFu
     next(error);
   }
 }
+
+/**
+ * 사용자 공개 정보 조회 (Internal API - 서비스간 통신용)
+ * 인증 없이 호출 가능, tenantId + userId로 조회
+ */
+export async function getUserPublicInfo(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant as Tenant;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const { userId } = req.params;
+
+    const user = await prisma.user.findFirst({
+      where: {
+        id: userId,
+        tenantId: tenant.id,
+      },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        bio: true,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    res.json({ data: user });
+  } catch (error) {
+    next(error);
+  }
+}

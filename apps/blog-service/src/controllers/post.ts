@@ -12,6 +12,44 @@ const slugify: SlugifyFn =
   (slugifyLib as unknown as { default?: SlugifyFn }).default ||
   (slugifyLib as unknown as SlugifyFn);
 
+// Auth service URL for internal calls (K8s service discovery)
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://jaehyeong-tech-dev-auth:3001';
+
+// Author info type
+interface AuthorInfo {
+  id: string;
+  name: string;
+  avatar: string | null;
+  bio: string | null;
+}
+
+/**
+ * Fetch author info from auth-service (internal API)
+ */
+async function fetchAuthorFromAuthService(
+  tenantId: string,
+  authorId: string
+): Promise<AuthorInfo | null> {
+  try {
+    const response = await fetch(`${AUTH_SERVICE_URL}/api/users/${authorId}/public`, {
+      headers: {
+        'x-tenant-id': tenantId,
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`Failed to fetch author ${authorId}: ${response.status}`);
+      return null;
+    }
+
+    const json = await response.json();
+    return json.data as AuthorInfo;
+  } catch (error) {
+    console.error(`Error fetching author ${authorId}:`, error);
+    return null;
+  }
+}
+
 // Featured post constants
 const LIKE_WEIGHT = 5; // 1 like = 5 views worth
 
@@ -254,7 +292,6 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
         },
       },
       include: {
-        author: { select: { id: true, name: true, avatar: true, bio: true } },
         category: true,
         tags: true,
       },
@@ -324,8 +361,15 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
       await updateFeaturedPost(req.tenant.id);
     }
 
+    // Fetch author from auth-service
+    const author = await fetchAuthorFromAuthService(req.tenant.id, post.authorId);
+
     res.json({
-      data: { ...post, viewCount: post.viewCount + (viewIncremented ? 1 : 0) },
+      data: {
+        ...post,
+        viewCount: post.viewCount + (viewIncremented ? 1 : 0),
+        author,
+      },
     });
   } catch (error) {
     next(error);
@@ -754,7 +798,6 @@ export async function getPostById(req: Request, res: Response, next: NextFunctio
     const post = await prisma.post.findUnique({
       where: { id },
       include: {
-        author: { select: { id: true, name: true, avatar: true, bio: true } },
         category: true,
         tags: true,
       },
@@ -764,7 +807,10 @@ export async function getPostById(req: Request, res: Response, next: NextFunctio
       throw new AppError('게시글을 찾을 수 없습니다.', 404);
     }
 
-    res.json({ data: post });
+    // Fetch author from auth-service
+    const author = await fetchAuthorFromAuthService(req.tenant.id, post.authorId);
+
+    res.json({ data: { ...post, author } });
   } catch (error) {
     next(error);
   }
