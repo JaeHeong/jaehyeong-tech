@@ -331,7 +331,7 @@ export default function Sidebar({ showAuthor = true, showPopularTopics = true, s
             {tags.map((tag) => (
               <Link
                 key={tag.id}
-                to={`/search?q=${encodeURIComponent(tag.name)}`}
+                to={`/search?tag=${encodeURIComponent(tag.slug)}`}
                 className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
               >
                 #{tag.name}

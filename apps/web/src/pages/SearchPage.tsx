@@ -7,19 +7,23 @@ import { useSEO } from '../hooks/useSEO'
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const query = searchParams.get('q') || ''
+  const tagSlug = searchParams.get('tag') || ''
   const [posts, setPosts] = useState<Post[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [totalCount, setTotalCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set())
+  const [tagName, setTagName] = useState('')
 
   useSEO({
-    title: query ? `"${query}" 검색 결과` : '검색',
-    description: query
+    title: tagSlug ? `#${tagName || tagSlug} 태그` : query ? `"${query}" 검색 결과` : '검색',
+    description: tagSlug
+      ? `#${tagName || tagSlug} 태그가 포함된 게시물 - 총 ${totalCount}개`
+      : query
       ? `"${query}" 검색 결과 - 총 ${totalCount}개의 게시물을 찾았습니다.`
       : '기술 블로그에서 원하는 글을 검색해보세요.',
-    url: query ? `/search?q=${encodeURIComponent(query)}` : '/search',
+    url: tagSlug ? `/search?tag=${encodeURIComponent(tagSlug)}` : query ? `/search?q=${encodeURIComponent(query)}` : '/search',
     type: 'website',
   })
 
@@ -31,14 +35,27 @@ export default function SearchPage() {
         const page = pageParam ? parseInt(pageParam, 10) : 1
         setCurrentPage(page)
 
-        const { posts: results, meta } = await api.getPosts({
-          search: query || undefined,
-          page,
-          limit: 10,
-        })
-        setPosts(results)
-        setTotalCount(meta.total)
-        setTotalPages(meta.totalPages)
+        if (tagSlug) {
+          // Tag filtering
+          const { posts: results, meta } = await api.getPostsByTag(tagSlug, { page, limit: 10 })
+          setPosts(results)
+          setTotalCount(meta.total)
+          setTotalPages(meta.totalPages)
+          if (meta.tag) {
+            setTagName(meta.tag.name)
+          }
+        } else {
+          // Text search
+          const { posts: results, meta } = await api.getPosts({
+            search: query || undefined,
+            page,
+            limit: 10,
+          })
+          setPosts(results)
+          setTotalCount(meta.total)
+          setTotalPages(meta.totalPages)
+          setTagName('')
+        }
       } catch (error) {
         console.error('Search failed:', error)
         setPosts([])
@@ -49,7 +66,7 @@ export default function SearchPage() {
     }
 
     fetchSearchResults()
-  }, [query, searchParams])
+  }, [query, tagSlug, searchParams])
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -108,7 +125,11 @@ export default function SearchPage() {
             <div className="flex flex-wrap items-center justify-between gap-2 md:gap-4 pb-4 md:pb-6 border-b border-slate-200 dark:border-slate-800">
               <div>
                 <h1 className="text-xl md:text-2xl font-bold tracking-tight">
-                  {query ? (
+                  {tagSlug ? (
+                    <>
+                      <span className="text-primary">#{tagName || tagSlug}</span> 태그
+                    </>
+                  ) : query ? (
                     <>
                       <span className="text-primary">"{query}"</span> 검색 결과
                     </>
@@ -117,9 +138,18 @@ export default function SearchPage() {
                   )}
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mt-1">
-                  총 {totalCount}개의 게시물을 찾았습니다.
+                  총 {totalCount}개의 게시물{tagSlug ? '이 있습니다.' : '을 찾았습니다.'}
                 </p>
               </div>
+              {tagSlug && (
+                <Link
+                  to="/search"
+                  className="text-xs md:text-sm text-slate-500 hover:text-primary transition-colors flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                  태그 필터 해제
+                </Link>
+              )}
             </div>
           </div>
 
@@ -186,7 +216,7 @@ export default function SearchPage() {
                         {(expandedTags.has(post.id) ? post.tags : post.tags.slice(0, 3)).map((tag) => (
                           <Link
                             key={tag.id}
-                            to={`/search?q=${encodeURIComponent(tag.name)}`}
+                            to={`/search?tag=${encodeURIComponent(tag.slug)}`}
                             className="px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] md:text-xs text-slate-500 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
                           >
                             #{tag.name}

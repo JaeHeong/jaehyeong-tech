@@ -333,7 +333,7 @@ export default function PostListPage() {
                         {(expandedTags.has(post.id) ? post.tags : post.tags.slice(0, 3)).map((tag) => (
                           <Link
                             key={tag.id}
-                            to={`/search?q=${encodeURIComponent(tag.name)}`}
+                            to={`/search?tag=${encodeURIComponent(tag.slug)}`}
                             className="px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] md:text-xs text-slate-500 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
                             onClick={(e) => e.stopPropagation()}
                           >
