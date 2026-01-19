@@ -1,7 +1,8 @@
-import * as oci from 'oci-sdk';
+import * as objectstorage from 'oci-objectstorage';
+import * as common from 'oci-common';
 
 class OCIStorageService {
-  private client: oci.objectstorage.ObjectStorageClient | null = null;
+  private client: objectstorage.ObjectStorageClient | null = null;
   private namespace: string = '';
   private bucket: string = '';
   private backupBucket: string = '';
@@ -22,17 +23,17 @@ class OCIStorageService {
       // Handle escaped newlines from environment variables
       const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
 
-      const provider = new oci.common.SimpleAuthenticationDetailsProvider(
+      const provider = new common.SimpleAuthenticationDetailsProvider(
         tenancy,
         user,
         fingerprint,
         privateKey,
         null,
-        oci.common.Region.fromRegionId(region)
+        common.Region.fromRegionId(region)
       );
 
-      this.client = new oci.objectstorage.ObjectStorageClient({
-        authenticationDetailsProvider: provider as unknown as oci.common.ConfigFileAuthenticationDetailsProvider,
+      this.client = new objectstorage.ObjectStorageClient({
+        authenticationDetailsProvider: provider as unknown as common.ConfigFileAuthenticationDetailsProvider,
       });
 
       // Get namespace
@@ -212,7 +213,7 @@ class OCIStorageService {
         prefix,
       });
 
-      return response.listObjects.objects?.map((obj) => obj.name || '') || [];
+      return response.listObjects.objects?.map((obj: objectstorage.models.ObjectSummary) => obj.name || '') || [];
     } catch (error) {
       console.error('❌ Failed to list backup objects from OCI:', error);
       throw new Error('Failed to list backup objects from OCI Object Storage');

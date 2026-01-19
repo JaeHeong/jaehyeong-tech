@@ -31,59 +31,39 @@ function verifyInternalRequest(req: Request, res: Response, next: NextFunction):
  * GET /internal/export
  * Export all blog data for backup purposes
  *
- * Returns: posts, drafts, categories, tags, images with all relationships
+ * Returns: posts, drafts, categories, tags with all relationships
  */
 router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prisma = tenantPrisma.getClient(req.tenant!.id);
 
     // Fetch all data in parallel
-    const [posts, drafts, categories, tags, images] = await Promise.all([
+    const [posts, drafts, categories, tags] = await Promise.all([
       prisma.post.findMany({
         include: {
           category: true,
-          tags: { include: { tag: true } },
-          images: true,
+          tags: true,
         },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.draft.findMany({
-        include: {
-          category: true,
-          tags: { include: { tag: true } },
-        },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.category.findMany({
-        orderBy: { order: 'asc' },
+        orderBy: { name: 'asc' },
       }),
       prisma.tag.findMany({
         orderBy: { name: 'asc' },
       }),
-      prisma.image.findMany({
-        orderBy: { createdAt: 'desc' },
-      }),
     ]);
-
-    // Transform posts to include flat tags array
-    const postsWithFlatTags = posts.map(post => ({
-      ...post,
-      tags: post.tags.map(pt => pt.tag),
-    }));
-
-    const draftsWithFlatTags = drafts.map(draft => ({
-      ...draft,
-      tags: draft.tags.map(dt => dt.tag),
-    }));
 
     res.json({
       success: true,
       data: {
-        posts: postsWithFlatTags,
-        drafts: draftsWithFlatTags,
+        posts,
+        drafts,
         categories,
         tags,
-        images,
       },
       meta: {
         counts: {
@@ -91,7 +71,6 @@ router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request,
           drafts: drafts.length,
           categories: categories.length,
           tags: tags.length,
-          images: images.length,
         },
         exportedAt: new Date().toISOString(),
         tenantId: req.tenant!.id,
