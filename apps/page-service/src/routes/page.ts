@@ -17,6 +17,7 @@ pageRouter.get('/admin/:id', authenticate, requireAdmin, pageController.getPageB
 pageRouter.get('/', pageController.getPages);
 pageRouter.get('/notices', pageController.getNotices);
 pageRouter.get('/notices/:slug/adjacent', pageController.getAdjacentNotices);
+pageRouter.get('/slug/:slug', optionalAuthenticate, pageController.getPageBySlug);
 pageRouter.get('/:slug', optionalAuthenticate, pageController.getPageBySlug);
 
 // Admin write operations
