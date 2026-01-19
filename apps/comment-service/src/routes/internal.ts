@@ -57,6 +57,91 @@ router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request,
 });
 
 /**
+ * POST /internal/restore
+ * Restore comment data from backup
+ */
+router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = tenantPrisma.getClient(req.tenant!.id);
+    const { comments } = req.body as {
+      comments?: Array<{
+        id: string;
+        tenantId: string;
+        postId: string;
+        authorId?: string | null;
+        guestName?: string | null;
+        guestEmail?: string | null;
+        content: string;
+        parentId?: string | null;
+        isDeleted: boolean;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+    };
+
+    const results = {
+      comments: { restored: 0, skipped: 0 },
+    };
+
+    // Restore comments (need to handle parent-child relationships)
+    if (comments && Array.isArray(comments)) {
+      // Sort by parentId to restore parent comments first
+      const sortedComments = [...comments].sort((a, b) => {
+        if (!a.parentId && b.parentId) return -1;
+        if (a.parentId && !b.parentId) return 1;
+        return 0;
+      });
+
+      for (const comment of sortedComments) {
+        try {
+          await prisma.comment.upsert({
+            where: { id: comment.id },
+            update: {
+              postId: comment.postId,
+              authorId: comment.authorId,
+              guestName: comment.guestName,
+              guestEmail: comment.guestEmail,
+              content: comment.content,
+              parentId: comment.parentId,
+              isDeleted: comment.isDeleted,
+              updatedAt: new Date(),
+            },
+            create: {
+              id: comment.id,
+              tenantId: comment.tenantId,
+              postId: comment.postId,
+              authorId: comment.authorId,
+              guestName: comment.guestName,
+              guestEmail: comment.guestEmail,
+              content: comment.content,
+              parentId: comment.parentId,
+              isDeleted: comment.isDeleted,
+              createdAt: new Date(comment.createdAt),
+              updatedAt: new Date(),
+            },
+          });
+          results.comments.restored++;
+        } catch (error) {
+          console.error(`[Restore] Failed to restore comment ${comment.id}:`, error);
+          results.comments.skipped++;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      data: results,
+      meta: {
+        restoredAt: new Date().toISOString(),
+        tenantId: req.tenant!.id,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /internal/health
  * Internal health check for service mesh
  */

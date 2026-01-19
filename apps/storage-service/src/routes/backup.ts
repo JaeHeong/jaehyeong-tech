@@ -332,11 +332,45 @@ router.get('/:fileName', async (req: Request, res: Response, next: NextFunction)
 });
 
 /**
+ * Send restore data to a service's internal restore API
+ */
+async function restoreToService(
+  serviceName: string,
+  serviceUrl: string,
+  tenantId: string,
+  tenantName: string,
+  data: Record<string, unknown>
+): Promise<{ success: boolean; data?: Record<string, unknown>; error?: string }> {
+  try {
+    const response = await fetch(`${serviceUrl}/internal/restore`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-request': 'true',
+        'x-tenant-id': tenantId,
+        'x-tenant-name': tenantName,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Restore] Failed to restore to ${serviceName}: ${response.status} - ${errorText}`);
+      return { success: false, error: `${serviceName} returned ${response.status}` };
+    }
+
+    const result = await response.json() as { success: boolean; data: Record<string, unknown> };
+    return { success: true, data: result.data };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[Restore] Error restoring to ${serviceName}:`, message);
+    return { success: false, error: message };
+  }
+}
+
+/**
  * POST /api/backup/:fileName/restore
  * Restore from backup (MSA version - sends data to each service)
- *
- * Note: Full restore requires each service to implement internal restore endpoints.
- * This is a placeholder for the restore orchestration.
  */
 router.post('/:fileName/restore', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -349,18 +383,82 @@ router.post('/:fileName/restore', async (req: Request, res: Response, next: Next
       throw new AppError('파일명이 필요합니다.', 400);
     }
 
-    // Note: Full restore functionality requires each service to implement
-    // /internal/restore endpoints. This is a complex operation that needs
-    // careful orchestration to maintain data consistency across services.
-    //
-    // For now, return the backup data for manual restoration or provide
-    // guidance on implementing the full restore flow.
+    const tenantId = req.tenant!.id;
+    const tenantName = req.tenant!.name;
+    const objectName = `${tenantName}/backups/${fileName}`;
 
-    throw new AppError(
-      '복원 기능은 MSA 환경에서 각 서비스별 internal/restore 엔드포인트 구현이 필요합니다. ' +
-      '백업 파일을 다운로드하여 수동으로 복원하거나, 관리자에게 문의하세요.',
-      501
-    );
+    console.info(`[Restore] Starting restore from ${fileName} for tenant: ${tenantName}`);
+
+    // Download backup file
+    const buffer = await ociStorage.downloadFromBackupBucket(objectName);
+    const backupData: BackupData = JSON.parse(buffer.toString('utf-8'));
+
+    // Restore to each service in order (auth first, then blog, then others)
+    // Auth must be restored first as other services may reference user IDs
+    const authResult = await restoreToService('auth', SERVICE_ENDPOINTS.auth, tenantId, tenantName, {
+      users: backupData.data.users,
+      tenant: backupData.data.tenant,
+    });
+
+    // Blog must be before comment (comments reference posts)
+    const blogResult = await restoreToService('blog', SERVICE_ENDPOINTS.blog, tenantId, tenantName, {
+      posts: backupData.data.posts,
+      drafts: backupData.data.drafts,
+      categories: backupData.data.categories,
+      tags: backupData.data.tags,
+    });
+
+    // Restore remaining services in parallel
+    const [commentResult, pageResult, analyticsResult] = await Promise.all([
+      restoreToService('comment', SERVICE_ENDPOINTS.comment, tenantId, tenantName, {
+        comments: backupData.data.comments,
+      }),
+      restoreToService('page', SERVICE_ENDPOINTS.page, tenantId, tenantName, {
+        pages: backupData.data.pages,
+        pageViews: backupData.data.pageViews,
+      }),
+      restoreToService('analytics', SERVICE_ENDPOINTS.analytics, tenantId, tenantName, {
+        siteVisitors: backupData.data.siteVisitors,
+        bugReports: backupData.data.bugReports,
+      }),
+    ]);
+
+    // Collect results
+    const results = {
+      auth: authResult.success ? authResult.data : { error: authResult.error },
+      blog: blogResult.success ? blogResult.data : { error: blogResult.error },
+      comment: commentResult.success ? commentResult.data : { error: commentResult.error },
+      page: pageResult.success ? pageResult.data : { error: pageResult.error },
+      analytics: analyticsResult.success ? analyticsResult.data : { error: analyticsResult.error },
+    };
+
+    // Check for any failures
+    const failures: string[] = [];
+    if (!authResult.success) failures.push(`auth: ${authResult.error}`);
+    if (!blogResult.success) failures.push(`blog: ${blogResult.error}`);
+    if (!commentResult.success) failures.push(`comment: ${commentResult.error}`);
+    if (!pageResult.success) failures.push(`page: ${pageResult.error}`);
+    if (!analyticsResult.success) failures.push(`analytics: ${analyticsResult.error}`);
+
+    console.info(`[Restore] Restore completed with ${failures.length} failures`);
+
+    if (failures.length === 5) {
+      // All services failed
+      throw new AppError(`복원 실패: ${failures.join(', ')}`, 500);
+    }
+
+    res.json({
+      data: {
+        success: failures.length === 0,
+        partial: failures.length > 0 && failures.length < 5,
+        fileName,
+        backupVersion: backupData.version,
+        backupCreatedAt: backupData.createdAt,
+        results,
+        failures: failures.length > 0 ? failures : undefined,
+        restoredAt: new Date().toISOString(),
+      },
+    });
   } catch (error) {
     next(error);
   }

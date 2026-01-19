@@ -179,6 +179,237 @@ router.get('/posts/basic', verifyInternalRequest, resolveTenant, async (req: Req
 });
 
 /**
+ * POST /internal/restore
+ * Restore blog data from backup
+ *
+ * Restore order: categories -> tags -> posts -> drafts
+ * Posts are upserted, relationships are recreated
+ */
+router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = tenantPrisma.getClient(req.tenant!.id);
+    const { posts, drafts, categories, tags } = req.body as {
+      posts?: Array<{
+        id: string;
+        tenantId: string;
+        slug: string;
+        title: string;
+        excerpt?: string | null;
+        content: string;
+        thumbnail?: string | null;
+        viewCount: number;
+        likeCount: number;
+        isPublished: boolean;
+        publishedAt?: string | null;
+        authorId: string;
+        categoryId?: string | null;
+        category?: { id: string; name: string } | null;
+        tags?: Array<{ id: string; name: string }>;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+      drafts?: Array<{
+        id: string;
+        tenantId: string;
+        slug?: string | null;
+        title: string;
+        excerpt?: string | null;
+        content?: string | null;
+        thumbnail?: string | null;
+        authorId: string;
+        categoryId?: string | null;
+        tagIds?: string[];
+        createdAt: string;
+        updatedAt: string;
+      }>;
+      categories?: Array<{
+        id: string;
+        tenantId: string;
+        name: string;
+        slug: string;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+      tags?: Array<{
+        id: string;
+        tenantId: string;
+        name: string;
+        slug: string;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+    };
+
+    const results = {
+      categories: { restored: 0, skipped: 0 },
+      tags: { restored: 0, skipped: 0 },
+      posts: { restored: 0, skipped: 0 },
+      drafts: { restored: 0, skipped: 0 },
+    };
+
+    // 1. Restore categories first (posts depend on them)
+    if (categories && Array.isArray(categories)) {
+      for (const category of categories) {
+        try {
+          await prisma.category.upsert({
+            where: { id: category.id },
+            update: {
+              name: category.name,
+              slug: category.slug,
+              updatedAt: new Date(),
+            },
+            create: {
+              id: category.id,
+              tenantId: category.tenantId,
+              name: category.name,
+              slug: category.slug,
+              createdAt: new Date(category.createdAt),
+              updatedAt: new Date(),
+            },
+          });
+          results.categories.restored++;
+        } catch (error) {
+          console.error(`[Restore] Failed to restore category ${category.id}:`, error);
+          results.categories.skipped++;
+        }
+      }
+    }
+
+    // 2. Restore tags (posts depend on them)
+    if (tags && Array.isArray(tags)) {
+      for (const tag of tags) {
+        try {
+          await prisma.tag.upsert({
+            where: { id: tag.id },
+            update: {
+              name: tag.name,
+              slug: tag.slug,
+              updatedAt: new Date(),
+            },
+            create: {
+              id: tag.id,
+              tenantId: tag.tenantId,
+              name: tag.name,
+              slug: tag.slug,
+              createdAt: new Date(tag.createdAt),
+              updatedAt: new Date(),
+            },
+          });
+          results.tags.restored++;
+        } catch (error) {
+          console.error(`[Restore] Failed to restore tag ${tag.id}:`, error);
+          results.tags.skipped++;
+        }
+      }
+    }
+
+    // 3. Restore posts (with category and tag relationships)
+    if (posts && Array.isArray(posts)) {
+      for (const post of posts) {
+        try {
+          // Extract tag IDs from the included tags
+          const tagIds = post.tags?.map(t => t.id) || [];
+
+          await prisma.post.upsert({
+            where: { id: post.id },
+            update: {
+              slug: post.slug,
+              title: post.title,
+              excerpt: post.excerpt,
+              content: post.content,
+              thumbnail: post.thumbnail,
+              viewCount: post.viewCount,
+              likeCount: post.likeCount,
+              isPublished: post.isPublished,
+              publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
+              categoryId: post.categoryId,
+              tags: {
+                set: tagIds.map(id => ({ id })),
+              },
+              updatedAt: new Date(),
+            },
+            create: {
+              id: post.id,
+              tenantId: post.tenantId,
+              slug: post.slug,
+              title: post.title,
+              excerpt: post.excerpt,
+              content: post.content,
+              thumbnail: post.thumbnail,
+              viewCount: post.viewCount,
+              likeCount: post.likeCount,
+              isPublished: post.isPublished,
+              publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
+              authorId: post.authorId,
+              categoryId: post.categoryId,
+              tags: {
+                connect: tagIds.map(id => ({ id })),
+              },
+              createdAt: new Date(post.createdAt),
+              updatedAt: new Date(),
+            },
+          });
+          results.posts.restored++;
+        } catch (error) {
+          console.error(`[Restore] Failed to restore post ${post.id}:`, error);
+          results.posts.skipped++;
+        }
+      }
+    }
+
+    // 4. Restore drafts
+    if (drafts && Array.isArray(drafts)) {
+      for (const draft of drafts) {
+        try {
+          await prisma.draft.upsert({
+            where: { id: draft.id },
+            update: {
+              slug: draft.slug,
+              title: draft.title,
+              excerpt: draft.excerpt,
+              content: draft.content,
+              thumbnail: draft.thumbnail,
+              categoryId: draft.categoryId,
+              tagIds: draft.tagIds || [],
+              updatedAt: new Date(),
+            },
+            create: {
+              id: draft.id,
+              tenantId: draft.tenantId,
+              slug: draft.slug,
+              title: draft.title,
+              excerpt: draft.excerpt,
+              content: draft.content,
+              thumbnail: draft.thumbnail,
+              authorId: draft.authorId,
+              categoryId: draft.categoryId,
+              tagIds: draft.tagIds || [],
+              createdAt: new Date(draft.createdAt),
+              updatedAt: new Date(),
+            },
+          });
+          results.drafts.restored++;
+        } catch (error) {
+          console.error(`[Restore] Failed to restore draft ${draft.id}:`, error);
+          results.drafts.skipped++;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      data: results,
+      meta: {
+        restoredAt: new Date().toISOString(),
+        tenantId: req.tenant!.id,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /internal/health
  * Internal health check for service mesh
  */

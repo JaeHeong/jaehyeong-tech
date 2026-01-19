@@ -153,6 +153,161 @@ router.get('/users/basic', verifyInternalRequest, resolveTenant, async (req: Req
 });
 
 /**
+ * POST /internal/restore
+ * Restore auth data from backup
+ *
+ * Note: Passwords and secrets cannot be restored from backup.
+ * Users will be upserted (updated if exists, created if not).
+ */
+router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = tenantPrisma.getClient(req.tenant!.id);
+    const { users, tenant } = req.body as {
+      users?: Array<{
+        id: string;
+        tenantId: string;
+        email: string;
+        googleId?: string | null;
+        githubId?: string | null;
+        name: string;
+        avatar?: string | null;
+        bio?: string | null;
+        title?: string | null;
+        github?: string | null;
+        twitter?: string | null;
+        linkedin?: string | null;
+        website?: string | null;
+        role: string;
+        status: string;
+        lastLoginAt?: string | null;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+      tenant?: {
+        id: string;
+        name: string;
+        domain?: string | null;
+        jwtExpiry?: number;
+        allowRegistration?: boolean;
+        allowGoogleOauth?: boolean;
+        allowGithubOauth?: boolean;
+        passwordMinLength?: number;
+        passwordRequireUppercase?: boolean;
+        passwordRequireNumber?: boolean;
+        passwordRequireSpecial?: boolean;
+        isActive?: boolean;
+        createdAt: string;
+        updatedAt: string;
+      };
+    };
+
+    const results = {
+      users: { restored: 0, skipped: 0 },
+      tenant: { restored: false },
+    };
+
+    // Restore tenant config (update only, do not create new tenant)
+    if (tenant) {
+      await prisma.tenant.updateMany({
+        where: { id: tenant.id },
+        data: {
+          domain: tenant.domain,
+          jwtExpiry: tenant.jwtExpiry,
+          allowRegistration: tenant.allowRegistration,
+          allowGoogleOauth: tenant.allowGoogleOauth,
+          allowGithubOauth: tenant.allowGithubOauth,
+          passwordMinLength: tenant.passwordMinLength,
+          passwordRequireUppercase: tenant.passwordRequireUppercase,
+          passwordRequireNumber: tenant.passwordRequireNumber,
+          passwordRequireSpecial: tenant.passwordRequireSpecial,
+          isActive: tenant.isActive,
+          updatedAt: new Date(),
+        },
+      });
+      results.tenant.restored = true;
+    }
+
+    // Restore users (upsert to preserve existing passwords)
+    if (users && Array.isArray(users)) {
+      for (const user of users) {
+        try {
+          // Check if user exists
+          const existing = await prisma.user.findUnique({
+            where: { id: user.id },
+          });
+
+          if (existing) {
+            // Update existing user (preserve password)
+            await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                email: user.email,
+                googleId: user.googleId,
+                githubId: user.githubId,
+                name: user.name,
+                avatar: user.avatar,
+                bio: user.bio,
+                title: user.title,
+                github: user.github,
+                twitter: user.twitter,
+                linkedin: user.linkedin,
+                website: user.website,
+                role: user.role as 'ADMIN' | 'USER',
+                status: user.status as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED',
+                lastLoginAt: user.lastLoginAt ? new Date(user.lastLoginAt) : null,
+                updatedAt: new Date(),
+              },
+            });
+            results.users.restored++;
+          } else {
+            // Create new user with a placeholder password (they'll need to reset)
+            await prisma.user.create({
+              data: {
+                id: user.id,
+                tenantId: user.tenantId,
+                email: user.email,
+                password: '', // Empty password - user must reset
+                googleId: user.googleId,
+                githubId: user.githubId,
+                name: user.name,
+                avatar: user.avatar,
+                bio: user.bio,
+                title: user.title,
+                github: user.github,
+                twitter: user.twitter,
+                linkedin: user.linkedin,
+                website: user.website,
+                role: user.role as 'ADMIN' | 'USER',
+                status: user.status as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED',
+                lastLoginAt: user.lastLoginAt ? new Date(user.lastLoginAt) : null,
+                createdAt: new Date(user.createdAt),
+                updatedAt: new Date(),
+              },
+            });
+            results.users.restored++;
+          }
+        } catch (error) {
+          console.error(`[Restore] Failed to restore user ${user.id}:`, error);
+          results.users.skipped++;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      data: results,
+      meta: {
+        restoredAt: new Date().toISOString(),
+        tenantId: req.tenant!.id,
+        note: 'Passwords cannot be restored from backup. New users will need to reset their password.',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /internal/health
  * Internal health check for service mesh
  */

@@ -65,6 +65,129 @@ router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request,
 });
 
 /**
+ * POST /internal/restore
+ * Restore page data from backup
+ */
+router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = tenantPrisma.getClient(req.tenant!.id);
+    const { pages, pageViews } = req.body as {
+      pages?: Array<{
+        id: string;
+        tenantId: string;
+        slug: string;
+        title: string;
+        content: string;
+        isPublished: boolean;
+        authorId: string;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+      pageViews?: Array<{
+        id: string;
+        tenantId: string;
+        postId?: string | null;
+        pageId?: string | null;
+        visitorId: string;
+        sessionId?: string | null;
+        userAgent?: string | null;
+        referer?: string | null;
+        ip?: string | null;
+        country?: string | null;
+        createdAt: string;
+      }>;
+    };
+
+    const results = {
+      pages: { restored: 0, skipped: 0 },
+      pageViews: { restored: 0, skipped: 0 },
+    };
+
+    // 1. Restore pages first (pageViews may reference them)
+    if (pages && Array.isArray(pages)) {
+      for (const page of pages) {
+        try {
+          await prisma.page.upsert({
+            where: { id: page.id },
+            update: {
+              slug: page.slug,
+              title: page.title,
+              content: page.content,
+              isPublished: page.isPublished,
+              updatedAt: new Date(),
+            },
+            create: {
+              id: page.id,
+              tenantId: page.tenantId,
+              slug: page.slug,
+              title: page.title,
+              content: page.content,
+              isPublished: page.isPublished,
+              authorId: page.authorId,
+              createdAt: new Date(page.createdAt),
+              updatedAt: new Date(),
+            },
+          });
+          results.pages.restored++;
+        } catch (error) {
+          console.error(`[Restore] Failed to restore page ${page.id}:`, error);
+          results.pages.skipped++;
+        }
+      }
+    }
+
+    // 2. Restore pageViews
+    if (pageViews && Array.isArray(pageViews)) {
+      for (const pv of pageViews) {
+        try {
+          await prisma.pageView.upsert({
+            where: { id: pv.id },
+            update: {
+              postId: pv.postId,
+              pageId: pv.pageId,
+              visitorId: pv.visitorId,
+              sessionId: pv.sessionId,
+              userAgent: pv.userAgent,
+              referer: pv.referer,
+              ip: pv.ip,
+              country: pv.country,
+            },
+            create: {
+              id: pv.id,
+              tenantId: pv.tenantId,
+              postId: pv.postId,
+              pageId: pv.pageId,
+              visitorId: pv.visitorId,
+              sessionId: pv.sessionId,
+              userAgent: pv.userAgent,
+              referer: pv.referer,
+              ip: pv.ip,
+              country: pv.country,
+              createdAt: new Date(pv.createdAt),
+            },
+          });
+          results.pageViews.restored++;
+        } catch (error) {
+          console.error(`[Restore] Failed to restore pageView ${pv.id}:`, error);
+          results.pageViews.skipped++;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      data: results,
+      meta: {
+        restoredAt: new Date().toISOString(),
+        tenantId: req.tenant!.id,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /internal/health
  * Internal health check for service mesh
  */
