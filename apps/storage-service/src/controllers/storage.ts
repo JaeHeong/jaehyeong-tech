@@ -369,15 +369,16 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
     const orphaned = orphanCandidates.length;
     const orphanSize = orphanCandidates.reduce((sum, file) => sum + file.size, 0);
 
+    // Exclude avatars from all stats (managed separately)
     const [total, linked, totalSizeResult] = await Promise.all([
       prisma.file.count({
-        where: { tenantId: tenant.id, fileType: 'IMAGE' },
+        where: { tenantId: tenant.id, fileType: 'IMAGE', folder: { not: 'avatars' } },
       }),
       prisma.file.count({
-        where: { tenantId: tenant.id, fileType: 'IMAGE', resourceId: { not: null } },
+        where: { tenantId: tenant.id, fileType: 'IMAGE', resourceId: { not: null }, folder: { not: 'avatars' } },
       }),
       prisma.file.aggregate({
-        where: { tenantId: tenant.id, fileType: 'IMAGE' },
+        where: { tenantId: tenant.id, fileType: 'IMAGE', folder: { not: 'avatars' } },
         _sum: { size: true },
       }),
     ]);
