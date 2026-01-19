@@ -296,10 +296,15 @@ export default function AdminPostEditorPage() {
         tempDiv.innerHTML = formData.content
         const textContent = tempDiv.textContent || tempDiv.innerText || ''
 
-        await api.updatePost(id, {
+        const result = await api.updatePost(id, {
           ...formData,
           excerpt: formData.excerpt || textContent.slice(0, 200),
         })
+
+        // Update postSlug with the new slug from the response
+        if (result.data?.slug) {
+          setPostSlug(result.data.slug)
+        }
 
         setSavedFormData(formData)
         setLastAutoSave(new Date())
@@ -459,7 +464,11 @@ export default function AdminPostEditorPage() {
       }
 
       if (isEditing && id) {
-        await api.updatePost(id, data)
+        const result = await api.updatePost(id, data)
+        // Update postSlug with the new slug from the response
+        if (result.data?.slug) {
+          setPostSlug(result.data.slug)
+        }
       }
 
       // Update form state to prevent navigation warning
