@@ -1119,24 +1119,44 @@ export interface BackupInfoDetail {
   }
 }
 
+// MSA restore result type
+interface RestoreStats {
+  deleted: number
+  restored: number
+  skipped: number
+}
+
 export interface RestoreResult {
   success: boolean
-  message: string
-  restoredAt: string
-  stats: {
-    users: number
-    categories: number
-    tags: number
-    posts: number
-    drafts: number
-    pages: number
-    comments: number
-    bookmarks: number
-    likes: number
-    images: number
-    bugReports: number
-    siteVisitors: number
+  partial?: boolean
+  fileName: string
+  backupVersion: string
+  backupCreatedAt: string
+  results: {
+    auth: {
+      users: RestoreStats
+      tenant: { restored: boolean }
+    }
+    blog: {
+      categories: RestoreStats
+      tags: RestoreStats
+      posts: RestoreStats
+      drafts: RestoreStats
+    }
+    comment: {
+      comments: RestoreStats
+    }
+    page: {
+      pages: RestoreStats
+      pageViews: RestoreStats
+    }
+    analytics: {
+      siteVisitors: RestoreStats
+      bugReports: RestoreStats
+    }
   }
+  failures?: string[]
+  restoredAt: string
 }
 
 // Image types
