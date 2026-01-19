@@ -334,3 +334,25 @@ export async function publishDraft(req: Request, res: Response, next: NextFuncti
     next(error);
   }
 }
+
+/**
+ * GET /api/drafts/stats
+ * Get draft statistics
+ */
+export async function getDraftStats(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.tenant) {
+      throw new AppError('Tenant을 식별할 수 없습니다.', 400);
+    }
+
+    const prisma = tenantPrisma.getClient(req.tenant.id);
+
+    const total = await prisma.draft.count({
+      where: { tenantId: req.tenant.id },
+    });
+
+    res.json({ data: { total } });
+  } catch (error) {
+    next(error);
+  }
+}

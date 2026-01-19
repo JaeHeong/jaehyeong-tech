@@ -507,6 +507,136 @@ export async function getMyComments(req: Request, res: Response, next: NextFunct
 }
 
 /**
+ * GET /api/comments/stats
+ * Comment statistics for dashboard
+ */
+export async function getCommentStats(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const [total, recent, newComments] = await Promise.all([
+      prisma.comment.count({
+        where: { tenantId: tenant.id, isDeleted: false },
+      }),
+      prisma.comment.count({
+        where: { tenantId: tenant.id, isDeleted: false, createdAt: { gte: weekAgo } },
+      }),
+      prisma.comment.count({
+        where: { tenantId: tenant.id, isDeleted: false, createdAt: { gte: twentyFourHoursAgo } },
+      }),
+    ]);
+
+    res.json({ data: { total, recent, new: newComments } });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 관리자용 모든 댓글 조회
+ * GET /api/comments/admin
+ */
+export async function getAllComments(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user || req.user.role !== 'ADMIN') {
+      throw new AppError('관리자 권한이 필요합니다.', 403);
+    }
+
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+    const { status, resourceType } = req.query;
+
+    const where: any = {
+      tenantId: tenant.id,
+      isDeleted: false,
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (resourceType) {
+      where.resourceType = resourceType;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [comments, total] = await Promise.all([
+      prisma.comment.findMany({
+        where,
+        select: {
+          id: true,
+          content: true,
+          authorId: true,
+          guestName: true,
+          guestEmail: true,
+          resourceType: true,
+          resourceId: true,
+          status: true,
+          parentId: true,
+          isPrivate: true,
+          ipHash: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.comment.count({ where }),
+    ]);
+
+    res.json({
+      data: comments,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 관리자 댓글 삭제 (단일)
+ * DELETE /api/comments/admin/:id
+ */
+export async function adminDeleteComment(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user || req.user.role !== 'ADMIN') {
+      throw new AppError('관리자 권한이 필요합니다.', 403);
+    }
+
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const { id } = req.params;
+
+    // Soft delete
+    await prisma.comment.update({
+      where: {
+        id,
+        tenantId: tenant.id,
+      },
+      data: { isDeleted: true },
+    });
+
+    res.json({ message: '댓글이 삭제되었습니다.' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * 관리자 댓글 일괄 삭제
  */
 export async function bulkDeleteComments(req: Request, res: Response, next: NextFunction) {

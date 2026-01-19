@@ -269,6 +269,50 @@ export async function deleteFile(req: Request, res: Response, next: NextFunction
 }
 
 /**
+ * 파일/이미지 통계 조회 (Internal API)
+ * GET /api/images/stats
+ */
+export async function getImageStats(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const [total, linked, totalSizeResult, orphanedCount] = await Promise.all([
+      prisma.file.count({
+        where: { tenantId: tenant.id, fileType: 'IMAGE' },
+      }),
+      prisma.file.count({
+        where: { tenantId: tenant.id, fileType: 'IMAGE', resourceId: { not: null } },
+      }),
+      prisma.file.aggregate({
+        where: { tenantId: tenant.id, fileType: 'IMAGE' },
+        _sum: { size: true },
+      }),
+      prisma.file.count({
+        where: {
+          tenantId: tenant.id,
+          fileType: 'IMAGE',
+          resourceId: null,
+          createdAt: { lt: twentyFourHoursAgo },
+        },
+      }),
+    ]);
+
+    res.json({
+      data: {
+        total,
+        totalSize: totalSizeResult._sum.size || 0,
+        linked,
+        orphaned: orphanedCount,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * 고아 파일 목록 조회 (관리자 전용)
  * 리소스에 연결되지 않고 24시간 이상 경과한 파일
  */

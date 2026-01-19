@@ -875,3 +875,35 @@ export async function bulkDeletePosts(req: Request, res: Response, next: NextFun
     next(error);
   }
 }
+
+/**
+ * Get post statistics
+ * GET /api/posts/stats
+ */
+export async function getPostStats(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+
+    const [total, published, totalViews, totalLikes] = await Promise.all([
+      prisma.post.count({ where: { tenantId: tenant.id } }),
+      prisma.post.count({ where: { tenantId: tenant.id, status: 'PUBLIC' } }),
+      prisma.post.aggregate({
+        where: { tenantId: tenant.id },
+        _sum: { viewCount: true },
+      }),
+      prisma.like.count({ where: { tenantId: tenant.id } }),
+    ]);
+
+    res.json({
+      data: {
+        total,
+        published,
+        totalViews: totalViews._sum.viewCount || 0,
+        totalLikes,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}

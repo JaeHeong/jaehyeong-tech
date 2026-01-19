@@ -228,6 +228,25 @@ export async function updateUserStatus(req: Request, res: Response, next: NextFu
 }
 
 /**
+ * 사용자 통계 조회 (Internal API - 서비스간 통신용)
+ * GET /api/users/stats
+ */
+export async function getUserStats(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant as Tenant;
+    const prisma = tenantPrisma.getClient(tenant.id);
+
+    const total = await prisma.user.count({
+      where: { tenantId: tenant.id, role: 'USER' },
+    });
+
+    res.json({ data: { total } });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * 사용자 공개 정보 조회 (Internal API - 서비스간 통신용)
  * 인증 없이 호출 가능, tenantId + userId로 조회
  */

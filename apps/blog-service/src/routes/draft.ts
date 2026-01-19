@@ -8,6 +8,9 @@ export const draftRouter: IRouter = Router();
 // Apply tenant resolution to all routes
 draftRouter.use(resolveTenant);
 
+// Stats route (for internal service calls)
+draftRouter.get('/stats', draftController.getDraftStats);
+
 // All draft routes require admin authentication (authenticate -> requireAdmin)
 draftRouter.get('/', authenticate, requireAdmin, draftController.getDrafts);
 draftRouter.post('/', authenticate, requireAdmin, draftController.createDraft);

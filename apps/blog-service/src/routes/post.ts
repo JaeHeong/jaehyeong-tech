@@ -9,6 +9,9 @@ export const postRouter: IRouter = Router();
 // Apply tenant resolution to all routes
 postRouter.use(resolveTenant);
 
+// Stats route (for internal service calls)
+postRouter.get('/stats', postController.getPostStats);
+
 // Public routes (with optional auth)
 postRouter.get('/', optionalAuthenticate, postController.getPosts);
 postRouter.get('/featured', postController.getFeaturedPosts);
