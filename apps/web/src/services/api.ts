@@ -167,7 +167,7 @@ class ApiClient {
   }
 
   async updatePost(id: string, data: UpdatePostData) {
-    return this.request<{ post: Post }>(`/posts/${id}`, {
+    return this.request<{ data: Post }>(`/posts/${id}`, {
       method: 'PUT',
       body: data,
     })

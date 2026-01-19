@@ -302,7 +302,7 @@ export default function AdminPostEditorPage() {
         })
 
         // Update postSlug with the new slug from the response
-        if (result.data?.slug) {
+        if (result.data.slug) {
           setPostSlug(result.data.slug)
         }
 
@@ -466,7 +466,7 @@ export default function AdminPostEditorPage() {
       if (isEditing && id) {
         const result = await api.updatePost(id, data)
         // Update postSlug with the new slug from the response
-        if (result.data?.slug) {
+        if (result.data.slug) {
           setPostSlug(result.data.slug)
         }
       }
