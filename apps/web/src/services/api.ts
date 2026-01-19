@@ -348,7 +348,7 @@ class ApiClient {
   }
 
   async getPageBySlug(slug: string) {
-    const response = await this.request<{ data: Page }>(`/pages/slug/${slug}`)
+    const response = await this.request<{ data: Page }>(`/pages/${slug}`)
     return { page: response.data }
   }
 
