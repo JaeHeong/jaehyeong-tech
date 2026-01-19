@@ -1,19 +1,10 @@
-name: Build and Deploy (MSA)
+name: Build and Deploy (Dev - MSA)
 
-run-name: "🚀 ${{ inputs.environment }} - ${{ github.ref_name }} by @${{ github.actor }}"
+run-name: "🚀 Dev MSA - ${{ github.ref_name }} by @${{ github.actor }}"
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: '배포 환경'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-          - dev
-          - prod
-
       # 서비스 선택 (체크박스)
       build_all:
         description: '모든 서비스 빌드'
@@ -84,14 +75,9 @@ jobs:
         id: meta
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          ENV="${{ inputs.environment }}"
-          if [ "${ENV}" = "prod" ]; then
-            TAG="${SHORT_SHA}"
-          else
-            TAG="${ENV}-${SHORT_SHA}"
-          fi
+          TAG="dev-${SHORT_SHA}"
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "Image tag: ${TAG} (env: ${ENV})"
+          echo "Image tag: ${TAG}"
 
       - name: Determine services to build
         id: services
@@ -101,22 +87,22 @@ jobs:
 
           # 모든 서비스 빌드 또는 개별 선택
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_auth }}" = "true" ]; then
-            SERVICES+=('{"name":"auth-service","path":"apps/auth-service","port":"3001"}')
+            SERVICES+=('{"name":"jaehyeong-tech-auth","path":"apps/auth-service","port":"3001"}')
           fi
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_blog }}" = "true" ]; then
-            SERVICES+=('{"name":"blog-service","path":"apps/blog-service","port":"3002"}')
+            SERVICES+=('{"name":"jaehyeong-tech-blog","path":"apps/blog-service","port":"3002"}')
           fi
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_comment }}" = "true" ]; then
-            SERVICES+=('{"name":"comment-service","path":"apps/comment-service","port":"3003"}')
+            SERVICES+=('{"name":"jaehyeong-tech-comment","path":"apps/comment-service","port":"3003"}')
           fi
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_page }}" = "true" ]; then
-            SERVICES+=('{"name":"page-service","path":"apps/page-service","port":"3004"}')
+            SERVICES+=('{"name":"jaehyeong-tech-page","path":"apps/page-service","port":"3004"}')
           fi
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_analytics }}" = "true" ]; then
-            SERVICES+=('{"name":"analytics-service","path":"apps/analytics-service","port":"3005"}')
+            SERVICES+=('{"name":"jaehyeong-tech-analytics","path":"apps/analytics-service","port":"3005"}')
           fi
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_storage }}" = "true" ]; then
-            SERVICES+=('{"name":"storage-service","path":"apps/storage-service","port":"3006"}')
+            SERVICES+=('{"name":"jaehyeong-tech-storage","path":"apps/storage-service","port":"3006"}')
           fi
 
           # JSON 배열 생성
@@ -226,75 +212,51 @@ jobs:
       - name: Clone GitOps repo
         run: |
           git clone git@github.com:JaeHeong/my-k8s-gitops.git
-          cd my-k8s-gitops
 
       - name: Update image tags
         run: |
           cd my-k8s-gitops
           TAG="${{ needs.prepare.outputs.image_tag }}"
-          ENV="${{ inputs.environment }}"
+          VALUES_FILE="apps/jaehyeong-tech/values-dev.yaml"
           BUILD_ALL="${{ inputs.build_all }}"
-
-          # Values 파일 경로 결정
-          if [ "${ENV}" = "prod" ]; then
-            VALUES_FILE="apps/jaehyeong-tech/values-prod.yaml"
-          else
-            VALUES_FILE="apps/jaehyeong-tech/values-dev.yaml"
-          fi
 
           echo "Updating ${VALUES_FILE} with tag: ${TAG}"
 
           # 선택된 서비스만 업데이트
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_web }}" = "true" ]; then
-            if grep -q "web:" $VALUES_FILE; then
-              sed -i "/web:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated web tag"
-            fi
+            sed -i "/^  web:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated web tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_auth }}" = "true" ]; then
-            if grep -q "auth:" $VALUES_FILE || grep -q "authService:" $VALUES_FILE; then
-              sed -i "/auth.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated auth-service tag"
-            fi
+            sed -i "/^  auth:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated auth tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_blog }}" = "true" ]; then
-            if grep -q "blog:" $VALUES_FILE || grep -q "blogService:" $VALUES_FILE; then
-              sed -i "/blog.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated blog-service tag"
-            fi
+            sed -i "/^  blog:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated blog tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_comment }}" = "true" ]; then
-            if grep -q "comment:" $VALUES_FILE || grep -q "commentService:" $VALUES_FILE; then
-              sed -i "/comment.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated comment-service tag"
-            fi
+            sed -i "/^  comment:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated comment tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_storage }}" = "true" ]; then
-            if grep -q "storage:" $VALUES_FILE || grep -q "storageService:" $VALUES_FILE; then
-              sed -i "/storage.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated storage-service tag"
-            fi
+            sed -i "/^  storage:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated storage tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_page }}" = "true" ]; then
-            if grep -q "page:" $VALUES_FILE || grep -q "pageService:" $VALUES_FILE; then
-              sed -i "/page.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated page-service tag"
-            fi
+            sed -i "/^  page:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated page tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_analytics }}" = "true" ]; then
-            if grep -q "analytics:" $VALUES_FILE || grep -q "analyticsService:" $VALUES_FILE; then
-              sed -i "/analytics.*:/,/tag:/{s/tag: .*/tag: ${TAG}/}" $VALUES_FILE
-              echo "Updated analytics-service tag"
-            fi
+            sed -i "/^  analytics:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated analytics tag"
           fi
-
-          cat $VALUES_FILE
 
       - name: Commit and push
         run: |
@@ -315,8 +277,8 @@ jobs:
             [ "${{ inputs.build_storage }}" = "true" ] && SERVICES="${SERVICES}storage,"
             [ "${{ inputs.build_page }}" = "true" ] && SERVICES="${SERVICES}page,"
             [ "${{ inputs.build_analytics }}" = "true" ] && SERVICES="${SERVICES}analytics,"
-            SERVICES="${SERVICES%,}"  # 마지막 쉼표 제거
+            SERVICES="${SERVICES%,}"
           fi
 
-          git diff --staged --quiet || git commit -m "chore(${{ inputs.environment }}): update [${SERVICES}] to ${{ needs.prepare.outputs.image_tag }}"
+          git diff --staged --quiet || git commit -m "chore(dev): update [${SERVICES}] to ${{ needs.prepare.outputs.image_tag }}"
           git push

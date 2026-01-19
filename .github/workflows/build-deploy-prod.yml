@@ -1,18 +1,9 @@
-name: Build and Deploy (Legacy)
+name: Build and Deploy (Prod - Monolithic)
 
-run-name: "🚀 ${{ inputs.environment }} - ${{ github.ref_name }} by @${{ github.actor }}"
+run-name: "🚀 Prod Monolithic - ${{ github.ref_name }} by @${{ github.actor }}"
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: '배포 환경 (이미지 태그 업데이트 대상)'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-          - dev
-          - prod
 
 env:
   REGISTRY: ghcr.io
@@ -34,14 +25,9 @@ jobs:
         id: meta
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          ENV="${{ inputs.environment }}"
-          if [ "${ENV}" = "prod" ]; then
-            TAG="${SHORT_SHA}"
-          else
-            TAG="${ENV}-${SHORT_SHA}"
-          fi
+          TAG="${SHORT_SHA}"
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "Image tag: ${TAG} (env: ${ENV})"
+          echo "Image tag: ${TAG}"
 
   # API 빌드 (GitHub hosted ARM64)
   build-api:
@@ -63,6 +49,8 @@ jobs:
           IMAGE="ghcr.io/${{ needs.prepare.outputs.owner_lc }}/jaehyeong-tech-api:${{ needs.prepare.outputs.image_tag }}"
           docker build -t $IMAGE -f ./apps/api/Dockerfile .
           docker push $IMAGE
+
+          echo "✅ Pushed: $IMAGE"
 
       - name: Make package public
         continue-on-error: true
@@ -100,6 +88,8 @@ jobs:
             -f ./apps/web/Dockerfile .
           docker push $IMAGE
 
+          echo "✅ Pushed: $IMAGE"
+
       - name: Make package public
         continue-on-error: true
         env:
@@ -126,23 +116,19 @@ jobs:
       - name: Clone GitOps repo
         run: |
           git clone git@github.com:JaeHeong/my-k8s-gitops.git
-          cd my-k8s-gitops
 
       - name: Update image tags
         run: |
           cd my-k8s-gitops
           TAG="${{ needs.prepare.outputs.image_tag }}"
-          ENV="${{ inputs.environment }}"
+          VALUES_FILE="apps/jaehyeong-tech/values-prod.yaml"
 
-          if [ "${ENV}" = "prod" ]; then
-            # Prod 환경 업데이트
-            sed -i "s/tag: .*/tag: ${TAG}/" apps/jaehyeong-tech/values-prod.yaml
-          else
-            # Dev 환경 업데이트
-            sed -i "s/tag: .*/tag: ${TAG}/" apps/jaehyeong-tech/values-dev.yaml
-          fi
+          echo "Updating ${VALUES_FILE} with tag: ${TAG}"
 
-          echo "Updated ${ENV} environment with tag: ${TAG}"
+          # API와 Web 모두 동일 태그로 업데이트
+          sed -i "s/tag: .*/tag: ${TAG}/" $VALUES_FILE
+
+          echo "Updated prod environment with tag: ${TAG}"
 
       - name: Commit and push
         run: |
@@ -150,5 +136,5 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add -A
-          git diff --staged --quiet || git commit -m "chore(${{ inputs.environment }}): update image tag to ${{ needs.prepare.outputs.image_tag }}"
+          git diff --staged --quiet || git commit -m "chore(prod): update image tag to ${{ needs.prepare.outputs.image_tag }}"
           git push
