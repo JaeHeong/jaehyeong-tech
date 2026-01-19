@@ -625,7 +625,7 @@ export async function getAllComments(req: Request, res: Response, next: NextFunc
           },
         });
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json() as { success: boolean; data: typeof postsMap };
           postsMap = data.data || {};
         }
       } catch (err) {
@@ -647,7 +647,7 @@ export async function getAllComments(req: Request, res: Response, next: NextFunc
           },
         });
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json() as { success: boolean; data: typeof authorsMap };
           authorsMap = data.data || {};
         }
       } catch (err) {
