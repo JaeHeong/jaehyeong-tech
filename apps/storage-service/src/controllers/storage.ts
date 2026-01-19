@@ -339,6 +339,7 @@ export async function deleteFile(req: Request, res: Response, next: NextFunction
 /**
  * 파일/이미지 통계 조회 (Internal API)
  * GET /api/images/stats
+ * Note: Avatars are managed separately (old deleted on new upload)
  */
 export async function getImageStats(req: Request, res: Response, next: NextFunction) {
   try {
@@ -349,9 +350,14 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
     // Get draft image URLs to calculate usedInDrafts
     const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
 
-    // Get all unlinked files
+    // Get all unlinked files (exclude avatars - managed separately)
     const unlinkedFiles = await prisma.file.findMany({
-      where: { tenantId: tenant.id, fileType: 'IMAGE', resourceId: null },
+      where: {
+        tenantId: tenant.id,
+        fileType: 'IMAGE',
+        resourceId: null,
+        folder: { not: 'avatars' },
+      },
       select: { url: true, size: true, createdAt: true },
     });
 
@@ -394,7 +400,9 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
 /**
  * 고아 파일 목록 조회 (관리자 전용)
  * 리소스에 연결되지 않고 24시간 이상 경과한 파일
- * Excludes images used in draft content
+ * Excludes:
+ * - Images used in draft content
+ * - Avatar images (managed separately by users)
  */
 export async function getOrphanFiles(req: Request, res: Response, next: NextFunction) {
   try {
@@ -410,10 +418,12 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
     const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
 
     // 리소스에 연결되지 않고 24시간 이상 경과한 파일 조회
+    // Exclude 'avatars' folder - profile images are managed separately
     const candidates = await prisma.file.findMany({
       where: {
         tenantId: tenant.id,
         resourceId: null,
+        folder: { not: 'avatars' },
         createdAt: { lt: twentyFourHoursAgo },
       },
       orderBy: { createdAt: 'desc' },
@@ -470,7 +480,9 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
 
 /**
  * 고아 파일 일괄 삭제 (관리자 전용)
- * Excludes images used in draft content
+ * Excludes:
+ * - Images used in draft content
+ * - Avatar images (managed separately by users)
  */
 export async function deleteOrphanFiles(req: Request, res: Response, next: NextFunction) {
   try {
@@ -485,11 +497,12 @@ export async function deleteOrphanFiles(req: Request, res: Response, next: NextF
     // Fetch image URLs used in drafts from blog-service
     const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
 
-    // 고아 파일 후보 조회
+    // 고아 파일 후보 조회 (exclude avatars folder)
     const candidates = await prisma.file.findMany({
       where: {
         tenantId: tenant.id,
         resourceId: null,
+        folder: { not: 'avatars' },
         createdAt: { lt: twentyFourHoursAgo },
       },
     });
