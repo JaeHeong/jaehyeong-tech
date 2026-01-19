@@ -1,19 +1,10 @@
-name: Build and Deploy
+name: Build and Deploy (Dev - MSA)
 
-run-name: "🚀 ${{ inputs.environment }} - ${{ github.ref_name }} by @${{ github.actor }}"
+run-name: "🚀 Dev MSA - ${{ github.ref_name }} by @${{ github.actor }}"
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: '배포 환경'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-          - dev
-          - prod
-
       # 서비스 선택 (체크박스)
       build_all:
         description: '모든 서비스 빌드'
@@ -84,14 +75,9 @@ jobs:
         id: meta
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          ENV="${{ inputs.environment }}"
-          if [ "${ENV}" = "prod" ]; then
-            TAG="${SHORT_SHA}"
-          else
-            TAG="${ENV}-${SHORT_SHA}"
-          fi
+          TAG="dev-${SHORT_SHA}"
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "Image tag: ${TAG} (env: ${ENV})"
+          echo "Image tag: ${TAG}"
 
       - name: Determine services to build
         id: services
@@ -100,7 +86,6 @@ jobs:
           BUILD_ALL="${{ inputs.build_all }}"
 
           # 모든 서비스 빌드 또는 개별 선택
-          # 이미지 이름 형식: jaehyeong-tech-{service} (GitOps values.yaml과 일치)
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_auth }}" = "true" ]; then
             SERVICES+=('{"name":"jaehyeong-tech-auth","path":"apps/auth-service","port":"3001"}')
           fi
@@ -226,28 +211,16 @@ jobs:
 
       - name: Clone GitOps repo
         run: |
-          # Unified single branch structure
           git clone git@github.com:JaeHeong/my-k8s-gitops.git
-          echo "Cloned GitOps repo"
 
       - name: Update image tags
         run: |
           cd my-k8s-gitops
           TAG="${{ needs.prepare.outputs.image_tag }}"
-          ENV="${{ inputs.environment }}"
+          VALUES_FILE="apps/jaehyeong-tech/values-dev.yaml"
           BUILD_ALL="${{ inputs.build_all }}"
 
-          # Values 파일 경로 결정
-          if [ "${ENV}" = "prod" ]; then
-            VALUES_FILE="apps/jaehyeong-tech/values-prod.yaml"
-          else
-            VALUES_FILE="apps/jaehyeong-tech/values-dev.yaml"
-          fi
-
           echo "Updating ${VALUES_FILE} with tag: ${TAG}"
-
-          # MSA 구조: services.{service}.image.tag
-          # yq를 사용하여 정확하게 업데이트
 
           # 선택된 서비스만 업데이트
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_web }}" = "true" ]; then
@@ -285,9 +258,6 @@ jobs:
             echo "Updated analytics tag"
           fi
 
-          echo "=== Updated values file ==="
-          cat $VALUES_FILE
-
       - name: Commit and push
         run: |
           cd my-k8s-gitops
@@ -307,8 +277,8 @@ jobs:
             [ "${{ inputs.build_storage }}" = "true" ] && SERVICES="${SERVICES}storage,"
             [ "${{ inputs.build_page }}" = "true" ] && SERVICES="${SERVICES}page,"
             [ "${{ inputs.build_analytics }}" = "true" ] && SERVICES="${SERVICES}analytics,"
-            SERVICES="${SERVICES%,}"  # 마지막 쉼표 제거
+            SERVICES="${SERVICES%,}"
           fi
 
-          git diff --staged --quiet || git commit -m "chore(${{ inputs.environment }}): update [${SERVICES}] to ${{ needs.prepare.outputs.image_tag }}"
+          git diff --staged --quiet || git commit -m "chore(dev): update [${SERVICES}] to ${{ needs.prepare.outputs.image_tag }}"
           git push
