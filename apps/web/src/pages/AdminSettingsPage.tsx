@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useBlocker } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useModal } from '../contexts/ModalContext'
 import { api } from '../services/api'
@@ -76,38 +77,44 @@ export default function AdminSettingsPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [hasUnsavedAvatarChanges])
 
-  // Show custom modal when user tries to navigate away with unsaved avatar
-  const handleBeforeNavigate = useCallback(async (): Promise<boolean> => {
-    if (!hasUnsavedAvatarChanges()) {
-      return true // Allow navigation
-    }
+  // Block navigation when there are unsaved avatar changes
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasUnsavedAvatarChanges() && currentLocation.pathname !== nextLocation.pathname
+  )
 
-    const shouldSave = await confirm({
-      title: '저장하지 않은 변경사항',
-      message: '업로드한 프로필 사진이 저장되지 않았습니다.\n저장하지 않고 나가면 업로드한 이미지가 삭제됩니다.',
-      cancelText: '삭제하고 나가기',
-      confirmText: '저장하기',
-      type: 'warning',
-    })
+  // Show confirmation dialog when navigation is blocked
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      (async () => {
+        const shouldSave = await confirm({
+          title: '저장하지 않은 변경사항',
+          message: '업로드한 프로필 사진이 저장되지 않았습니다.\n저장하지 않고 나가면 업로드한 이미지가 삭제됩니다.',
+          cancelText: '삭제하고 나가기',
+          confirmText: '저장하기',
+          type: 'warning',
+        })
 
-    if (shouldSave) {
-      // Save and continue
-      if (formRef.current) {
-        formRef.current.requestSubmit()
-      }
-      return false // Don't navigate yet, wait for save
-    } else {
-      // Discard - delete the uploaded avatar
-      if (avatarRef.current && avatarRef.current !== initialAvatarRef.current) {
-        try {
-          await api.deleteImage(avatarRef.current)
-        } catch {
-          // Ignore deletion error
+        if (shouldSave) {
+          // User wants to save - submit form and reset blocker
+          if (formRef.current) {
+            formRef.current.requestSubmit()
+          }
+          blocker.reset()
+        } else {
+          // User wants to discard - delete uploaded avatar and proceed
+          if (avatarRef.current && avatarRef.current !== initialAvatarRef.current) {
+            try {
+              await api.deleteImage(avatarRef.current)
+            } catch {
+              // Ignore deletion error
+            }
+          }
+          blocker.proceed()
         }
-      }
-      return true // Allow navigation
+      })()
     }
-  }, [hasUnsavedAvatarChanges, confirm])
+  }, [blocker, confirm])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -483,12 +490,7 @@ export default function AdminSettingsPage() {
           <div className="flex items-center justify-end gap-2 md:gap-4 pt-2 md:pt-4">
             <button
               type="button"
-              onClick={async () => {
-                const canNavigate = await handleBeforeNavigate()
-                if (canNavigate) {
-                  window.history.back()
-                }
-              }}
+              onClick={() => window.history.back()}
               className="px-4 md:px-6 py-2 md:py-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-xs md:text-sm font-medium transition-colors"
             >
               취소
