@@ -103,11 +103,11 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
       tenantId: tenant.id,
     };
 
-    if (role) {
+    if (role && role !== 'all') {
       where.role = role;
     }
 
-    if (status) {
+    if (status && status !== 'all') {
       where.status = status;
     }
 
