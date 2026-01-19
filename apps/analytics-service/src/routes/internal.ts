@@ -75,25 +75,22 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
       siteVisitors?: Array<{
         id: string;
         tenantId: string;
+        ipHash: string;
         date: string;
-        visitors: number;
-        pageViews: number;
-        avgSessionDuration?: number | null;
-        bounceRate?: number | null;
         createdAt: string;
-        updatedAt: string;
       }>;
       bugReports?: Array<{
         id: string;
         tenantId: string;
-        type: string;
-        message: string;
-        stack?: string | null;
-        url?: string | null;
-        userAgent?: string | null;
-        userId?: string | null;
-        metadata?: unknown;
-        status: string;
+        title: string;
+        description: string;
+        category: 'UI' | 'FUNCTIONAL' | 'PERFORMANCE' | 'SECURITY' | 'ETC';
+        priority: 'LOW' | 'MEDIUM' | 'HIGH';
+        status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+        email?: string | null;
+        ipHash?: string | null;
+        adminResponse?: string | null;
+        respondedAt?: string | null;
         createdAt: string;
         updatedAt: string;
       }>;
@@ -111,23 +108,15 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
           await prisma.siteVisitor.upsert({
             where: { id: sv.id },
             update: {
+              ipHash: sv.ipHash,
               date: new Date(sv.date),
-              visitors: sv.visitors,
-              pageViews: sv.pageViews,
-              avgSessionDuration: sv.avgSessionDuration,
-              bounceRate: sv.bounceRate,
-              updatedAt: new Date(),
             },
             create: {
               id: sv.id,
               tenantId: sv.tenantId,
+              ipHash: sv.ipHash,
               date: new Date(sv.date),
-              visitors: sv.visitors,
-              pageViews: sv.pageViews,
-              avgSessionDuration: sv.avgSessionDuration,
-              bounceRate: sv.bounceRate,
               createdAt: new Date(sv.createdAt),
-              updatedAt: new Date(),
             },
           });
           results.siteVisitors.restored++;
@@ -145,27 +134,29 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
           await prisma.bugReport.upsert({
             where: { id: br.id },
             update: {
-              type: br.type,
-              message: br.message,
-              stack: br.stack,
-              url: br.url,
-              userAgent: br.userAgent,
-              userId: br.userId,
-              metadata: br.metadata as object || undefined,
-              status: br.status as 'NEW' | 'IN_PROGRESS' | 'RESOLVED' | 'IGNORED',
+              title: br.title,
+              description: br.description,
+              category: br.category,
+              priority: br.priority,
+              status: br.status,
+              email: br.email,
+              ipHash: br.ipHash,
+              adminResponse: br.adminResponse,
+              respondedAt: br.respondedAt ? new Date(br.respondedAt) : null,
               updatedAt: new Date(),
             },
             create: {
               id: br.id,
               tenantId: br.tenantId,
-              type: br.type,
-              message: br.message,
-              stack: br.stack,
-              url: br.url,
-              userAgent: br.userAgent,
-              userId: br.userId,
-              metadata: br.metadata as object || undefined,
-              status: br.status as 'NEW' | 'IN_PROGRESS' | 'RESOLVED' | 'IGNORED',
+              title: br.title,
+              description: br.description,
+              category: br.category,
+              priority: br.priority,
+              status: br.status,
+              email: br.email,
+              ipHash: br.ipHash,
+              adminResponse: br.adminResponse,
+              respondedAt: br.respondedAt ? new Date(br.respondedAt) : null,
               createdAt: new Date(br.createdAt),
               updatedAt: new Date(),
             },

@@ -77,23 +77,25 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
         tenantId: string;
         slug: string;
         title: string;
+        type: 'STATIC' | 'NOTICE';
         content: string;
-        isPublished: boolean;
+        excerpt?: string | null;
+        status: 'DRAFT' | 'PUBLISHED';
+        badge?: string | null;
+        badgeColor?: string | null;
+        isPinned: boolean;
+        template?: string | null;
+        viewCount: number;
         authorId: string;
+        publishedAt?: string | null;
         createdAt: string;
         updatedAt: string;
       }>;
       pageViews?: Array<{
         id: string;
         tenantId: string;
-        postId?: string | null;
-        pageId?: string | null;
-        visitorId: string;
-        sessionId?: string | null;
-        userAgent?: string | null;
-        referer?: string | null;
-        ip?: string | null;
-        country?: string | null;
+        pageId: string;
+        ipHash: string;
         createdAt: string;
       }>;
     };
@@ -103,7 +105,7 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
       pageViews: { restored: 0, skipped: 0 },
     };
 
-    // 1. Restore pages first (pageViews may reference them)
+    // 1. Restore pages first (pageViews reference them)
     if (pages && Array.isArray(pages)) {
       for (const page of pages) {
         try {
@@ -112,8 +114,16 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
             update: {
               slug: page.slug,
               title: page.title,
+              type: page.type,
               content: page.content,
-              isPublished: page.isPublished,
+              excerpt: page.excerpt,
+              status: page.status,
+              badge: page.badge,
+              badgeColor: page.badgeColor,
+              isPinned: page.isPinned,
+              template: page.template,
+              viewCount: page.viewCount,
+              publishedAt: page.publishedAt ? new Date(page.publishedAt) : null,
               updatedAt: new Date(),
             },
             create: {
@@ -121,9 +131,17 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
               tenantId: page.tenantId,
               slug: page.slug,
               title: page.title,
+              type: page.type,
               content: page.content,
-              isPublished: page.isPublished,
+              excerpt: page.excerpt,
+              status: page.status,
+              badge: page.badge,
+              badgeColor: page.badgeColor,
+              isPinned: page.isPinned,
+              template: page.template,
+              viewCount: page.viewCount,
               authorId: page.authorId,
+              publishedAt: page.publishedAt ? new Date(page.publishedAt) : null,
               createdAt: new Date(page.createdAt),
               updatedAt: new Date(),
             },
@@ -143,26 +161,14 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
           await prisma.pageView.upsert({
             where: { id: pv.id },
             update: {
-              postId: pv.postId,
               pageId: pv.pageId,
-              visitorId: pv.visitorId,
-              sessionId: pv.sessionId,
-              userAgent: pv.userAgent,
-              referer: pv.referer,
-              ip: pv.ip,
-              country: pv.country,
+              ipHash: pv.ipHash,
             },
             create: {
               id: pv.id,
               tenantId: pv.tenantId,
-              postId: pv.postId,
               pageId: pv.pageId,
-              visitorId: pv.visitorId,
-              sessionId: pv.sessionId,
-              userAgent: pv.userAgent,
-              referer: pv.referer,
-              ip: pv.ip,
-              country: pv.country,
+              ipHash: pv.ipHash,
               createdAt: new Date(pv.createdAt),
             },
           });

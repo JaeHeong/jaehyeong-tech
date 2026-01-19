@@ -177,8 +177,8 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
         twitter?: string | null;
         linkedin?: string | null;
         website?: string | null;
-        role: string;
-        status: string;
+        role: 'USER' | 'ADMIN';
+        status: 'ACTIVE' | 'SUSPENDED' | 'DELETED';
         lastLoginAt?: string | null;
         createdAt: string;
         updatedAt: string;
@@ -186,8 +186,8 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
       tenant?: {
         id: string;
         name: string;
-        domain?: string | null;
-        jwtExpiry?: number;
+        domain: string;
+        jwtExpiry?: string;
         allowRegistration?: boolean;
         allowGoogleOauth?: boolean;
         allowGithubOauth?: boolean;
@@ -252,8 +252,8 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
                 twitter: user.twitter,
                 linkedin: user.linkedin,
                 website: user.website,
-                role: user.role as 'ADMIN' | 'USER',
-                status: user.status as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED',
+                role: user.role,
+                status: user.status,
                 lastLoginAt: user.lastLoginAt ? new Date(user.lastLoginAt) : null,
                 updatedAt: new Date(),
               },
@@ -277,8 +277,8 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
                 twitter: user.twitter,
                 linkedin: user.linkedin,
                 website: user.website,
-                role: user.role as 'ADMIN' | 'USER',
-                status: user.status as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED',
+                role: user.role,
+                status: user.status,
                 lastLoginAt: user.lastLoginAt ? new Date(user.lastLoginAt) : null,
                 createdAt: new Date(user.createdAt),
                 updatedAt: new Date(),

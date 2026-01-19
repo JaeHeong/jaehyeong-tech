@@ -67,13 +67,17 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
       comments?: Array<{
         id: string;
         tenantId: string;
-        postId: string;
+        resourceType: string;
+        resourceId: string;
+        content: string;
         authorId?: string | null;
         guestName?: string | null;
         guestEmail?: string | null;
-        content: string;
         parentId?: string | null;
+        status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SPAM';
+        isPrivate: boolean;
         isDeleted: boolean;
+        ipHash: string;
         createdAt: string;
         updatedAt: string;
       }>;
@@ -97,25 +101,33 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
           await prisma.comment.upsert({
             where: { id: comment.id },
             update: {
-              postId: comment.postId,
+              resourceType: comment.resourceType,
+              resourceId: comment.resourceId,
+              content: comment.content,
               authorId: comment.authorId,
               guestName: comment.guestName,
               guestEmail: comment.guestEmail,
-              content: comment.content,
               parentId: comment.parentId,
+              status: comment.status,
+              isPrivate: comment.isPrivate,
               isDeleted: comment.isDeleted,
+              ipHash: comment.ipHash,
               updatedAt: new Date(),
             },
             create: {
               id: comment.id,
               tenantId: comment.tenantId,
-              postId: comment.postId,
+              resourceType: comment.resourceType,
+              resourceId: comment.resourceId,
+              content: comment.content,
               authorId: comment.authorId,
               guestName: comment.guestName,
               guestEmail: comment.guestEmail,
-              content: comment.content,
               parentId: comment.parentId,
+              status: comment.status,
+              isPrivate: comment.isPrivate,
               isDeleted: comment.isDeleted,
+              ipHash: comment.ipHash,
               createdAt: new Date(comment.createdAt),
               updatedAt: new Date(),
             },

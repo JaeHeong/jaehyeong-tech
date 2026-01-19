@@ -194,31 +194,32 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
         tenantId: string;
         slug: string;
         title: string;
-        excerpt?: string | null;
+        excerpt: string;
         content: string;
-        thumbnail?: string | null;
+        coverImage?: string | null;
         viewCount: number;
         likeCount: number;
-        isPublished: boolean;
+        readingTime: number;
+        status: 'DRAFT' | 'PUBLIC' | 'PRIVATE';
+        featured: boolean;
         publishedAt?: string | null;
         authorId: string;
-        categoryId?: string | null;
+        categoryId: string;
         category?: { id: string; name: string } | null;
-        tags?: Array<{ id: string; name: string }>;
+        tags?: Array<{ id: string; name: string; slug: string }>;
         createdAt: string;
         updatedAt: string;
       }>;
       drafts?: Array<{
         id: string;
         tenantId: string;
-        slug?: string | null;
-        title: string;
+        title?: string | null;
+        content: string;
         excerpt?: string | null;
-        content?: string | null;
-        thumbnail?: string | null;
-        authorId: string;
+        coverImage?: string | null;
         categoryId?: string | null;
-        tagIds?: string[];
+        tagIds: string[];
+        authorId: string;
         createdAt: string;
         updatedAt: string;
       }>;
@@ -227,6 +228,9 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
         tenantId: string;
         name: string;
         slug: string;
+        description?: string | null;
+        icon?: string | null;
+        color?: string | null;
         createdAt: string;
         updatedAt: string;
       }>;
@@ -256,6 +260,9 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
             update: {
               name: category.name,
               slug: category.slug,
+              description: category.description,
+              icon: category.icon,
+              color: category.color,
               updatedAt: new Date(),
             },
             create: {
@@ -263,6 +270,9 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
               tenantId: category.tenantId,
               name: category.name,
               slug: category.slug,
+              description: category.description,
+              icon: category.icon,
+              color: category.color,
               createdAt: new Date(category.createdAt),
               updatedAt: new Date(),
             },
@@ -317,10 +327,12 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
               title: post.title,
               excerpt: post.excerpt,
               content: post.content,
-              thumbnail: post.thumbnail,
+              coverImage: post.coverImage,
               viewCount: post.viewCount,
               likeCount: post.likeCount,
-              isPublished: post.isPublished,
+              readingTime: post.readingTime,
+              status: post.status,
+              featured: post.featured,
               publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
               categoryId: post.categoryId,
               tags: {
@@ -335,10 +347,12 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
               title: post.title,
               excerpt: post.excerpt,
               content: post.content,
-              thumbnail: post.thumbnail,
+              coverImage: post.coverImage,
               viewCount: post.viewCount,
               likeCount: post.likeCount,
-              isPublished: post.isPublished,
+              readingTime: post.readingTime,
+              status: post.status,
+              featured: post.featured,
               publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
               authorId: post.authorId,
               categoryId: post.categoryId,
@@ -364,11 +378,10 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
           await prisma.draft.upsert({
             where: { id: draft.id },
             update: {
-              slug: draft.slug,
               title: draft.title,
-              excerpt: draft.excerpt,
               content: draft.content,
-              thumbnail: draft.thumbnail,
+              excerpt: draft.excerpt,
+              coverImage: draft.coverImage,
               categoryId: draft.categoryId,
               tagIds: draft.tagIds || [],
               updatedAt: new Date(),
@@ -376,11 +389,10 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
             create: {
               id: draft.id,
               tenantId: draft.tenantId,
-              slug: draft.slug,
               title: draft.title,
-              excerpt: draft.excerpt,
               content: draft.content,
-              thumbnail: draft.thumbnail,
+              excerpt: draft.excerpt,
+              coverImage: draft.coverImage,
               authorId: draft.authorId,
               categoryId: draft.categoryId,
               tagIds: draft.tagIds || [],
