@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
+import { analyticsCache } from '@shared/utils';
 
 const propertyId = process.env.GA_PROPERTY_ID;
 const clientEmail = process.env.GA_CLIENT_EMAIL;
@@ -7,16 +8,16 @@ const privateKey = process.env.GA_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
 let analyticsClient: BetaAnalyticsDataClient | null = null;
 
-// Cache settings
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
-let cachedData: {
+// Cache TTL in seconds (Redis uses seconds, not milliseconds)
+const CACHE_TTL_SECONDS = 60 * 60; // 1 hour
+
+// Type definitions for cached data
+interface WeeklyVisitorData {
   daily: { date: string; visitors: number }[];
   total: number;
   updatedAt: string;
-} | null = null;
-let cacheTimestamp = 0;
+}
 
-// Detailed analytics cache
 interface OverviewData {
   visitors: number;
   pageViews: number;
@@ -39,8 +40,9 @@ interface DetailedAnalyticsData {
   updatedAt: string;
 }
 
-// Period-based cache
-const detailedCacheMap = new Map<string, { data: DetailedAnalyticsData; timestamp: number }>();
+// Redis cache keys
+const WEEKLY_VISITORS_KEY = 'weekly-visitors';
+const getDetailedKey = (period: string) => `detailed:${period}`;
 
 function getClient(): BetaAnalyticsDataClient | null {
   if (!propertyId || !clientEmail || !privateKey) {
@@ -371,13 +373,13 @@ export async function getDetailedAnalytics(req: Request, res: Response, _next: N
       });
     }
 
-    const now = Date.now();
+    const cacheKey = getDetailedKey(period);
 
-    // Check period-specific cache
-    const cached = detailedCacheMap.get(period);
-    if (cached && now - cached.timestamp < CACHE_TTL) {
+    // Check Redis cache (stateless - works with multiple replicas)
+    const cached = await analyticsCache.get<DetailedAnalyticsData>(cacheKey);
+    if (cached) {
       return res.json({
-        data: cached.data,
+        data: cached,
         configured: true,
         cached: true,
         period,
@@ -387,24 +389,13 @@ export async function getDetailedAnalytics(req: Request, res: Response, _next: N
     const data = await fetchDetailedAnalytics(period);
 
     if (data) {
-      // Store in period-specific cache
-      detailedCacheMap.set(period, { data, timestamp: now });
+      // Store in Redis cache (shared across all replicas)
+      await analyticsCache.set(cacheKey, data, CACHE_TTL_SECONDS);
 
       return res.json({
         data,
         configured: true,
         cached: false,
-        period,
-      });
-    }
-
-    // Fallback to stale cache for this period
-    if (cached) {
-      return res.json({
-        data: cached.data,
-        configured: true,
-        cached: true,
-        stale: true,
         period,
       });
     }
@@ -418,11 +409,12 @@ export async function getDetailedAnalytics(req: Request, res: Response, _next: N
   } catch (error) {
     console.error('GA4 Detailed API Error:', error);
 
-    // Fallback to stale cache on error
-    const cached = detailedCacheMap.get((req.query.period as string) || '7d');
+    // Try to get stale cache on error
+    const cacheKey = getDetailedKey((req.query.period as string) || '7d');
+    const cached = await analyticsCache.get<DetailedAnalyticsData>(cacheKey);
     if (cached) {
       return res.json({
-        data: cached.data,
+        data: cached,
         configured: true,
         cached: true,
         stale: true,
@@ -452,13 +444,12 @@ export async function getWeeklyVisitors(_req: Request, res: Response, _next: Nex
       });
     }
 
-    const now = Date.now();
-
-    // Check if cache is valid
-    if (cachedData && now - cacheTimestamp < CACHE_TTL) {
+    // Check Redis cache (stateless - works with multiple replicas)
+    const cached = await analyticsCache.get<WeeklyVisitorData>(WEEKLY_VISITORS_KEY);
+    if (cached) {
       return res.json({
         data: {
-          ...cachedData,
+          ...cached,
           configured: true,
           cached: true,
         },
@@ -469,26 +460,14 @@ export async function getWeeklyVisitors(_req: Request, res: Response, _next: Nex
     const data = await fetchAnalyticsData();
 
     if (data) {
-      cachedData = data;
-      cacheTimestamp = now;
+      // Store in Redis cache (shared across all replicas)
+      await analyticsCache.set(WEEKLY_VISITORS_KEY, data, CACHE_TTL_SECONDS);
 
       return res.json({
         data: {
           ...data,
           configured: true,
           cached: false,
-        },
-      });
-    }
-
-    // Fallback to cached data if fetch failed but cache exists
-    if (cachedData) {
-      return res.json({
-        data: {
-          ...cachedData,
-          configured: true,
-          cached: true,
-          stale: true,
         },
       });
     }
@@ -504,11 +483,12 @@ export async function getWeeklyVisitors(_req: Request, res: Response, _next: Nex
   } catch (error) {
     console.error('GA4 API Error:', error);
 
-    // Return cached data on error if available
-    if (cachedData) {
+    // Try to get stale cache on error from Redis
+    const cached = await analyticsCache.get<WeeklyVisitorData>(WEEKLY_VISITORS_KEY);
+    if (cached) {
       return res.json({
         data: {
-          ...cachedData,
+          ...cached,
           configured: true,
           cached: true,
           stale: true,

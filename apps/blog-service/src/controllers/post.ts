@@ -4,6 +4,7 @@ import { eventPublisher } from '../services/eventPublisher';
 import { AppError } from '../middleware/errorHandler';
 import { calculateReadingTime } from '../utils/readingTime';
 import { hashIP, getClientIP } from '../utils/ipHash';
+import { blogCache } from '@shared/utils';
 import slugifyLib from 'slugify';
 
 // Type for slugify function
@@ -24,12 +25,20 @@ interface AuthorInfo {
 }
 
 /**
- * Fetch author info from auth-service (internal API)
+ * Fetch author info from auth-service (internal API) with Redis caching
  */
 async function fetchAuthorFromAuthService(
   tenantId: string,
   authorId: string
 ): Promise<AuthorInfo | null> {
+  const cacheKey = `author:${tenantId}:${authorId}`;
+
+  // Check cache first
+  const cached = await blogCache.get<AuthorInfo>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   try {
     const response = await fetch(`${AUTH_SERVICE_URL}/api/users/${authorId}/public`, {
       headers: {
@@ -43,7 +52,12 @@ async function fetchAuthorFromAuthService(
     }
 
     const json = (await response.json()) as { data: AuthorInfo };
-    return json.data;
+    const author = json.data;
+
+    // Cache for 5 minutes
+    await blogCache.set(cacheKey, author, 300);
+
+    return author;
   } catch (error) {
     console.error(`Error fetching author ${authorId}:`, error);
     return null;
@@ -408,27 +422,29 @@ export async function getAdjacentPosts(req: Request, res: Response, next: NextFu
       status: 'PUBLIC' as const,
     };
 
-    // Get previous post (older)
-    const prevPost = await prisma.post.findFirst({
-      where: {
-        ...whereClause,
-        publishedAt: { lt: currentPost.publishedAt || new Date() },
-        id: { not: currentPost.id },
-      },
-      orderBy: { publishedAt: 'desc' },
-      select: { slug: true, title: true, coverImage: true },
-    });
-
-    // Get next post (newer)
-    const nextPost = await prisma.post.findFirst({
-      where: {
-        ...whereClause,
-        publishedAt: { gt: currentPost.publishedAt || new Date() },
-        id: { not: currentPost.id },
-      },
-      orderBy: { publishedAt: 'asc' },
-      select: { slug: true, title: true, coverImage: true },
-    });
+    // Get previous and next posts in PARALLEL
+    const [prevPost, nextPost] = await Promise.all([
+      // Previous post (older)
+      prisma.post.findFirst({
+        where: {
+          ...whereClause,
+          publishedAt: { lt: currentPost.publishedAt || new Date() },
+          id: { not: currentPost.id },
+        },
+        orderBy: { publishedAt: 'desc' },
+        select: { slug: true, title: true, coverImage: true },
+      }),
+      // Next post (newer)
+      prisma.post.findFirst({
+        where: {
+          ...whereClause,
+          publishedAt: { gt: currentPost.publishedAt || new Date() },
+          id: { not: currentPost.id },
+        },
+        orderBy: { publishedAt: 'asc' },
+        select: { slug: true, title: true, coverImage: true },
+      }),
+    ]);
 
     res.json({
       data: {
@@ -858,14 +874,16 @@ export async function bulkDeletePosts(req: Request, res: Response, next: NextFun
       where: { id: { in: postIds } },
     });
 
-    // Publish events for each deleted post
-    for (const postId of postIds) {
-      await eventPublisher.publish({
-        eventType: 'post.deleted',
-        tenantId: req.tenant.id,
-        data: { postId },
-      });
-    }
+    // Publish events for each deleted post in PARALLEL
+    await Promise.all(
+      postIds.map((postId) =>
+        eventPublisher.publish({
+          eventType: 'post.deleted',
+          tenantId: req.tenant.id,
+          data: { postId },
+        })
+      )
+    );
 
     // Update featured post
     await updateFeaturedPost(req.tenant.id);

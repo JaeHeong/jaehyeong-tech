@@ -5,6 +5,7 @@ import { AppError } from '../middleware/errorHandler';
 import { Tenant } from '../middleware/tenantResolver';
 import { generateToken } from '../services/jwtService';
 import { validatePassword, hashPassword, verifyPassword } from '../services/passwordService';
+import { authCache } from '@shared/utils';
 
 // Admin email whitelist - only these emails get ADMIN role
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
@@ -368,25 +369,11 @@ export async function updateCurrentUser(req: Request, res: Response, next: NextF
       updateData.website = website || null;
     }
 
-    // Delete old avatar from storage-service if avatar is being changed or removed
-    if (avatar !== undefined && currentUser?.avatar && currentUser.avatar !== avatar) {
-      const storageServiceUrl = process.env.STORAGE_SERVICE_URL || 'http://storage-service:3000';
-      try {
-        await fetch(`${storageServiceUrl}/internal/delete-by-url`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-tenant-id': tenant.id,
-          },
-          body: JSON.stringify({ url: currentUser.avatar }),
-        });
-      } catch (err) {
-        // Log error but don't fail the update
-        console.error('Failed to delete old avatar from storage:', err);
-      }
-    }
+    // Prepare tasks to run in parallel
+    const tasks: Promise<any>[] = [];
 
-    const updatedUser = await prisma.user.update({
+    // Task 1: Update user in DB
+    const updateUserTask = prisma.user.update({
       where: { id: userId },
       data: updateData,
       select: {
@@ -404,6 +391,30 @@ export async function updateCurrentUser(req: Request, res: Response, next: NextF
         createdAt: true,
       },
     });
+    tasks.push(updateUserTask);
+
+    // Task 2: Delete old avatar from storage-service (non-blocking, parallel)
+    if (avatar !== undefined && currentUser?.avatar && currentUser.avatar !== avatar) {
+      const storageServiceUrl = process.env.STORAGE_SERVICE_URL || 'http://storage-service:3000';
+      const deleteAvatarTask = fetch(`${storageServiceUrl}/internal/delete-by-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-id': tenant.id,
+        },
+        body: JSON.stringify({ url: currentUser.avatar }),
+      }).catch((err) => {
+        // Log error but don't fail the update
+        console.error('Failed to delete old avatar from storage:', err);
+      });
+      tasks.push(deleteAvatarTask);
+    }
+
+    // Run all tasks in parallel
+    const [updatedUser] = await Promise.all(tasks);
+
+    // Invalidate user cache
+    await authCache.del(`user:${tenant.id}:${userId}`);
 
     res.json({
       data: {

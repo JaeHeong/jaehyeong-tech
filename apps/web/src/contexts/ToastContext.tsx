@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef, ReactNode } from 'react'
 
 interface Toast {
   id: string
@@ -24,6 +24,16 @@ export function useToast() {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  // Track timeouts for cleanup to prevent memory leaks
+  const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+      timeoutsRef.current.clear()
+    }
+  }, [])
 
   const showToast = useCallback((options: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9)
@@ -31,15 +41,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
     setToasts((prev) => [...prev, { ...options, id }])
 
-    // Auto remove after duration
-    setTimeout(() => {
+    // Auto remove after duration with cleanup tracking
+    const timeout = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))
+      timeoutsRef.current.delete(id)
     }, duration)
+    timeoutsRef.current.set(id, timeout)
   }, [])
 
   const removeToast = useCallback((id: string) => {
+    // Clear timeout when manually removed
+    const timeout = timeoutsRef.current.get(id)
+    if (timeout) {
+      clearTimeout(timeout)
+      timeoutsRef.current.delete(id)
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
+
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({ showToast }), [showToast])
 
   const getToastStyles = (type: Toast['type']) => {
     switch (type) {
@@ -80,7 +101,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={value}>
       {children}
 
       {/* Toast Container */}

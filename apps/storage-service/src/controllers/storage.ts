@@ -7,6 +7,7 @@ import { AppError } from '../middleware/errorHandler';
 import { getFileType, generateFileName } from '../middleware/upload';
 import { FileType as PrismaFileType } from '../generated/prisma';
 import { FileType as SharedFileType } from '@shared/types';
+import { storageCache } from '@shared/utils';
 import {
   optimizeImage,
   getOptimizedFilename,
@@ -17,9 +18,17 @@ import {
 const BLOG_SERVICE_URL = process.env.BLOG_SERVICE_URL || 'http://blog-service:3002';
 
 /**
- * Fetch image URLs used in drafts from blog-service
+ * Fetch image URLs used in drafts from blog-service (with Redis caching)
  */
 async function getDraftImageUrls(tenantId: string, tenantName: string): Promise<Set<string>> {
+  const cacheKey = `draft-urls:${tenantId}`;
+
+  // Check cache first (short TTL since drafts change frequently)
+  const cached = await storageCache.get<string[]>(cacheKey);
+  if (cached) {
+    return new Set(cached);
+  }
+
   try {
     const response = await fetch(`${BLOG_SERVICE_URL}/internal/draft-image-urls`, {
       method: 'GET',
@@ -37,7 +46,12 @@ async function getDraftImageUrls(tenantId: string, tenantName: string): Promise<
     }
 
     const result = await response.json() as { success: boolean; data: { urls: string[] } };
-    return new Set(result.data?.urls || []);
+    const urls = result.data?.urls || [];
+
+    // Cache for 30 seconds
+    await storageCache.set(cacheKey, urls, 30);
+
+    return new Set(urls);
   } catch (error) {
     console.error('[Storage] Error fetching draft image URLs:', error);
     return new Set();
@@ -586,14 +600,24 @@ export async function deleteOrphanFiles(req: Request, res: Response, next: NextF
     const deleteErrors: string[] = [];
     const successIds: string[] = [];
 
-    // OCI에서 삭제
-    for (const file of orphans) {
-      try {
+    // OCI에서 삭제 - PARALLEL execution for better performance
+    const deleteResults = await Promise.allSettled(
+      orphans.map(async (file) => {
         await ociStorage.deleteFile(file.objectName);
+        return file;
+      })
+    );
+
+    // Process results
+    for (let i = 0; i < deleteResults.length; i++) {
+      const result = deleteResults[i];
+      const file = orphans[i];
+
+      if (result.status === 'fulfilled') {
         freedSpace += file.size;
         successIds.push(file.id);
-      } catch (error) {
-        console.error(`Failed to delete from OCI: ${file.objectName}`, error);
+      } else {
+        console.error(`Failed to delete from OCI: ${file.objectName}`, result.reason);
         deleteErrors.push(file.objectName);
       }
     }
