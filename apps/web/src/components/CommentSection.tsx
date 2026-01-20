@@ -434,7 +434,11 @@ function CommentItem({
             </div>
           </div>
         ) : (
-          <p className="mt-2 md:mt-3 text-slate-700 dark:text-slate-300 text-xs md:text-sm leading-relaxed whitespace-pre-wrap">
+          <p className={`mt-2 md:mt-3 text-xs md:text-sm leading-relaxed whitespace-pre-wrap ${
+            comment.isPrivate && comment.canView === false
+              ? 'text-slate-400 dark:text-slate-500 italic'
+              : 'text-slate-700 dark:text-slate-300'
+          }`}>
             {comment.content}
           </p>
         )}
@@ -442,8 +446,8 @@ function CommentItem({
         {/* Actions */}
         {!showEditForm && (
           <div className="flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-            {/* Only show reply button for top-level comments (not nested replies) */}
-            {!comment.parentId && (
+            {/* Only show reply button for top-level comments that user can view */}
+            {!comment.parentId && comment.canView !== false && (
               <button
                 onClick={() => setShowReplyForm(!showReplyForm)}
                 className="px-2 md:px-3 py-1 md:py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] md:text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-0.5 md:gap-1"

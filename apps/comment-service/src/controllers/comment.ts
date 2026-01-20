@@ -157,6 +157,7 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
           resourceId: true,
           status: true,
           parentId: true,
+          isPrivate: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -173,6 +174,10 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
       }),
       prisma.comment.count({ where }),
     ]);
+
+    // Current user info for private comment filtering
+    const currentUserId = req.user?.id;
+    const isAdmin = req.user?.role === 'ADMIN';
 
     // Fetch author info from auth-service
     const authorIds = new Set<string>();
@@ -203,11 +208,21 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
       }
     }
 
-    // Enrich comments with author info
-    const enrichedComments = comments.map((comment) => ({
-      ...comment,
-      author: comment.authorId ? authorsMap[comment.authorId] || null : null,
-    }));
+    // Enrich comments with author info and handle private comments
+    const enrichedComments = comments.map((comment) => {
+      const canViewPrivate = !comment.isPrivate ||
+        isAdmin ||
+        (currentUserId && comment.authorId === currentUserId);
+
+      return {
+        ...comment,
+        // Mask content for private comments that user can't view
+        content: canViewPrivate ? comment.content : '비공개 댓글입니다.',
+        author: comment.authorId ? authorsMap[comment.authorId] || null : null,
+        // Flag to indicate if user can view the full content
+        canView: canViewPrivate,
+      };
+    });
 
     res.json({
       data: enrichedComments,

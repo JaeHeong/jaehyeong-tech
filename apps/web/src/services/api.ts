@@ -496,6 +496,8 @@ class ApiClient {
       resourceId: string
       status: string
       parentId: string | null
+      isPrivate: boolean
+      canView: boolean
       createdAt: string
       updatedAt: string
       _count?: { replies: number }
@@ -510,7 +512,7 @@ class ApiClient {
       content: c.content,
       postId: c.resourceId,
       parentId: c.parentId,
-      isPrivate: false,
+      isPrivate: c.isPrivate,
       isDeleted: false,
       author: c.author || null,
       guestName: c.guestName,
@@ -519,6 +521,7 @@ class ApiClient {
       updatedAt: c.updatedAt,
       replyCount: c._count?.replies || 0,
       replies: [],
+      canView: c.canView,
     }))
 
     // Build nested structure: separate top-level comments and replies
@@ -1346,6 +1349,7 @@ export interface Comment {
   parentId: string | null
   isPrivate: boolean
   isDeleted: boolean
+  canView?: boolean
   author: {
     id: string
     name: string
