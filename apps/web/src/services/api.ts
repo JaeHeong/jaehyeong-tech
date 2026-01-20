@@ -505,7 +505,7 @@ class ApiClient {
     const response = await this.request<{ data: BackendComment[]; meta: { total: number } }>(`/comments?resourceType=post&resourceId=${postId}`)
 
     // Transform backend comments to frontend format
-    const comments: Comment[] = response.data.map(c => ({
+    const allComments: Comment[] = response.data.map(c => ({
       id: c.id,
       content: c.content,
       postId: c.resourceId,
@@ -518,10 +518,40 @@ class ApiClient {
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
       replyCount: c._count?.replies || 0,
+      replies: [],
     }))
 
+    // Build nested structure: separate top-level comments and replies
+    const commentsMap = new Map<string, Comment>()
+    const topLevelComments: Comment[] = []
+
+    // First pass: index all comments
+    for (const comment of allComments) {
+      commentsMap.set(comment.id, comment)
+    }
+
+    // Second pass: nest replies under parents
+    for (const comment of allComments) {
+      if (comment.parentId) {
+        const parent = commentsMap.get(comment.parentId)
+        if (parent) {
+          parent.replies = parent.replies || []
+          parent.replies.push(comment)
+        }
+      } else {
+        topLevelComments.push(comment)
+      }
+    }
+
+    // Sort replies by createdAt ascending (oldest first)
+    for (const comment of topLevelComments) {
+      if (comment.replies && comment.replies.length > 0) {
+        comment.replies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      }
+    }
+
     return {
-      comments,
+      comments: topLevelComments,
       totalCount: response.meta.total,
     }
   }
