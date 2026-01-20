@@ -405,24 +405,49 @@ export async function getSignupTrend(req: Request, res: Response, next: NextFunc
     const { period = 'daily' } = req.query;
 
     const now = new Date();
-    let startDate: Date;
-    let groupFormat: string;
+    now.setHours(23, 59, 59, 999); // End of today
 
-    switch (period) {
-      case 'weekly':
-        startDate = new Date(now.getTime() - 12 * 7 * 24 * 60 * 60 * 1000); // 12 weeks
-        groupFormat = 'week';
-        break;
-      case 'monthly':
-        startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1); // 12 months
-        groupFormat = 'month';
-        break;
-      case 'daily':
-      default:
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days
-        groupFormat = 'day';
-        break;
+    // Generate all periods with 0 values first
+    const allPeriods: { key: string; date: string; count: number }[] = [];
+
+    if (period === 'daily') {
+      // 14 days
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        allPeriods.push({ key, date: `${month}-${day}`, count: 0 });
+      }
+    } else if (period === 'weekly') {
+      // 8 weeks (starting from current week going back)
+      const currentMonday = new Date(now);
+      const dayOfWeek = currentMonday.getDay();
+      currentMonday.setDate(currentMonday.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+      currentMonday.setHours(0, 0, 0, 0);
+
+      for (let i = 7; i >= 0; i--) {
+        const monday = new Date(currentMonday);
+        monday.setDate(monday.getDate() - i * 7);
+        const key = monday.toISOString().split('T')[0];
+        const month = monday.getMonth() + 1;
+        const day = monday.getDate();
+        allPeriods.push({ key, date: `${month}/${day}`, count: 0 });
+      }
+    } else if (period === 'monthly') {
+      // 6 months
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const month = d.getMonth() + 1;
+        allPeriods.push({ key, date: `${month}월`, count: 0 });
+      }
     }
+
+    // Get the earliest date for query
+    const startDate = new Date(allPeriods[0].key);
+    startDate.setHours(0, 0, 0, 0);
 
     const users = await prisma.user.findMany({
       where: {
@@ -433,18 +458,19 @@ export async function getSignupTrend(req: Request, res: Response, next: NextFunc
       orderBy: { createdAt: 'asc' },
     });
 
-    // Group by period
+    // Group users by period key
     const grouped: Record<string, number> = {};
     users.forEach((user) => {
       const date = new Date(user.createdAt);
       let key: string;
 
-      if (groupFormat === 'day') {
+      if (period === 'daily') {
         key = date.toISOString().split('T')[0];
-      } else if (groupFormat === 'week') {
+      } else if (period === 'weekly') {
         // Get the Monday of the week
+        const dayOfWeek = date.getDay();
         const monday = new Date(date);
-        monday.setDate(date.getDate() - date.getDay() + 1);
+        monday.setDate(date.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
         key = monday.toISOString().split('T')[0];
       } else {
         key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -453,15 +479,20 @@ export async function getSignupTrend(req: Request, res: Response, next: NextFunc
       grouped[key] = (grouped[key] || 0) + 1;
     });
 
-    // Convert to array and sort
-    const trend = Object.entries(grouped)
-      .map(([date, count]) => ({ date, count }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+    // Merge counts into allPeriods
+    allPeriods.forEach((p) => {
+      if (grouped[p.key]) {
+        p.count = grouped[p.key];
+      }
+    });
+
+    // Create trend array with formatted dates
+    const trend = allPeriods.map((p) => ({ date: p.date, count: p.count }));
 
     // Calculate summary
     const total = trend.reduce((sum, item) => sum + item.count, 0);
     const average = trend.length > 0 ? Math.round((total / trend.length) * 10) / 10 : 0;
-    const maxItem = trend.reduce((max, item) => (item.count > max.count ? item : max), { date: '', count: 0 });
+    const maxItem = trend.reduce((max, item) => (item.count > max.count ? item : max), { date: '-', count: 0 });
 
     res.json({
       data: {

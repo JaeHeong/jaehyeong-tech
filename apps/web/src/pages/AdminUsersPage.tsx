@@ -550,7 +550,7 @@ export default function AdminUsersPage() {
                         />
                       </div>
                       <span className={`text-[9px] md:text-[10px] ${isLast ? 'text-primary font-bold' : 'text-slate-400'}`}>
-                        {trendPeriod === 'daily' ? item.date.slice(5) : item.date}
+                        {item.date}
                       </span>
                     </div>
                   )
