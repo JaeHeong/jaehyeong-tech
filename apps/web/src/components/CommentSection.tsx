@@ -264,7 +264,8 @@ function CommentItem({
   const isPostAuthor = postAuthorId && comment.author?.id === postAuthorId
 
   const handleReplySubmit = (reply: Comment) => {
-    onReplyAdded(comment.id, reply)
+    // Use parent's id for replies to keep depth=1
+    onReplyAdded(comment.parentId || comment.id, reply)
     setShowReplyForm(false)
   }
 
@@ -364,7 +365,7 @@ function CommentItem({
   }
 
   return (
-    <div className="group">
+    <div className="group/comment">
       <div className="p-3 md:p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
         {/* Header */}
         <div className="flex items-start justify-between gap-2 md:gap-4">
@@ -459,9 +460,9 @@ function CommentItem({
 
         {/* Actions - hide for deleted comments */}
         {!showEditForm && !comment.isDeleted && (
-          <div className="flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-            {/* Only show reply button for top-level comments that user can view */}
-            {!comment.parentId && comment.canView !== false && (
+          <div className="flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 md:opacity-0 md:group-hover/comment:opacity-100 transition-opacity">
+            {/* Show reply button on all comments (replies will attach to parent, keeping depth=1) */}
+            {comment.canView !== false && (
               <button
                 onClick={() => setShowReplyForm(!showReplyForm)}
                 className="px-2 md:px-3 py-1 md:py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] md:text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-0.5 md:gap-1"
@@ -492,12 +493,12 @@ function CommentItem({
         )}
       </div>
 
-      {/* Reply Form */}
+      {/* Reply Form - use parent's id for replies to keep depth=1 */}
       {showReplyForm && (
         <div className="ml-8 md:ml-12 mt-2">
           <CommentForm
             postId={postId}
-            parentId={comment.id}
+            parentId={comment.parentId || comment.id}
             onSubmit={handleReplySubmit}
             onCancel={() => setShowReplyForm(false)}
             isReply
