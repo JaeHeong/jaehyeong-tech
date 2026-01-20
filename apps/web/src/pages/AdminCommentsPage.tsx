@@ -18,7 +18,6 @@ export default function AdminCommentsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
-  const [includeDeleted, setIncludeDeleted] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; comment: AdminComment | null }>({
     isOpen: false,
@@ -35,7 +34,7 @@ export default function AdminCommentsPage() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await api.getAdminComments({ page: limit === 0 ? 1 : page, limit: limit === 0 ? 9999 : limit, includeDeleted })
+      const response = await api.getAdminComments({ page: limit === 0 ? 1 : page, limit: limit === 0 ? 9999 : limit, includeDeleted: true })
       setComments(response.data)
       setTotalPages(limit === 0 ? 1 : response.meta.totalPages)
       setTotal(response.meta.total)
@@ -44,7 +43,7 @@ export default function AdminCommentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [page, includeDeleted, limit])
+  }, [page, limit])
 
   const handleToggleAll = () => {
     setIsAllMode(!isAllMode)
@@ -58,7 +57,7 @@ export default function AdminCommentsPage() {
   // 페이지/필터 변경 시 선택 초기화
   useEffect(() => {
     setSelectedIds([])
-  }, [page, includeDeleted])
+  }, [page])
 
   // ESC/Enter 키로 모달 제어
   useEffect(() => {
@@ -198,18 +197,6 @@ export default function AdminCommentsPage() {
             </div>
           )}
           <LimitSelector defaultLimit={defaultLimit} isAll={isAllMode} onToggle={handleToggleAll} />
-          <label className="flex items-center gap-2 text-xs md:text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeDeleted}
-              onChange={(e) => {
-                setIncludeDeleted(e.target.checked)
-                setPage(1)
-              }}
-              className="rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary/20"
-            />
-            삭제된 댓글 포함
-          </label>
         </div>
       </div>
 
