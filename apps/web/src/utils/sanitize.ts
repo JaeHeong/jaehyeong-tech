@@ -1,7 +1,7 @@
-import DOMPurify from 'dompurify'
+import DOMPurify, { Config } from 'dompurify'
 
 // Configure DOMPurify for safe HTML rendering
-const purifyConfig: DOMPurify.Config = {
+const purifyConfig: Config = {
   // Allow common HTML elements for rich text content
   ALLOWED_TAGS: [
     // Text formatting
@@ -47,7 +47,7 @@ const purifyConfig: DOMPurify.Config = {
 
 // Sanitize HTML content
 export function sanitizeHtml(dirty: string): string {
-  return DOMPurify.sanitize(dirty, purifyConfig)
+  return DOMPurify.sanitize(dirty, purifyConfig) as string
 }
 
 // Sanitize and return for dangerouslySetInnerHTML
