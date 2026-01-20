@@ -17,7 +17,7 @@ export function usePosts(params?: {
   tag?: string
   search?: string
   status?: 'PUBLISHED' | 'PRIVATE' | 'PUBLIC' | 'ALL'
-  sortBy?: string
+  sortBy?: 'publishedAt' | 'viewCount' | 'likeCount'
   featured?: boolean
 }) {
   const key = params ? ['posts', JSON.stringify(params)] : ['posts']
