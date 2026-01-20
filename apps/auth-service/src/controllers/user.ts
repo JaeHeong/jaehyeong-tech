@@ -395,6 +395,30 @@ export async function searchUsers(req: Request, res: Response, next: NextFunctio
 }
 
 /**
+ * Helper to format date as YYYY-MM-DD in local timezone
+ */
+function formatDateKey(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Helper to get Monday of the week for a given date
+ */
+function getMondayOfWeek(d: Date): Date {
+  const result = new Date(d);
+  const dayOfWeek = result.getDay();
+  // Sunday = 0, Monday = 1, ..., Saturday = 6
+  // If Sunday (0), go back 6 days. Otherwise go back (dayOfWeek - 1) days.
+  const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  result.setDate(result.getDate() - daysToSubtract);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+/**
  * 가입 추이 분석 (관리자 전용)
  * GET /api/users/signup-trend?period=daily|weekly|monthly
  */
@@ -415,22 +439,19 @@ export async function getSignupTrend(req: Request, res: Response, next: NextFunc
       for (let i = 13; i >= 0; i--) {
         const d = new Date(now);
         d.setDate(d.getDate() - i);
-        const key = d.toISOString().split('T')[0];
+        const key = formatDateKey(d);
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         allPeriods.push({ key, date: `${month}-${day}`, count: 0 });
       }
     } else if (period === 'weekly') {
       // 8 weeks (starting from current week going back)
-      const currentMonday = new Date(now);
-      const dayOfWeek = currentMonday.getDay();
-      currentMonday.setDate(currentMonday.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-      currentMonday.setHours(0, 0, 0, 0);
+      const currentMonday = getMondayOfWeek(now);
 
       for (let i = 7; i >= 0; i--) {
         const monday = new Date(currentMonday);
         monday.setDate(monday.getDate() - i * 7);
-        const key = monday.toISOString().split('T')[0];
+        const key = formatDateKey(monday);
         const month = monday.getMonth() + 1;
         const day = monday.getDate();
         allPeriods.push({ key, date: `${month}/${day}`, count: 0 });
@@ -446,8 +467,7 @@ export async function getSignupTrend(req: Request, res: Response, next: NextFunc
     }
 
     // Get the earliest date for query
-    const startDate = new Date(allPeriods[0].key);
-    startDate.setHours(0, 0, 0, 0);
+    const startDate = new Date(allPeriods[0].key + 'T00:00:00');
 
     const users = await prisma.user.findMany({
       where: {
@@ -465,13 +485,10 @@ export async function getSignupTrend(req: Request, res: Response, next: NextFunc
       let key: string;
 
       if (period === 'daily') {
-        key = date.toISOString().split('T')[0];
+        key = formatDateKey(date);
       } else if (period === 'weekly') {
-        // Get the Monday of the week
-        const dayOfWeek = date.getDay();
-        const monday = new Date(date);
-        monday.setDate(date.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-        key = monday.toISOString().split('T')[0];
+        const monday = getMondayOfWeek(date);
+        key = formatDateKey(monday);
       } else {
         key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       }
