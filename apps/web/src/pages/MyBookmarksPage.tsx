@@ -147,7 +147,7 @@ export default function MyBookmarksPage() {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    }).replace(/\. /g, '.').replace('.', '')
+    }).replace(/\. /g, '.').replace(/\.$/, '')
   }
 
   // Get last bookmark date
