@@ -206,28 +206,42 @@ function EditorSidebar({
                 alt="Cover preview"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => coverInputRef.current?.click()}
-                  className="p-1.5 md:p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                  title="이미지 변경"
-                >
-                  <span className="material-symbols-outlined text-white text-[18px] md:text-[20px]">
-                    edit
+              {/* Loading overlay when uploading new cover */}
+              {isUploadingCover && (
+                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-[32px] md:text-[40px] text-white animate-spin">
+                    progress_activity
                   </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={onRemoveCover}
-                  className="p-1.5 md:p-2 bg-white/20 hover:bg-red-500/70 rounded-lg transition-colors"
-                  title="이미지 삭제"
-                >
-                  <span className="material-symbols-outlined text-white text-[18px] md:text-[20px]">
-                    delete
+                  <span className="text-white text-xs md:text-sm font-medium">
+                    이미지 최적화 중...
                   </span>
-                </button>
-              </div>
+                </div>
+              )}
+              {/* Hover controls */}
+              {!isUploadingCover && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => coverInputRef.current?.click()}
+                    className="p-1.5 md:p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                    title="이미지 변경"
+                  >
+                    <span className="material-symbols-outlined text-white text-[18px] md:text-[20px]">
+                      edit
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onRemoveCover}
+                    className="p-1.5 md:p-2 bg-white/20 hover:bg-red-500/70 rounded-lg transition-colors"
+                    title="이미지 삭제"
+                  >
+                    <span className="material-symbols-outlined text-white text-[18px] md:text-[20px]">
+                      delete
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ) : (
