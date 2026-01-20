@@ -129,6 +129,8 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
           content: true,
           authorId: true,
           guestName: true,
+          resourceType: true,
+          resourceId: true,
           status: true,
           parentId: true,
           createdAt: true,
@@ -532,6 +534,36 @@ export async function getCommentStats(req: Request, res: Response, next: NextFun
     ]);
 
     res.json({ data: { total, recent, new: newComments } });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/comments/count
+ * Get comment count for a specific resource
+ */
+export async function getCommentCount(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const { resourceType, resourceId } = req.query;
+
+    if (!resourceType || !resourceId) {
+      throw new AppError('resourceType과 resourceId가 필요합니다.', 400);
+    }
+
+    const count = await prisma.comment.count({
+      where: {
+        tenantId: tenant.id,
+        resourceType: resourceType as string,
+        resourceId: resourceId as string,
+        isDeleted: false,
+        status: 'APPROVED',
+      },
+    });
+
+    res.json({ data: { count } });
   } catch (error) {
     next(error);
   }

@@ -13,6 +13,7 @@ import {
   getAllComments,
   adminDeleteComment,
   getCommentStats,
+  getCommentCount,
 } from '../controllers/comment';
 import { resolveTenant } from '../middleware/tenantResolver';
 import { authenticate, optionalAuthenticate, requireAuth, requireAdmin } from '../middleware/authenticate';
@@ -30,6 +31,9 @@ router.get('/recent', getRecentComments);
 
 // Stats route (for internal service calls)
 router.get('/stats', getCommentStats);
+
+// Comment count for specific resource (for internal service calls)
+router.get('/count', getCommentCount);
 
 // 내 댓글 목록 조회 (인증 필수) - /:id 보다 먼저 정의해야 함
 router.get('/me', authenticate, getMyComments);
