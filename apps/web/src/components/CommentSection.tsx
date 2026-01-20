@@ -318,13 +318,27 @@ function CommentItem({
   // Deleted comment placeholder
   if (comment.isDeleted) {
     return (
-      <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg opacity-60">
-        <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm italic">
-          삭제된 댓글입니다.
-        </p>
-        {/* Show replies even for deleted comments */}
+      <div className="group">
+        <div className="p-3 md:p-4 rounded-lg">
+          {/* Header with anonymous profile */}
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="size-8 md:size-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 shrink-0">
+              <span className="material-symbols-outlined text-[18px] md:text-[22px]">person</span>
+            </div>
+            <div>
+              <span className="font-medium text-slate-400 dark:text-slate-500 text-sm md:text-base">
+                알 수 없음
+              </span>
+            </div>
+          </div>
+          {/* Deleted message */}
+          <p className="mt-2 md:mt-3 text-slate-400 dark:text-slate-500 text-xs md:text-sm italic">
+            삭제된 댓글입니다.
+          </p>
+        </div>
+        {/* Show replies without opacity */}
         {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-3 md:mt-4 space-y-3 md:space-y-4">
+          <div className="mt-2 md:mt-3 space-y-2 md:space-y-3">
             {comment.replies.map((reply) => (
               <div key={reply.id} className="flex gap-1.5 md:gap-2 ml-2 md:ml-4">
                 <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[16px] md:text-[20px] mt-1 shrink-0">
