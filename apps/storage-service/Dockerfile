@@ -44,6 +44,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # 전체 node_modules 복사 (prisma client 포함)
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/storage-service/node_modules ./apps/storage-service/node_modules
+COPY --from=builder /app/packages/shared/utils/node_modules ./packages/shared/utils/node_modules
 
 # package.json 복사
 COPY --from=builder /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml ./
