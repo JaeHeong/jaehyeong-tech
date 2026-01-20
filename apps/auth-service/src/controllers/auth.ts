@@ -302,12 +302,10 @@ export async function updateCurrentUser(req: Request, res: Response, next: NextF
 
     const { name, avatar, bio, title, github, twitter, linkedin, website } = req.body;
 
-    // Validate name
-    if (name !== undefined) {
-      if (typeof name !== 'string' || name.trim().length === 0) {
-        throw new AppError('이름은 필수입니다.', 400);
-      }
-      if (name.length > 50) {
+    // Validate name - if empty, skip update (keep current value)
+    const trimmedName = typeof name === 'string' ? name.trim() : undefined;
+    if (trimmedName !== undefined && trimmedName.length > 0) {
+      if (trimmedName.length > 50) {
         throw new AppError('이름은 50자 이내로 입력해주세요.', 400);
       }
     }
@@ -344,8 +342,8 @@ export async function updateCurrentUser(req: Request, res: Response, next: NextF
       website?: string | null;
     } = {};
 
-    if (name !== undefined) {
-      updateData.name = name.trim();
+    if (trimmedName && trimmedName.length > 0) {
+      updateData.name = trimmedName;
     }
     if (avatar !== undefined) {
       updateData.avatar = avatar || null;
