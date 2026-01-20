@@ -751,6 +751,7 @@ export async function getAllComments(req: Request, res: Response, next: NextFunc
       content: comment.content,
       isPrivate: comment.isPrivate,
       isDeleted: comment.isDeleted,
+      status: comment.status,
       guestName: comment.guestName,
       parentId: comment.parentId,
       createdAt: comment.createdAt,

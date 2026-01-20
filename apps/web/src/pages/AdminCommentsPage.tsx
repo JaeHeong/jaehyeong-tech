@@ -1,8 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { api, type AdminComment } from '../services/api'
+import { api, type AdminComment, type CommentStatusType } from '../services/api'
 import LimitSelector from '../components/LimitSelector'
 import { getPageLimit } from '../utils/paginationSettings'
+
+const STATUS_CONFIG: Record<CommentStatusType, { label: string; color: string; icon: string }> = {
+  PENDING: { label: '대기', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', icon: 'schedule' },
+  APPROVED: { label: '승인', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', icon: 'check_circle' },
+  REJECTED: { label: '거부', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', icon: 'cancel' },
+  SPAM: { label: '스팸', color: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300', icon: 'report' },
+}
 
 export default function AdminCommentsPage() {
   const [comments, setComments] = useState<AdminComment[]>([])
@@ -19,6 +26,7 @@ export default function AdminCommentsPage() {
   })
   const [bulkDeleteModal, setBulkDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
   const defaultLimit = getPageLimit('comments')
   const [isAllMode, setIsAllMode] = useState(false)
   const limit = isAllMode ? 0 : defaultLimit
@@ -118,6 +126,21 @@ export default function AdminCommentsPage() {
       setError(err instanceof Error ? err.message : '댓글 삭제에 실패했습니다.')
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const handleStatusChange = async (commentId: string, newStatus: CommentStatusType) => {
+    setUpdatingStatusId(commentId)
+    try {
+      await api.updateCommentStatus(commentId, newStatus)
+      // Update local state without refetching
+      setComments((prev) =>
+        prev.map((c) => (c.id === commentId ? { ...c, status: newStatus } : c))
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '상태 변경에 실패했습니다.')
+    } finally {
+      setUpdatingStatusId(null)
     }
   }
 
@@ -298,6 +321,12 @@ export default function AdminCommentsPage() {
                                 삭제됨
                               </span>
                             )}
+                            {comment.status && STATUS_CONFIG[comment.status] && (
+                              <span className={`px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium flex items-center gap-0.5 ${STATUS_CONFIG[comment.status].color}`}>
+                                <span className="material-symbols-outlined text-[10px] md:text-[12px]">{STATUS_CONFIG[comment.status].icon}</span>
+                                {STATUS_CONFIG[comment.status].label}
+                              </span>
+                            )}
                             {comment.parentId && (
                               <span className="px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 flex items-center gap-0.5 md:gap-1">
                                 <span className="material-symbols-outlined text-[10px] md:text-[12px]">reply</span>
@@ -333,7 +362,51 @@ export default function AdminCommentsPage() {
                               </span>
                             )}
 
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-1 md:gap-2">
+                              {/* Status management buttons */}
+                              {!comment.isDeleted && (
+                                <>
+                                  {comment.status !== 'APPROVED' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleStatusChange(comment.id, 'APPROVED')
+                                      }}
+                                      disabled={updatingStatusId === comment.id}
+                                      className="px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors flex items-center gap-0.5 md:gap-1 disabled:opacity-50"
+                                    >
+                                      <span className="material-symbols-outlined text-[14px] md:text-[16px]">check_circle</span>
+                                      승인
+                                    </button>
+                                  )}
+                                  {comment.status !== 'REJECTED' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleStatusChange(comment.id, 'REJECTED')
+                                      }}
+                                      disabled={updatingStatusId === comment.id}
+                                      className="px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors flex items-center gap-0.5 md:gap-1 disabled:opacity-50"
+                                    >
+                                      <span className="material-symbols-outlined text-[14px] md:text-[16px]">cancel</span>
+                                      거부
+                                    </button>
+                                  )}
+                                  {comment.status !== 'SPAM' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleStatusChange(comment.id, 'SPAM')
+                                      }}
+                                      disabled={updatingStatusId === comment.id}
+                                      className="px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-0.5 md:gap-1 disabled:opacity-50"
+                                    >
+                                      <span className="material-symbols-outlined text-[14px] md:text-[16px]">report</span>
+                                      스팸
+                                    </button>
+                                  )}
+                                </>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()

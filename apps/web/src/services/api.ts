@@ -585,6 +585,13 @@ class ApiClient {
     })
   }
 
+  async updateCommentStatus(commentId: string, status: CommentStatusType) {
+    return this.request<{ data: AdminComment }>(`/comments/${commentId}/status`, {
+      method: 'PATCH',
+      body: { status },
+    })
+  }
+
   // Draft endpoints
   async getDrafts() {
     const response = await this.request<{ data: Draft[] }>('/drafts')
@@ -1340,11 +1347,14 @@ export interface UpdateCommentData {
   isPrivate?: boolean
 }
 
+export type CommentStatusType = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SPAM'
+
 export interface AdminComment {
   id: string
   content: string
   isPrivate: boolean
   isDeleted: boolean
+  status: CommentStatusType
   author: {
     id: string
     name: string
