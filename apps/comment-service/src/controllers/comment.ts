@@ -62,6 +62,13 @@ export async function createComment(req: Request, res: Response, next: NextFunct
       },
     });
 
+    // Include author info in response for authenticated users
+    const author = req.user ? {
+      id: req.user.id,
+      name: req.user.name,
+      avatar: req.user.avatar || null,
+    } : null;
+
     res.status(201).json({
       data: {
         id: comment.id,
@@ -73,6 +80,7 @@ export async function createComment(req: Request, res: Response, next: NextFunct
         parentId: comment.parentId,
         status: comment.status,
         createdAt: comment.createdAt,
+        author,
       },
     });
   } catch (error) {
