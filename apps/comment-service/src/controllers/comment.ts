@@ -665,7 +665,7 @@ export async function getAllComments(req: Request, res: Response, next: NextFunc
     const authorIds = new Set<string>();
 
     for (const comment of comments) {
-      if (comment.resourceType === 'POST' && comment.resourceId) {
+      if (comment.resourceType?.toLowerCase() === 'post' && comment.resourceId) {
         postIds.add(comment.resourceId);
       }
       if (comment.authorId) {
@@ -754,7 +754,7 @@ export async function getAllComments(req: Request, res: Response, next: NextFunc
       parentId: comment.parentId,
       createdAt: comment.createdAt,
       author: comment.authorId ? authorsMap[comment.authorId] || null : null,
-      post: comment.resourceType === 'POST' && comment.resourceId
+      post: comment.resourceType?.toLowerCase() === 'post' && comment.resourceId
         ? postsMap[comment.resourceId] || null
         : null,
     }));

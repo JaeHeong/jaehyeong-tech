@@ -522,81 +522,62 @@ export default function AdminUsersPage() {
 
         <div className="p-4 md:p-6">
           {trendData ? (
-            trendData.summary.total === 0 ? (
-              /* Empty State when no signups */
-              <div className="text-center py-8 md:py-12">
-                <div className="inline-flex items-center justify-center size-16 md:size-20 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 mb-4">
-                  <span className="material-symbols-outlined text-[32px] md:text-[40px]">show_chart</span>
+            <>
+              {/* Bar Chart - always show bars even when 0 */}
+              <div className="flex items-end justify-between gap-1 h-32 md:h-40 mb-4">
+                {trendData.trend.map((item, index) => {
+                  const maxCount = Math.max(...trendData.trend.map(d => d.count), 1)
+                  const heightPercent = item.count > 0 ? (item.count / maxCount) * 100 : 0
+                  const opacity = trendData.trend.length <= 1 ? 1 : 0.3 + (index / (trendData.trend.length - 1)) * 0.7
+                  const isLast = index === trendData.trend.length - 1
+                  const isEmpty = item.count === 0
+
+                  return (
+                    <div key={item.date} className="flex-1 flex flex-col items-center gap-1 group">
+                      <span className={`text-[9px] md:text-[10px] ${isEmpty ? 'text-slate-300 dark:text-slate-600' : 'text-slate-400'} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                        {item.count}
+                      </span>
+                      <div className="w-full flex items-end justify-center h-20 md:h-28">
+                        <div
+                          className="w-full max-w-[28px] md:max-w-[36px] rounded-t transition-all duration-300 group-hover:opacity-100 cursor-default"
+                          style={{
+                            height: isEmpty ? '8%' : `${Math.max(heightPercent, 8)}%`,
+                            backgroundColor: isEmpty
+                              ? 'rgba(148, 163, 184, 0.2)'
+                              : `rgba(49, 130, 246, ${opacity})`,
+                          }}
+                          title={`${item.date}: ${item.count}명`}
+                        />
+                      </div>
+                      <span className={`text-[9px] md:text-[10px] ${isLast ? 'text-primary font-bold' : 'text-slate-400'}`}>
+                        {trendPeriod === 'daily' ? item.date.slice(5) : item.date}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Summary */}
+              <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 pt-4 border-t border-slate-100 dark:border-slate-800 text-sm">
+                <div className="text-center">
+                  <span className="text-slate-500 dark:text-slate-400 text-xs">{getSummaryLabel(trendPeriod).total}</span>
+                  <p className={`font-bold ${trendData.summary.total > 0 ? 'text-primary' : 'text-slate-400'}`}>{trendData.summary.total}명</p>
                 </div>
-                <h4 className="text-base md:text-lg font-bold text-slate-700 dark:text-slate-300 mb-2">
-                  아직 가입 데이터가 없습니다
-                </h4>
-                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
-                  {trendPeriod === 'daily' && '최근 14일간 신규 가입자가 없습니다.'}
-                  {trendPeriod === 'weekly' && '최근 8주간 신규 가입자가 없습니다.'}
-                  {trendPeriod === 'monthly' && '최근 6개월간 신규 가입자가 없습니다.'}
-                </p>
-                <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-                  <div className="text-center">
-                    <span className="text-slate-400 text-xs">{getSummaryLabel(trendPeriod).total}</span>
-                    <p className="font-bold text-slate-500">0명</p>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-slate-400 text-xs">{getSummaryLabel(trendPeriod).avg}</span>
-                    <p className="font-bold text-slate-500">0명</p>
-                  </div>
+                <div className="text-center">
+                  <span className="text-slate-500 dark:text-slate-400 text-xs">{getSummaryLabel(trendPeriod).avg}</span>
+                  <p className={`font-bold ${trendData.summary.average > 0 ? '' : 'text-slate-400'}`}>{trendData.summary.average}명</p>
+                </div>
+                <div className="text-center">
+                  <span className="text-slate-500 dark:text-slate-400 text-xs">최고</span>
+                  <p className={`font-bold ${trendData.summary.max.count > 0 ? '' : 'text-slate-400'}`}>
+                    {trendData.summary.max.count}명
+                    {trendData.summary.max.count > 0 && (
+                      <span className="text-xs text-slate-400 ml-1">({trendData.summary.max.date})</span>
+                    )}
+                  </p>
                 </div>
               </div>
-            ) : (
-              <>
-                {/* Bar Chart */}
-                <div className="flex items-end justify-between gap-1 h-32 md:h-40 mb-4">
-                  {trendData.trend.map((item, index) => {
-                    const maxCount = Math.max(...trendData.trend.map(d => d.count), 1)
-                    const heightPercent = (item.count / maxCount) * 100
-                    const opacity = trendData.trend.length <= 1 ? 1 : 0.3 + (index / (trendData.trend.length - 1)) * 0.7
-                    const isLast = index === trendData.trend.length - 1
-
-                    return (
-                      <div key={item.date} className="flex-1 flex flex-col items-center gap-1 group">
-                        <span className="text-[9px] md:text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {item.count}
-                        </span>
-                        <div className="w-full flex items-end justify-center h-20 md:h-28">
-                          <div
-                            className="w-full max-w-[28px] md:max-w-[36px] rounded-t transition-all duration-300 group-hover:opacity-100 cursor-default"
-                            style={{
-                              height: `${Math.max(heightPercent, 4)}%`,
-                              backgroundColor: `rgba(49, 130, 246, ${opacity})`,
-                            }}
-                            title={`${item.date}: ${item.count}명`}
-                          />
-                        </div>
-                        <span className={`text-[9px] md:text-[10px] ${isLast ? 'text-primary font-bold' : 'text-slate-400'}`}>
-                          {trendPeriod === 'daily' ? item.date.slice(5) : item.date}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Summary */}
-                <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 pt-4 border-t border-slate-100 dark:border-slate-800 text-sm">
-                  <div className="text-center">
-                    <span className="text-slate-500 dark:text-slate-400 text-xs">{getSummaryLabel(trendPeriod).total}</span>
-                    <p className="font-bold text-primary">{trendData.summary.total}명</p>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-slate-500 dark:text-slate-400 text-xs">{getSummaryLabel(trendPeriod).avg}</span>
-                    <p className="font-bold">{trendData.summary.average}명</p>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-slate-500 dark:text-slate-400 text-xs">최고</span>
-                    <p className="font-bold">{trendData.summary.max.count}명 <span className="text-xs text-slate-400">({trendData.summary.max.date})</span></p>
-                  </div>
-                </div>
-              </>
-            )
+            </>
           ) : (
             <div className="flex justify-center items-center py-12">
               <span className="material-symbols-outlined animate-spin text-2xl text-primary">progress_activity</span>
