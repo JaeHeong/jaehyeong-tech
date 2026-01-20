@@ -164,7 +164,7 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
         );
 
         if (response.ok) {
-          const data = await response.json();
+          const data = (await response.json()) as { data?: Record<string, number> };
           commentCounts = data.data || {};
         }
       } catch (error) {
