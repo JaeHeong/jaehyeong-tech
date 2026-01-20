@@ -23,8 +23,14 @@ export default function AdminCommentsPage() {
     isOpen: false,
     comment: null,
   })
+  const [editModal, setEditModal] = useState<{ isOpen: boolean; comment: AdminComment | null }>({
+    isOpen: false,
+    comment: null,
+  })
+  const [editContent, setEditContent] = useState('')
   const [bulkDeleteModal, setBulkDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
   const defaultLimit = getPageLimit('comments')
   const [isAllMode, setIsAllMode] = useState(false)
@@ -66,10 +72,14 @@ export default function AdminCommentsPage() {
         if (deleteModal.isOpen) {
           setDeleteModal({ isOpen: false, comment: null })
         }
+        if (editModal.isOpen) {
+          setEditModal({ isOpen: false, comment: null })
+          setEditContent('')
+        }
         if (bulkDeleteModal) {
           setBulkDeleteModal(false)
         }
-      } else if (e.key === 'Enter') {
+      } else if (e.key === 'Enter' && !e.shiftKey) {
         if (deleteModal.isOpen) {
           e.preventDefault()
           handleDelete()
@@ -81,7 +91,7 @@ export default function AdminCommentsPage() {
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [deleteModal.isOpen, bulkDeleteModal])
+  }, [deleteModal.isOpen, editModal.isOpen, bulkDeleteModal])
 
   const handleSelectAll = () => {
     if (selectedIds.length === comments.length) {
@@ -126,6 +136,30 @@ export default function AdminCommentsPage() {
     } finally {
       setIsDeleting(false)
     }
+  }
+
+  const handleEdit = async () => {
+    if (!editModal.comment || !editContent.trim()) return
+
+    setIsEditing(true)
+    try {
+      await api.updateComment(editModal.comment.id, { content: editContent.trim() })
+      // Update local state without refetching
+      setComments((prev) =>
+        prev.map((c) => (c.id === editModal.comment?.id ? { ...c, content: editContent.trim() } : c))
+      )
+      setEditModal({ isOpen: false, comment: null })
+      setEditContent('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '댓글 수정에 실패했습니다.')
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
+  const openEditModal = (comment: AdminComment) => {
+    setEditContent(comment.content)
+    setEditModal({ isOpen: true, comment })
   }
 
   const handleStatusChange = async (commentId: string, newStatus: CommentStatusType) => {
@@ -398,6 +432,16 @@ export default function AdminCommentsPage() {
                                       스팸
                                     </button>
                                   )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openEditModal(comment)
+                                    }}
+                                    className="px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex items-center gap-0.5 md:gap-1"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px] md:text-[16px]">edit</span>
+                                    수정
+                                  </button>
                                 </>
                               )}
                               <button
@@ -526,6 +570,56 @@ export default function AdminCommentsPage() {
                 className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold transition-colors disabled:opacity-50"
               >
                 {isDeleting ? '삭제 중...' : `${selectedIds.length}개 삭제`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => {
+              setEditModal({ isOpen: false, comment: null })
+              setEditContent('')
+            }}
+          />
+          <div className="relative bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl shadow-2xl p-4 md:p-6 max-w-lg w-full border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg text-primary">
+                <span className="material-symbols-outlined text-[20px] md:text-[24px]">edit</span>
+              </div>
+              <h3 className="text-base md:text-lg font-bold">댓글 수정</h3>
+            </div>
+            <div className="mb-3 md:mb-4">
+              <span className="text-xs md:text-sm text-slate-500 dark:text-slate-400">
+                작성자: <strong className="text-slate-900 dark:text-white">{editModal.comment && getAuthorName(editModal.comment)}</strong>
+              </span>
+            </div>
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full h-32 md:h-40 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              placeholder="댓글 내용을 입력하세요..."
+            />
+            <div className="flex gap-2 md:gap-3 justify-end mt-3 md:mt-4">
+              <button
+                onClick={() => {
+                  setEditModal({ isOpen: false, comment: null })
+                  setEditContent('')
+                }}
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs md:text-sm font-medium transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleEdit}
+                disabled={isEditing || !editContent.trim()}
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs md:text-sm font-bold transition-colors disabled:opacity-50"
+              >
+                {isEditing ? '저장 중...' : '저장'}
               </button>
             </div>
           </div>

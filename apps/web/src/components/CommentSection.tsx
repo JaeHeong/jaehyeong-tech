@@ -576,30 +576,40 @@ function CommentItem({
 
 // Main CommentSection Component
 export default function CommentSection({ postId, postAuthorId }: CommentSectionProps) {
-  const { isAdmin } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [comments, setComments] = useState<Comment[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Helper to set isOwner based on current user
+  const setOwnership = useCallback((comment: Comment): Comment => ({
+    ...comment,
+    isOwner: user?.id ? comment.author?.id === user.id : false,
+    replies: comment.replies?.map(r => ({
+      ...r,
+      isOwner: user?.id ? r.author?.id === user.id : false,
+    })),
+  }), [user?.id])
+
   const fetchComments = useCallback(async () => {
     try {
       const data = await api.getComments(postId)
-      setComments(data.comments)
+      setComments(data.comments.map(setOwnership))
       setTotalCount(data.totalCount)
     } catch (err) {
       setError(err instanceof Error ? err.message : '댓글을 불러오는데 실패했습니다.')
     } finally {
       setIsLoading(false)
     }
-  }, [postId])
+  }, [postId, setOwnership])
 
   useEffect(() => {
     fetchComments()
   }, [fetchComments])
 
   const handleNewComment = (comment: Comment) => {
-    setComments([comment, ...comments])
+    setComments([setOwnership(comment), ...comments])
     setTotalCount(totalCount + 1)
   }
 
@@ -609,7 +619,7 @@ export default function CommentSection({ postId, postAuthorId }: CommentSectionP
         if (c.id === parentId) {
           return {
             ...c,
-            replies: [...(c.replies || []), reply],
+            replies: [...(c.replies || []), setOwnership(reply)],
             replyCount: c.replyCount + 1,
           }
         }
