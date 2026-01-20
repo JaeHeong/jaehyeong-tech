@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react'
 import { common, createLowlight } from 'lowlight'
 import katex from 'katex'
 import type { Category, Tag } from '../../services/api'
+import { sanitizeHtml } from '../../utils/sanitize'
 import '../../styles/editorPreview.css'
 
 // Initialize lowlight for syntax highlighting in preview
@@ -37,10 +38,19 @@ function hastToHtml(tree: ReturnType<typeof lowlight.highlight>): string {
   return (tree.children || []).map(nodeToHtml).join('')
 }
 
+// Reusable div for HTML parsing (avoids creating new elements each render)
+let parserDiv: HTMLDivElement | null = null
+function getParserDiv(): HTMLDivElement {
+  if (!parserDiv) {
+    parserDiv = document.createElement('div')
+  }
+  return parserDiv
+}
+
 // Helper to apply syntax highlighting to HTML content
 function highlightCodeBlocks(html: string): string {
-  // Create a temporary div to parse HTML
-  const div = document.createElement('div')
+  // Reuse the same div to avoid repeated DOM element creation
+  const div = getParserDiv()
   div.innerHTML = html
 
   // Find all code blocks and apply highlighting with language labels
@@ -254,7 +264,7 @@ function EditorPreviewModal({
             <div
               className="preview-content"
               dangerouslySetInnerHTML={{
-                __html: highlightedContent || '<p class="text-slate-400">내용이 없습니다.</p>',
+                __html: sanitizeHtml(highlightedContent || '<p class="text-slate-400">내용이 없습니다.</p>'),
               }}
             />
           </article>

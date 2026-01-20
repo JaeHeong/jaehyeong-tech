@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
 import { useSEO } from '../hooks/useSEO'
+import { sanitizeHtml } from '../utils/sanitize'
 
 interface IntroduceContent {
   profile: {
@@ -247,7 +248,7 @@ export default function IntroducePage() {
                 </h2>
                 <p
                   className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm md:text-base"
-                  dangerouslySetInnerHTML={{ __html: content.blogPurpose.content }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.blogPurpose.content) }}
                 />
               </section>
             </div>

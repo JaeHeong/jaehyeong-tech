@@ -5,6 +5,7 @@ import { useModal } from '../contexts/ModalContext'
 import { useToast } from '../contexts/ToastContext'
 import TipTapEditor from '../components/TipTapEditor'
 import { convertToSmartQuotes } from '../utils/smartQuotes'
+import { sanitizeHtml } from '../utils/sanitize'
 import { common, createLowlight } from 'lowlight'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
@@ -369,13 +370,13 @@ export default function AdminDraftEditorPage() {
   }
 
   const handleCoverUpload = useCallback(async (file: File) => {
-    // Check file size before upload (20MB limit)
-    const maxSize = 20 * 1024 * 1024
+    // Check file size before upload (50MB limit)
+    const maxSize = 50 * 1024 * 1024
     if (file.size > maxSize) {
       const fileSizeMB = (file.size / 1024 / 1024).toFixed(1)
       await alert({
         title: '파일 크기 초과',
-        message: `파일 크기가 너무 큽니다. (${fileSizeMB}MB)\n최대 20MB까지 업로드 가능합니다.`,
+        message: `파일 크기가 너무 큽니다. (${fileSizeMB}MB)\n최대 50MB까지 업로드 가능합니다.`,
         type: 'error',
       })
       return
@@ -848,7 +849,7 @@ export default function AdminDraftEditorPage() {
                   <>
                     <span className="material-symbols-outlined text-[28px] md:text-[32px]">add_photo_alternate</span>
                     <span className="text-xs md:text-sm font-medium">커버 이미지 선택</span>
-                    <span className="text-[10px] md:text-xs">JPG, PNG, GIF, WebP (최대 20MB)</span>
+                    <span className="text-[10px] md:text-xs">JPG, PNG, GIF, WebP (최대 50MB)</span>
                   </>
                 )}
               </button>
@@ -1308,7 +1309,7 @@ export default function AdminDraftEditorPage() {
                 {/* Content */}
                 <div
                   className="preview-content"
-                  dangerouslySetInnerHTML={{ __html: formData.content ? highlightCodeBlocks(formData.content) : '<p class="text-slate-400">내용이 없습니다.</p>' }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(formData.content ? highlightCodeBlocks(formData.content) : '<p class="text-slate-400">내용이 없습니다.</p>') }}
                 />
               </article>
             </div>

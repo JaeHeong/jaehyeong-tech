@@ -250,7 +250,7 @@ function EditorSidebar({
                   add_photo_alternate
                 </span>
                 <span className="text-xs md:text-sm font-medium">커버 이미지 선택</span>
-                <span className="text-[10px] md:text-xs">JPG, PNG, GIF, WebP (최대 20MB)</span>
+                <span className="text-[10px] md:text-xs">JPG, PNG, GIF, WebP (최대 50MB)</span>
               </>
             )}
           </button>

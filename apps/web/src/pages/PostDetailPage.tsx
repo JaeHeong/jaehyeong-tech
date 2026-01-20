@@ -8,6 +8,7 @@ import CommentSection from '../components/CommentSection'
 import MobileProfileModal from '../components/MobileProfileModal'
 import { useSEO } from '../hooks/useSEO'
 import { useJsonLd, createBlogPostingSchema, createBreadcrumbSchema } from '../hooks/useJsonLd'
+import { sanitizeHtml } from '../utils/sanitize'
 import { common, createLowlight } from 'lowlight'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
@@ -1209,7 +1210,7 @@ export default function PostDetailPage() {
                 ref={contentRef}
                 className="post-content text-slate-700 dark:text-slate-300"
                 onClick={handleContentClick}
-                dangerouslySetInnerHTML={{ __html: contentWithIds || post.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentWithIds || post.content) }}
               />
 
               {/* Related Posts Carousel */}

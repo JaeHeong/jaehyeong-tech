@@ -293,13 +293,13 @@ export default function AdminPostEditorPage() {
 
   const handleCoverUpload = useCallback(
     async (file: File) => {
-      // Check file size before upload (20MB limit)
-      const maxSize = 20 * 1024 * 1024
+      // Check file size before upload (50MB limit)
+      const maxSize = 50 * 1024 * 1024
       if (file.size > maxSize) {
         const fileSizeMB = (file.size / 1024 / 1024).toFixed(1)
         await alert({
           title: '파일 크기 초과',
-          message: `파일 크기가 너무 큽니다. (${fileSizeMB}MB)\n최대 20MB까지 업로드 가능합니다.`,
+          message: `파일 크기가 너무 큽니다. (${fileSizeMB}MB)\n최대 50MB까지 업로드 가능합니다.`,
           type: 'error',
         })
         return

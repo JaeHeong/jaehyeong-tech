@@ -5,6 +5,7 @@ import MobileProfileModal from '../components/MobileProfileModal'
 import api, { type Page } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
 import { useSEO } from '../hooks/useSEO'
+import { sanitizeHtml } from '../utils/sanitize'
 
 interface AdjacentNotice {
   slug: string
@@ -341,7 +342,7 @@ export default function NoticeDetailPage() {
             {/* Content */}
             <div
               className="notice-content text-slate-700 dark:text-slate-300 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: notice.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(notice.content) }}
             />
 
             {/* Previous / Next Navigation */}
