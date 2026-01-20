@@ -154,4 +154,51 @@ router.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'comment-service', internal: true });
 });
 
+/**
+ * GET /internal/comments/count-by-users
+ * Get comment counts grouped by user IDs (for admin users page)
+ */
+router.get('/comments/count-by-users', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = tenantPrisma.getClient(req.tenant!.id);
+    const { userIds } = req.query;
+
+    if (!userIds || typeof userIds !== 'string') {
+      res.json({ data: {} });
+      return;
+    }
+
+    const userIdList = userIds.split(',').filter(Boolean);
+    if (userIdList.length === 0) {
+      res.json({ data: {} });
+      return;
+    }
+
+    // Group by authorId and count comments
+    const counts = await prisma.comment.groupBy({
+      by: ['authorId'],
+      where: {
+        tenantId: req.tenant!.id,
+        authorId: { in: userIdList },
+        isDeleted: false,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    // Convert to { userId: count } format
+    const result: Record<string, number> = {};
+    for (const item of counts) {
+      if (item.authorId) {
+        result[item.authorId] = item._count.id;
+      }
+    }
+
+    res.json({ data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

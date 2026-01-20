@@ -134,11 +134,6 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
           status: true,
           lastLoginAt: true,
           createdAt: true,
-          _count: {
-            select: {
-              comments: true,
-            },
-          },
         },
         skip,
         take: Number(limit),
@@ -149,18 +144,39 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
       prisma.user.count({ where }),
     ]);
 
+    // Fetch comment counts from comment-service
+    let commentCounts: Record<string, number> = {};
+    const userIds = users.map((user) => user.id);
+
+    if (userIds.length > 0) {
+      try {
+        const commentServiceUrl = process.env.COMMENT_SERVICE_URL || 'http://comment-service:3003';
+        const response = await fetch(
+          `${commentServiceUrl}/internal/comments/count-by-users?userIds=${userIds.join(',')}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-request': 'true',
+              'x-tenant-id': tenant.id,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          commentCounts = data.data || {};
+        }
+      } catch (error) {
+        console.error('Failed to fetch comment counts from comment-service:', error);
+        // Continue without comment counts
+      }
+    }
+
     // Transform to include commentCount
     const usersWithCommentCount = users.map((user) => ({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatar: user.avatar,
-      bio: user.bio,
-      role: user.role,
-      status: user.status,
-      lastLoginAt: user.lastLoginAt,
-      createdAt: user.createdAt,
-      commentCount: user._count.comments,
+      ...user,
+      commentCount: commentCounts[user.id] || 0,
     }));
 
     res.json({
