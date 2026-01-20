@@ -1,5 +1,5 @@
 import useSWR, { SWRConfiguration } from 'swr'
-import { api, type Post, type Category, type Tag, type Page, type AuthorInfo } from '../services/api'
+import { api } from '../services/api'
 
 // Global SWR configuration
 export const swrConfig: SWRConfiguration = {
@@ -9,11 +9,6 @@ export const swrConfig: SWRConfiguration = {
   errorRetryCount: 2,
 }
 
-// Fetcher wrapper to handle API responses
-const fetcher = async <T>(key: string, fetchFn: () => Promise<T>): Promise<T> => {
-  return fetchFn()
-}
-
 // Posts hooks
 export function usePosts(params?: {
   page?: number
@@ -21,7 +16,7 @@ export function usePosts(params?: {
   category?: string
   tag?: string
   search?: string
-  status?: string
+  status?: 'PUBLISHED' | 'PRIVATE' | 'PUBLIC' | 'ALL'
   sortBy?: string
   featured?: boolean
 }) {
