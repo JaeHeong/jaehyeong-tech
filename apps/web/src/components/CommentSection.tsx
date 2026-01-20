@@ -365,8 +365,8 @@ function CommentItem({
   }
 
   return (
-    <div className="group/comment">
-      <div className="p-3 md:p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+    <>
+      <div className="group p-3 md:p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
         {/* Header */}
         <div className="flex items-start justify-between gap-2 md:gap-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -460,7 +460,7 @@ function CommentItem({
 
         {/* Actions - hide for deleted comments */}
         {!showEditForm && !comment.isDeleted && (
-          <div className="flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 md:opacity-0 md:group-hover/comment:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             {/* Show reply button on all comments (replies will attach to parent, keeping depth=1) */}
             {comment.canView !== false && (
               <button
@@ -506,7 +506,7 @@ function CommentItem({
         </div>
       )}
 
-      {/* Replies */}
+      {/* Replies - outside group so they have independent hover */}
       {comment.replies && comment.replies.length > 0 && (
         <div className="mt-2 md:mt-3 space-y-2 md:space-y-3">
           {comment.replies.map((reply) => (
@@ -585,7 +585,7 @@ function CommentItem({
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
