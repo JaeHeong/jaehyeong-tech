@@ -115,6 +115,28 @@ class OCIStorageService {
     return `https://objectstorage.${region}.oraclecloud.com/n/${this.namespace}/b/${this.bucket}/o/${encodeURIComponent(objectName)}`;
   }
 
+  async fileExists(objectName: string): Promise<boolean> {
+    if (!this.client) {
+      throw new Error('OCI Object Storage not initialized');
+    }
+
+    try {
+      await this.client.headObject({
+        namespaceName: this.namespace,
+        bucketName: this.bucket,
+        objectName,
+      });
+      return true;
+    } catch (error: any) {
+      // 404 means file doesn't exist
+      if (error.statusCode === 404) {
+        return false;
+      }
+      // Re-throw other errors
+      throw error;
+    }
+  }
+
   // ===== Backup Bucket Methods =====
 
   async uploadToBackupBucket(

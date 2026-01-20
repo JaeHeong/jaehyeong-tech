@@ -41,6 +41,7 @@ export default function AdminManagementPage() {
   const [imageStats, setImageStats] = useState<ImageStats | null>(null)
   const [isLoadingImages, setIsLoadingImages] = useState(false)
   const [isDeletingOrphans, setIsDeletingOrphans] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [imageMessage, setImageMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Backup functions
@@ -184,6 +185,31 @@ export default function AdminManagementPage() {
       setImageMessage({ type: 'error', text: '이미지 정보를 불러오는데 실패했습니다.' })
     } finally {
       setIsLoadingImages(false)
+    }
+  }
+
+  const handleSyncImages = async () => {
+    setIsSyncing(true)
+    setImageMessage(null)
+    try {
+      const result = await api.syncImages()
+      if (result.removed > 0) {
+        setImageMessage({
+          type: 'success',
+          text: `동기화 완료: ${result.checked}개 확인, ${result.removed}개 DB 레코드 정리 (${formatBytes(result.freedSpace)})`,
+        })
+        // Refresh orphan images after sync
+        fetchOrphanImages()
+      } else {
+        setImageMessage({
+          type: 'success',
+          text: `동기화 완료: ${result.checked}개 확인, 모든 레코드가 버킷과 일치합니다.`,
+        })
+      }
+    } catch {
+      setImageMessage({ type: 'error', text: 'DB 동기화에 실패했습니다.' })
+    } finally {
+      setIsSyncing(false)
     }
   }
 
@@ -442,23 +468,43 @@ export default function AdminManagementPage() {
                 어떤 게시물에도 연결되지 않은 고아 이미지를 정리합니다.
               </p>
             </div>
-            <button
-              onClick={fetchOrphanImages}
-              disabled={isLoadingImages}
-              className="px-3 md:px-4 py-1.5 md:py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs md:text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 md:gap-2"
-            >
-              {isLoadingImages ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin text-[16px] md:text-[18px]">progress_activity</span>
-                  분석 중...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-[16px] md:text-[18px]">search</span>
-                  고아 이미지 검색
-                </>
-              )}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSyncImages}
+                disabled={isSyncing || isLoadingImages}
+                className="px-3 md:px-4 py-1.5 md:py-2 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs md:text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 md:gap-2"
+                title="버킷에서 삭제된 파일의 DB 레코드를 정리합니다"
+              >
+                {isSyncing ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-[16px] md:text-[18px]">progress_activity</span>
+                    동기화 중...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[16px] md:text-[18px]">sync</span>
+                    DB 동기화
+                  </>
+                )}
+              </button>
+              <button
+                onClick={fetchOrphanImages}
+                disabled={isLoadingImages || isSyncing}
+                className="px-3 md:px-4 py-1.5 md:py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs md:text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 md:gap-2"
+              >
+                {isLoadingImages ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-[16px] md:text-[18px]">progress_activity</span>
+                    분석 중...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[16px] md:text-[18px]">search</span>
+                    고아 이미지 검색
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Image Message */}

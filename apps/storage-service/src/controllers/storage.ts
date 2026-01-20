@@ -554,6 +554,74 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
 }
 
 /**
+ * DB와 버킷 동기화 (관리자 전용)
+ * 버킷에 없는 파일의 DB 레코드를 삭제합니다.
+ * POST /api/files/sync
+ */
+export async function syncFilesWithBucket(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user || req.user.role !== 'ADMIN') {
+      throw new AppError('관리자 권한이 필요합니다.', 403);
+    }
+
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+
+    // DB에서 모든 파일 레코드 조회
+    const dbFiles = await prisma.file.findMany({
+      where: { tenantId: tenant.id },
+      select: { id: true, objectName: true, size: true },
+    });
+
+    if (dbFiles.length === 0) {
+      res.json({
+        data: {
+          checked: 0,
+          removed: 0,
+          freedSpace: 0,
+        },
+      });
+      return;
+    }
+
+    // 버킷에서 실제 존재 여부 확인 (병렬 처리)
+    const existenceChecks = await Promise.allSettled(
+      dbFiles.map(async (file) => {
+        const exists = await ociStorage.fileExists(file.objectName);
+        return { file, exists };
+      })
+    );
+
+    // 버킷에 없는 파일 찾기
+    const missingFiles: { id: string; objectName: string; size: number }[] = [];
+    for (const result of existenceChecks) {
+      if (result.status === 'fulfilled' && !result.value.exists) {
+        missingFiles.push(result.value.file);
+      }
+    }
+
+    // DB에서 누락된 파일 레코드 삭제
+    if (missingFiles.length > 0) {
+      await prisma.file.deleteMany({
+        where: { id: { in: missingFiles.map((f) => f.id) } },
+      });
+    }
+
+    const freedSpace = missingFiles.reduce((sum, f) => sum + f.size, 0);
+
+    res.json({
+      data: {
+        checked: dbFiles.length,
+        removed: missingFiles.length,
+        freedSpace,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * 고아 파일 일괄 삭제 (관리자 전용)
  * Excludes:
  * - Images used in draft content

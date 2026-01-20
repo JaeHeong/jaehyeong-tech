@@ -464,6 +464,13 @@ class ApiClient {
     return response.data
   }
 
+  async syncImages() {
+    const response = await this.request<{ data: { checked: number; removed: number; freedSpace: number } }>('/files/sync', {
+      method: 'POST',
+    })
+    return response.data
+  }
+
   async deleteImage(url: string) {
     return this.request<{ message: string; deleted: boolean }>('/files/delete-by-url', {
       method: 'POST',

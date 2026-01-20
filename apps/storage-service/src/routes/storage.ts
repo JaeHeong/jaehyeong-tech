@@ -7,6 +7,7 @@ import {
   deleteFileByUrl,
   getOrphanFiles,
   deleteOrphanFiles,
+  syncFilesWithBucket,
 } from '../controllers/storage';
 import { resolveTenant } from '../middleware/tenantResolver';
 import { authenticate, optionalAuthenticate, requireAuth, requireAdmin } from '../middleware/authenticate';
@@ -26,6 +27,9 @@ router.get('/', optionalAuthenticate, getFiles);
 // 고아 파일 관리 (관리자 전용) - /:id 보다 먼저 정의 (authenticate -> requireAdmin)
 router.get('/orphans', authenticate, requireAdmin, getOrphanFiles);
 router.delete('/orphans', authenticate, requireAdmin, deleteOrphanFiles);
+
+// DB-버킷 동기화 (관리자 전용)
+router.post('/sync', authenticate, requireAdmin, syncFilesWithBucket);
 
 // 파일 상세 조회
 router.get('/:id', optionalAuthenticate, getFile);
