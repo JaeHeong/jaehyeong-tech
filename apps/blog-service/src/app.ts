@@ -7,6 +7,7 @@ import { tagRouter } from './routes/tag';
 import { bookmarkRouter } from './routes/bookmark';
 import { draftRouter } from './routes/draft';
 import { seoRouter } from './routes/seo';
+import { likeRouter } from './routes/like';
 import { internalRouter } from './routes/internal';
 
 const app: Application = express();
@@ -30,6 +31,7 @@ app.use('/api/posts', postRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/tags', tagRouter);
 app.use('/api/bookmarks', bookmarkRouter);
+app.use('/api/likes', likeRouter);
 app.use('/api/drafts', draftRouter);
 
 // SEO routes (served at root level)

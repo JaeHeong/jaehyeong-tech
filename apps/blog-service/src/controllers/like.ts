@@ -16,7 +16,7 @@ export async function toggleLike(req: Request, res: Response, next: NextFunction
     }
 
     const prisma = tenantPrisma.getClient(req.tenant.id);
-    const { id: postId } = req.params;
+    const { postId } = req.params;
 
     // Check if post exists
     const post = await prisma.post.findUnique({
@@ -123,7 +123,7 @@ export async function checkLikeStatus(req: Request, res: Response, next: NextFun
     }
 
     const prisma = tenantPrisma.getClient(req.tenant.id);
-    const { id: postId } = req.params;
+    const { postId } = req.params;
 
     const userId = req.user?.id;
     const ipHash = userId ? null : hashIP(getClientIP(req));

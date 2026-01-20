@@ -483,18 +483,48 @@ export async function getMyComments(req: Request, res: Response, next: NextFunct
       prisma.comment.count({ where }),
     ]);
 
+    // Collect unique post IDs for enrichment
+    const postIds = new Set<string>();
+    for (const comment of comments) {
+      if (comment.resourceType === 'post' && comment.resourceId) {
+        postIds.add(comment.resourceId);
+      }
+    }
+
+    // Fetch post info from blog-service
+    let postsMap: Record<string, { id: string; slug: string; title: string }> = {};
+    if (postIds.size > 0) {
+      try {
+        const blogServiceUrl = process.env.BLOG_SERVICE_URL || 'http://blog-service:3002';
+        const response = await fetch(`${blogServiceUrl}/internal/posts/basic?ids=${Array.from(postIds).join(',')}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-request': 'true',
+            'x-tenant-id': tenant.id,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json() as { success: boolean; data: typeof postsMap };
+          postsMap = data.data || {};
+        }
+      } catch (err) {
+        console.error('Failed to fetch post info from blog-service:', err);
+      }
+    }
+
     res.json({
       data: comments.map((c) => ({
         id: c.id,
         content: c.content,
-        resourceType: c.resourceType,
-        resourceId: c.resourceId,
         isPrivate: c.isPrivate,
         parentId: c.parentId,
-        status: c.status,
         replyCount: c._count.replies,
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString(),
+        post: c.resourceType === 'post' && c.resourceId
+          ? postsMap[c.resourceId] || { id: c.resourceId, slug: c.resourceId, title: '삭제된 게시글' }
+          : null,
       })),
       meta: {
         total,
