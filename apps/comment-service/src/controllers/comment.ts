@@ -117,7 +117,8 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
 
     const where: any = {
       tenantId: tenant.id,
-      isDeleted: false,
+      // Include deleted comments so their replies can still be shown
+      // isDeleted filtering is handled in response transformation
     };
 
     if (resourceType) {
@@ -158,6 +159,7 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
           status: true,
           parentId: true,
           isPrivate: true,
+          isDeleted: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -208,19 +210,25 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
       }
     }
 
-    // Enrich comments with author info and handle private comments
+    // Enrich comments with author info and handle private/deleted comments
     const enrichedComments = comments.map((comment) => {
       const canViewPrivate = !comment.isPrivate ||
         isAdmin ||
         (currentUserId && comment.authorId === currentUserId);
 
+      // Determine content to show
+      let displayContent = comment.content;
+      if (comment.isDeleted) {
+        displayContent = '삭제된 댓글입니다.';
+      } else if (!canViewPrivate) {
+        displayContent = '비공개 댓글입니다.';
+      }
+
       return {
         ...comment,
-        // Mask content for private comments that user can't view
-        content: canViewPrivate ? comment.content : '비공개 댓글입니다.',
+        content: displayContent,
         author: comment.authorId ? authorsMap[comment.authorId] || null : null,
-        // Flag to indicate if user can view the full content
-        canView: canViewPrivate,
+        canView: canViewPrivate && !comment.isDeleted,
       };
     });
 
@@ -888,6 +896,12 @@ export async function getAllComments(req: Request, res: Response, next: NextFunc
     // Wait for all fetches in parallel
     await Promise.all(fetchPromises);
 
+    // Build a map of comment id -> isDeleted for parent lookup
+    const deletedMap = new Map<string, boolean>();
+    for (const comment of comments) {
+      deletedMap.set(comment.id, comment.isDeleted);
+    }
+
     // Enrich comments with post and author info
     const enrichedComments = comments.map((comment) => ({
       id: comment.id,
@@ -897,6 +911,7 @@ export async function getAllComments(req: Request, res: Response, next: NextFunc
       status: comment.status,
       guestName: comment.guestName,
       parentId: comment.parentId,
+      parentIsDeleted: comment.parentId ? deletedMap.get(comment.parentId) || false : false,
       createdAt: comment.createdAt,
       author: comment.authorId ? authorsMap[comment.authorId] || null : null,
       post: comment.resourceType?.toLowerCase() === 'post' && comment.resourceId

@@ -328,9 +328,15 @@ export default function AdminCommentsPage() {
                               </span>
                             )}
                             {comment.parentId && (
-                              <span className="px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 flex items-center gap-0.5 md:gap-1">
-                                <span className="material-symbols-outlined text-[10px] md:text-[12px]">reply</span>
-                                답글
+                              <span className={`px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium flex items-center gap-0.5 md:gap-1 ${
+                                comment.parentIsDeleted
+                                  ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                              }`}>
+                                <span className="material-symbols-outlined text-[10px] md:text-[12px]">
+                                  {comment.parentIsDeleted ? 'link_off' : 'reply'}
+                                </span>
+                                {comment.parentIsDeleted ? '고아 답글' : '답글'}
                               </span>
                             )}
                           </div>

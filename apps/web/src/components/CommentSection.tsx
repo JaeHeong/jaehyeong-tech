@@ -435,7 +435,7 @@ function CommentItem({
           </div>
         ) : (
           <p className={`mt-2 md:mt-3 text-xs md:text-sm leading-relaxed whitespace-pre-wrap ${
-            comment.isPrivate && comment.canView === false
+            comment.isDeleted || (comment.isPrivate && comment.canView === false)
               ? 'text-slate-400 dark:text-slate-500 italic'
               : 'text-slate-700 dark:text-slate-300'
           }`}>
@@ -443,8 +443,8 @@ function CommentItem({
           </p>
         )}
 
-        {/* Actions */}
-        {!showEditForm && (
+        {/* Actions - hide for deleted comments */}
+        {!showEditForm && !comment.isDeleted && (
           <div className="flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             {/* Only show reply button for top-level comments that user can view */}
             {!comment.parentId && comment.canView !== false && (

@@ -497,6 +497,7 @@ class ApiClient {
       status: string
       parentId: string | null
       isPrivate: boolean
+      isDeleted: boolean
       canView: boolean
       createdAt: string
       updatedAt: string
@@ -513,7 +514,7 @@ class ApiClient {
       postId: c.resourceId,
       parentId: c.parentId,
       isPrivate: c.isPrivate,
-      isDeleted: false,
+      isDeleted: c.isDeleted,
       author: c.author || null,
       guestName: c.guestName,
       isOwner: false, // Can't determine without current user
@@ -1404,6 +1405,7 @@ export interface AdminComment {
   resourceType?: string
   resourceId?: string
   parentId: string | null
+  parentIsDeleted?: boolean
   createdAt: string
 }
 
