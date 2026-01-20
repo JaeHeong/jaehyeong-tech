@@ -256,6 +256,7 @@ function CommentItem({
   const [isUpdating, setIsUpdating] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isHovered, setIsHovered] = useState(false)
 
   const canEdit = isAdmin || comment.isOwner || (!comment.author && comment.guestName)
   const canDelete = isAdmin || comment.isOwner || (!comment.author && comment.guestName)
@@ -366,7 +367,11 @@ function CommentItem({
 
   return (
     <>
-      <div className="group p-3 md:p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+      <div
+        className="p-3 md:p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         {/* Header */}
         <div className="flex items-start justify-between gap-2 md:gap-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -460,7 +465,7 @@ function CommentItem({
 
         {/* Actions - hide for deleted comments */}
         {!showEditForm && !comment.isDeleted && (
-          <div className="flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <div className={`flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 transition-opacity ${isHovered ? 'opacity-100' : 'md:opacity-0'}`}>
             {/* Show reply button on all comments (replies will attach to parent, keeping depth=1) */}
             {comment.canView !== false && (
               <button
