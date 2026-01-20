@@ -26,10 +26,11 @@ export async function createComment(req: Request, res: Response, next: NextFunct
     const ipHash = hashIP(getClientIP(req as any));
 
     // 댓글 생성
+    // 인증된 사용자의 댓글은 자동 승인, 익명 댓글은 승인 대기
     const comment = await prisma.comment.create({
       data: {
         tenantId: tenant.id,
-        resourceType,
+        resourceType: resourceType.toLowerCase(), // Normalize to lowercase
         resourceId,
         content,
         authorId,
@@ -37,7 +38,7 @@ export async function createComment(req: Request, res: Response, next: NextFunct
         guestEmail,
         parentId,
         ipHash,
-        status: 'PENDING', // 기본값: 승인 대기
+        status: authorId ? 'APPROVED' : 'PENDING',
       },
       include: {
         parent: {
