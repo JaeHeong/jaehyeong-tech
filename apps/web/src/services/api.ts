@@ -570,7 +570,7 @@ class ApiClient {
 
   async updateComment(commentId: string, data: UpdateCommentData) {
     const response = await this.request<{ data: Comment }>(`/comments/${commentId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: data,
     })
     return response.data
