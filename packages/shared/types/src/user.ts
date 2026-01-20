@@ -10,6 +10,8 @@ export interface RequestUser {
   tenantId: string;
   email: string;
   role: UserRole | string;
+  name: string;
+  avatar?: string | null;
 }
 
 // Full User model for Auth Service

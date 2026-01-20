@@ -62,12 +62,27 @@ export async function createComment(req: Request, res: Response, next: NextFunct
       },
     });
 
-    // Include author info in response for authenticated users
-    const author = req.user ? {
-      id: req.user.id,
-      name: req.user.name,
-      avatar: req.user.avatar || null,
-    } : null;
+    // Fetch author info from auth-service for authenticated users
+    let author: { id: string; name: string; avatar: string | null } | null = null;
+    if (req.user?.id) {
+      try {
+        const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+        const response = await fetch(`${authServiceUrl}/internal/users/basic?ids=${req.user.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-request': 'true',
+            'x-tenant-id': tenant.id,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json() as { success: boolean; data: Record<string, { id: string; name: string; avatar: string | null }> };
+          author = data.data?.[req.user.id] || null;
+        }
+      } catch (err) {
+        console.error('Failed to fetch author info:', err);
+      }
+    }
 
     res.status(201).json({
       data: {
