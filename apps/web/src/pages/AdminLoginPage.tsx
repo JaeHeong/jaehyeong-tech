@@ -50,8 +50,13 @@ export default function AdminLoginPage() {
       try {
         await googleLogin(response.credential)
         navigate('/admin', { replace: true })
-      } catch {
-        // Error is handled in the context
+      } catch (err) {
+        // Check if the error is about suspended account
+        const message = err instanceof Error ? err.message : ''
+        if (message.includes('정지')) {
+          navigate('/suspended', { replace: true })
+        }
+        // Other errors are handled in the context
       }
     },
     [googleLogin, navigate, clearError]
