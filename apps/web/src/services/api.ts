@@ -485,14 +485,50 @@ class ApiClient {
   }
 
   async getComments(postId: string) {
-    const response = await this.request<{ data: CommentsResponse }>(`/comments/post/${postId}`)
-    return response.data
+    // Backend returns { data: Comment[], meta: {...} }
+    // We need to transform it to CommentsResponse format
+    interface BackendComment {
+      id: string
+      content: string
+      authorId: string | null
+      guestName: string | null
+      resourceType: string
+      resourceId: string
+      status: string
+      parentId: string | null
+      createdAt: string
+      updatedAt: string
+      _count?: { replies: number }
+    }
+
+    const response = await this.request<{ data: BackendComment[]; meta: { total: number } }>(`/comments?resourceType=post&resourceId=${postId}`)
+
+    // Transform backend comments to frontend format
+    const comments: Comment[] = response.data.map(c => ({
+      id: c.id,
+      content: c.content,
+      postId: c.resourceId,
+      parentId: c.parentId,
+      isPrivate: false,
+      isDeleted: false,
+      author: null, // Author info not available from this endpoint
+      guestName: c.guestName,
+      isOwner: false, // Can't determine without current user
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+      replyCount: c._count?.replies || 0,
+    }))
+
+    return {
+      comments,
+      totalCount: response.meta.total,
+    }
   }
 
   async createComment(postId: string, data: CreateCommentData) {
-    const response = await this.request<{ data: Comment }>(`/comments/post/${postId}`, {
+    const response = await this.request<{ data: Comment }>('/comments', {
       method: 'POST',
-      body: data,
+      body: { ...data, resourceType: 'post', resourceId: postId },
     })
     return response.data
   }
@@ -612,7 +648,7 @@ class ApiClient {
   }
 
   async checkBookmarkStatus(postId: string) {
-    const response = await this.request<{ data: BookmarkResponse }>(`/bookmarks/${postId}`)
+    const response = await this.request<{ data: BookmarkResponse }>(`/bookmarks/${postId}/status`)
     return response.data
   }
 
@@ -622,24 +658,74 @@ class ApiClient {
     if (params?.limit) searchParams.set('limit', params.limit.toString())
 
     const query = searchParams.toString()
-    const response = await this.request<MyBookmarksResponse>(`/bookmarks${query ? `?${query}` : ''}`)
-    return response.data
+
+    // Backend returns { data: Bookmark[], meta: {...} }
+    // We need to transform it to { posts: BookmarkedPost[], pagination: {...} }
+    interface BookmarkData {
+      id: string
+      postId: string
+      userId: string
+      createdAt: string
+      post: {
+        id: string
+        slug: string
+        title: string
+        excerpt: string | null
+        coverImage: string | null
+        viewCount: number
+        likeCount: number
+        readingTime: number
+        createdAt: string
+        publishedAt: string | null
+        category: { id: string; name: string; slug: string }
+        tags: { id: string; name: string; slug: string }[]
+      }
+    }
+
+    const response = await this.request<{ data: BookmarkData[]; meta: { total: number; page: number; limit: number; totalPages: number } }>(`/bookmarks${query ? `?${query}` : ''}`)
+
+    // Transform to expected format
+    const posts: BookmarkedPost[] = response.data.map(bookmark => ({
+      id: bookmark.post.id,
+      slug: bookmark.post.slug,
+      title: bookmark.post.title,
+      excerpt: bookmark.post.excerpt || '',
+      coverImage: bookmark.post.coverImage,
+      viewCount: bookmark.post.viewCount,
+      likeCount: bookmark.post.likeCount,
+      readingTime: bookmark.post.readingTime,
+      createdAt: bookmark.post.createdAt,
+      publishedAt: bookmark.post.publishedAt,
+      category: bookmark.post.category,
+      tags: bookmark.post.tags,
+      commentCount: 0, // Not available from bookmark endpoint
+      bookmarkedAt: bookmark.createdAt,
+    }))
+
+    return {
+      posts,
+      pagination: {
+        page: response.meta.page,
+        limit: response.meta.limit,
+        total: response.meta.total,
+        totalPages: response.meta.totalPages,
+      },
+    }
   }
 
   async removeBookmark(postId: string) {
-    return this.request<{ message: string }>(`/bookmarks/${postId}`, {
-      method: 'DELETE',
-    })
+    // Backend uses POST toggle, so we call toggleBookmark to remove
+    return this.toggleBookmark(postId)
   }
 
   // User profile endpoints
   async getMyProfile() {
-    const response = await this.request<{ data: UserProfile }>('/users/me')
+    const response = await this.request<{ data: UserProfile }>('/auth/me')
     return response.data
   }
 
   async updateMyProfile(data: { name?: string; avatar?: string | null; bio?: string | null }) {
-    const response = await this.request<{ data: UserProfile }>('/users/me', {
+    const response = await this.request<{ data: UserProfile }>('/auth/me', {
       method: 'PUT',
       body: data,
     })
