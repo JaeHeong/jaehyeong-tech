@@ -499,6 +499,7 @@ class ApiClient {
       createdAt: string
       updatedAt: string
       _count?: { replies: number }
+      author?: { id: string; name: string; avatar: string | null } | null
     }
 
     const response = await this.request<{ data: BackendComment[]; meta: { total: number } }>(`/comments?resourceType=post&resourceId=${postId}`)
@@ -511,7 +512,7 @@ class ApiClient {
       parentId: c.parentId,
       isPrivate: false,
       isDeleted: false,
-      author: null, // Author info not available from this endpoint
+      author: c.author || null,
       guestName: c.guestName,
       isOwner: false, // Can't determine without current user
       createdAt: c.createdAt,

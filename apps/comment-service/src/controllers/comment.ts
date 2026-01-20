@@ -151,8 +151,43 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
       prisma.comment.count({ where }),
     ]);
 
+    // Fetch author info from auth-service
+    const authorIds = new Set<string>();
+    for (const comment of comments) {
+      if (comment.authorId) {
+        authorIds.add(comment.authorId);
+      }
+    }
+
+    let authorsMap: Record<string, { id: string; name: string; avatar: string | null }> = {};
+    if (authorIds.size > 0) {
+      try {
+        const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+        const response = await fetch(`${authServiceUrl}/internal/users/basic?ids=${Array.from(authorIds).join(',')}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-request': 'true',
+            'x-tenant-id': tenant.id,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json() as { success: boolean; data: typeof authorsMap };
+          authorsMap = data.data || {};
+        }
+      } catch (err) {
+        console.error('Failed to fetch author info from auth-service:', err);
+      }
+    }
+
+    // Enrich comments with author info
+    const enrichedComments = comments.map((comment) => ({
+      ...comment,
+      author: comment.authorId ? authorsMap[comment.authorId] || null : null,
+    }));
+
     res.json({
-      data: comments,
+      data: enrichedComments,
       meta: {
         total,
         page,
