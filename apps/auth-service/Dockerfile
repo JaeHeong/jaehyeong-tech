@@ -56,6 +56,7 @@ COPY --from=builder /app/packages/shared/events/dist ./packages/shared/events/di
 COPY --from=builder /app/packages/shared/events/package.json ./packages/shared/events/
 COPY --from=builder /app/packages/shared/utils/dist ./packages/shared/utils/dist
 COPY --from=builder /app/packages/shared/utils/package.json ./packages/shared/utils/
+COPY --from=builder /app/packages/shared/utils/node_modules ./packages/shared/utils/node_modules
 COPY --from=builder /app/apps/auth-service/dist ./apps/auth-service/dist
 COPY --from=builder /app/apps/auth-service/prisma ./apps/auth-service/prisma
 
