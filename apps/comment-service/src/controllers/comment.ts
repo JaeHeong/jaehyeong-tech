@@ -422,18 +422,88 @@ export async function getRecentComments(req: Request, res: Response, next: NextF
       take: limit,
     });
 
-    res.json({
-      data: comments.map((comment) => ({
-        id: comment.id,
-        content: comment.content.length > 80
-          ? comment.content.substring(0, 80) + '...'
-          : comment.content,
-        authorName: comment.guestName || '익명',
-        authorId: comment.authorId,
-        resourceId: comment.resourceId,
-        createdAt: comment.createdAt.toISOString(),
-      })),
-    });
+    // Collect post IDs for enrichment
+    const postIds = new Set<string>();
+    for (const comment of comments) {
+      if (comment.resourceId) {
+        postIds.add(comment.resourceId);
+      }
+    }
+
+    // Fetch post info from blog-service
+    let postsMap: Record<string, { id: string; slug: string; title: string }> = {};
+    if (postIds.size > 0) {
+      try {
+        const blogServiceUrl = process.env.BLOG_SERVICE_URL || 'http://blog-service:3002';
+        const response = await fetch(`${blogServiceUrl}/internal/posts/basic?ids=${Array.from(postIds).join(',')}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-request': 'true',
+            'x-tenant-id': tenant.id,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json() as { success: boolean; data: typeof postsMap };
+          postsMap = data.data || {};
+        }
+      } catch (err) {
+        console.error('Failed to fetch post info from blog-service:', err);
+      }
+    }
+
+    // Fetch author info from auth-service
+    const authorIds = new Set<string>();
+    for (const comment of comments) {
+      if (comment.authorId) {
+        authorIds.add(comment.authorId);
+      }
+    }
+
+    let authorsMap: Record<string, { id: string; name: string; avatar: string | null }> = {};
+    if (authorIds.size > 0) {
+      try {
+        const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+        const response = await fetch(`${authServiceUrl}/internal/users/basic?ids=${Array.from(authorIds).join(',')}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-request': 'true',
+            'x-tenant-id': tenant.id,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json() as { success: boolean; data: typeof authorsMap };
+          authorsMap = data.data || {};
+        }
+      } catch (err) {
+        console.error('Failed to fetch author info from auth-service:', err);
+      }
+    }
+
+    // Filter out comments without valid posts and enrich with post/author info
+    const enrichedComments = comments
+      .filter((comment) => comment.resourceId && postsMap[comment.resourceId])
+      .map((comment) => {
+        const author = comment.authorId ? authorsMap[comment.authorId] : null;
+        const post = postsMap[comment.resourceId!];
+        return {
+          id: comment.id,
+          content: comment.content.length > 80
+            ? comment.content.substring(0, 80) + '...'
+            : comment.content,
+          authorName: author?.name || comment.guestName || '익명',
+          authorAvatar: author?.avatar || null,
+          createdAt: comment.createdAt.toISOString(),
+          post: {
+            id: post.id,
+            slug: post.slug,
+            title: post.title,
+          },
+        };
+      });
+
+    res.json({ data: enrichedComments });
   } catch (error) {
     next(error);
   }
