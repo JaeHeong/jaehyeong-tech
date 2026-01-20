@@ -25,8 +25,7 @@ export async function createComment(req: Request, res: Response, next: NextFunct
     // IP 해싱 (스팸 방지)
     const ipHash = hashIP(getClientIP(req as any));
 
-    // 댓글 생성
-    // 인증된 사용자의 댓글은 자동 승인, 익명 댓글은 승인 대기
+    // 댓글 생성 - 모든 댓글 자동 승인
     const comment = await prisma.comment.create({
       data: {
         tenantId: tenant.id,
@@ -38,7 +37,7 @@ export async function createComment(req: Request, res: Response, next: NextFunct
         guestEmail,
         parentId,
         ipHash,
-        status: authorId ? 'APPROVED' : 'PENDING',
+        status: 'APPROVED',
       },
       include: {
         parent: {
@@ -332,12 +331,12 @@ export async function updateComment(req: Request, res: Response, next: NextFunct
       throw new AppError('익명 댓글은 수정할 수 없습니다.', 403);
     }
 
-    // 댓글 수정
+    // 댓글 수정 - 인증된 사용자는 자동 승인 유지
     const updated = await prisma.comment.update({
       where: { id },
       data: {
         content,
-        status: 'PENDING', // 수정 시 다시 승인 대기
+        status: 'APPROVED', // 인증된 사용자 댓글은 자동 승인
       },
     });
 
@@ -349,7 +348,7 @@ export async function updateComment(req: Request, res: Response, next: NextFunct
         commentId: updated.id,
         changes: {
           content,
-          status: 'PENDING' as CommentStatus,
+          status: 'APPROVED' as CommentStatus,
         },
       },
     });
