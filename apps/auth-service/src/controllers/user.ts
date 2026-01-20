@@ -97,7 +97,7 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
   try {
     const tenant = req.tenant as Tenant;
     const prisma = tenantPrisma.getClient(tenant.id);
-    const { role, status, page = 1, limit = 20 } = req.query;
+    const { role, status, search, page = 1, limit = 20 } = req.query;
 
     const where: any = {
       tenantId: tenant.id,
@@ -111,6 +111,14 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
       where.status = status;
     }
 
+    // Search by name or email
+    if (search && typeof search === 'string' && search.trim()) {
+      where.OR = [
+        { name: { contains: search.trim(), mode: 'insensitive' } },
+        { email: { contains: search.trim(), mode: 'insensitive' } },
+      ];
+    }
+
     const skip = (Number(page) - 1) * Number(limit);
 
     const [users, total] = await Promise.all([
@@ -121,10 +129,16 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
           email: true,
           name: true,
           avatar: true,
+          bio: true,
           role: true,
           status: true,
           lastLoginAt: true,
           createdAt: true,
+          _count: {
+            select: {
+              comments: true,
+            },
+          },
         },
         skip,
         take: Number(limit),
@@ -135,8 +149,22 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
       prisma.user.count({ where }),
     ]);
 
+    // Transform to include commentCount
+    const usersWithCommentCount = users.map((user) => ({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      bio: user.bio,
+      role: user.role,
+      status: user.status,
+      lastLoginAt: user.lastLoginAt,
+      createdAt: user.createdAt,
+      commentCount: user._count.comments,
+    }));
+
     res.json({
-      data: users,
+      data: usersWithCommentCount,
       meta: {
         total,
         page: Number(page),
