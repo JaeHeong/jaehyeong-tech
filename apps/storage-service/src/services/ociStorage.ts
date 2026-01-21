@@ -111,6 +111,12 @@ class OCIStorageService {
   }
 
   getPublicUrl(objectName: string): string {
+    const cdnDomain = process.env.CDN_DOMAIN;
+    if (cdnDomain) {
+      // CDN URL: https://cdn01.jaehyeong.com/{encodedObjectName}
+      return `https://${cdnDomain}/${encodeURIComponent(objectName)}`;
+    }
+    // Fallback to direct OCI URL
     const region = process.env.OCI_REGION || 'ap-chuncheon-1';
     return `https://objectstorage.${region}.oraclecloud.com/n/${this.namespace}/b/${this.bucket}/o/${encodeURIComponent(objectName)}`;
   }
