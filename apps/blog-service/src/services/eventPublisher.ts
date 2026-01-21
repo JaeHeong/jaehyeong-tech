@@ -4,11 +4,13 @@ import { Event } from '@shared/events';
 
 // Environment prefix for exchange namespacing (dev/prod isolation)
 const ENV_PREFIX = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+const RECONNECT_DELAY = 5000; // 5초 후 재연결
 
 class EventPublisher {
   private connection: Awaited<ReturnType<typeof amqp.connect>> | null = null;
   private channel: Awaited<ReturnType<Awaited<ReturnType<typeof amqp.connect>>['createChannel']>> | null = null;
   private readonly exchangeName = `msa-events-${ENV_PREFIX}`;
+  private isReconnecting = false;
 
   async connect() {
     try {
@@ -19,11 +21,40 @@ class EventPublisher {
       // Exchange 생성 (topic: 라우팅 키 기반 메시지 전달)
       await this.channel.assertExchange(this.exchangeName, 'topic', { durable: true });
 
+      // 연결 끊김 감지 및 자동 재연결
+      this.connection.on('close', () => {
+        console.warn('⚠️ RabbitMQ connection closed');
+        this.channel = null;
+        this.connection = null;
+        this.scheduleReconnect();
+      });
+
+      this.connection.on('error', (err) => {
+        console.error('❌ RabbitMQ connection error:', err.message);
+      });
+
+      this.channel.on('close', () => {
+        console.warn('⚠️ RabbitMQ channel closed');
+        this.channel = null;
+      });
+
+      this.channel.on('error', (err) => {
+        console.error('❌ RabbitMQ channel error:', err.message);
+      });
+
+      this.isReconnecting = false;
       console.info('✅ RabbitMQ connected');
     } catch (error) {
       console.error('❌ RabbitMQ connection failed:', error);
-      // 연결 실패해도 서비스는 계속 실행 (이벤트만 발행 안 됨)
+      this.scheduleReconnect();
     }
+  }
+
+  private scheduleReconnect() {
+    if (this.isReconnecting) return;
+    this.isReconnecting = true;
+    console.info(`🔄 RabbitMQ reconnecting in ${RECONNECT_DELAY / 1000}s...`);
+    setTimeout(() => this.connect(), RECONNECT_DELAY);
   }
 
   async publish(event: Omit<Event, 'eventId' | 'timestamp' | 'version'>): Promise<void> {

@@ -5,6 +5,7 @@ import { meilisearchService, PostDocument } from './meilisearch';
 // Environment prefix for exchange namespacing (dev/prod isolation)
 const ENV_PREFIX = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
 const BLOG_SERVICE_URL = process.env.BLOG_SERVICE_URL || 'http://jaehyeong-tech-prod-blog:3002';
+const RECONNECT_DELAY = 5000; // 5초 후 재연결
 
 // Strip HTML tags from content for indexing
 function stripHtml(html: string): string {
@@ -89,6 +90,7 @@ class EventConsumer {
   private channel: Awaited<ReturnType<Awaited<ReturnType<typeof amqp.connect>>['createChannel']>> | null = null;
   private readonly exchangeName = `msa-events-${ENV_PREFIX}`;
   private readonly queueName = `search-service-${ENV_PREFIX}`;
+  private isReconnecting = false;
 
   async connect() {
     try {
@@ -124,11 +126,46 @@ class EventConsumer {
       // Set prefetch to process one message at a time
       await this.channel.prefetch(1);
 
+      // 연결 끊김 감지 및 자동 재연결
+      this.connection.on('close', () => {
+        console.warn('⚠️ RabbitMQ consumer connection closed');
+        this.channel = null;
+        this.connection = null;
+        this.scheduleReconnect();
+      });
+
+      this.connection.on('error', (err) => {
+        console.error('❌ RabbitMQ consumer connection error:', err.message);
+      });
+
+      this.channel.on('close', () => {
+        console.warn('⚠️ RabbitMQ consumer channel closed');
+        this.channel = null;
+      });
+
+      this.channel.on('error', (err) => {
+        console.error('❌ RabbitMQ consumer channel error:', err.message);
+      });
+
+      this.isReconnecting = false;
       console.info('✅ RabbitMQ consumer connected');
     } catch (error) {
       console.error('❌ RabbitMQ connection failed:', error);
-      throw error;
+      this.scheduleReconnect();
     }
+  }
+
+  private async scheduleReconnect() {
+    if (this.isReconnecting) return;
+    this.isReconnecting = true;
+    console.info(`🔄 RabbitMQ consumer reconnecting in ${RECONNECT_DELAY / 1000}s...`);
+    setTimeout(async () => {
+      await this.connect();
+      // 재연결 후 자동으로 consuming 재시작
+      if (this.channel) {
+        await this.startConsuming();
+      }
+    }, RECONNECT_DELAY);
   }
 
   async startConsuming() {
