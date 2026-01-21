@@ -107,16 +107,20 @@ model Bookmark {
 }
 
 // PostView model for unique view tracking (24-hour based)
+// - Logged-in users: ipHash = "user:{userId}" for user-based deduplication
+// - Anonymous users: ipHash = IP hash for IP-based deduplication
 model PostView {
   id        String   @id @default(cuid())
   tenantId  String
   postId    String
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  ipHash    String // Hashed IP for unique view tracking
+  ipHash    String // "user:{userId}" for logged-in, IP hash for anonymous
+  userId    String? // Optional: user ID for logged-in users (for auditing)
   createdAt DateTime @default(now())
 
   @@unique([tenantId, postId, ipHash])
   @@index([tenantId, postId])
+  @@index([tenantId, userId])
   @@map("post_views")
 }
 

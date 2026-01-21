@@ -9,15 +9,19 @@ datasource db {
 }
 
 // Site visitor tracking (unique visitors per day per tenant)
+// - Logged-in users: ipHash = "user:{userId}" for user-based deduplication
+// - Anonymous users: ipHash = IP hash for IP-based deduplication
 model SiteVisitor {
   id        String   @id @default(cuid())
   tenantId  String
-  ipHash    String // Hashed IP for privacy
+  ipHash    String // "user:{userId}" for logged-in, IP hash for anonymous
+  userId    String? // Optional: user ID for logged-in users (for auditing)
   date      DateTime @db.Date // Date only (no time) for daily counting
   createdAt DateTime @default(now())
 
-  @@unique([tenantId, ipHash, date]) // One entry per IP per day per tenant
+  @@unique([tenantId, ipHash, date]) // One entry per identifier per day per tenant
   @@index([tenantId, date])
+  @@index([tenantId, userId])
   @@map("site_visitors")
 }
 

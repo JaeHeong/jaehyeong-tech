@@ -62,7 +62,7 @@ router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request,
         orderBy: { createdAt: 'desc' },
       }),
       prisma.postView.findMany({
-        orderBy: { viewedAt: 'desc' },
+        orderBy: { createdAt: 'desc' },
       }),
     ]);
 
@@ -282,9 +282,8 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
         tenantId: string;
         postId: string;
         ipHash: string;
-        userAgent?: string | null;
-        referer?: string | null;
-        viewedAt: string;
+        userId?: string | null;
+        createdAt: string;
       }>;
     };
 
@@ -483,9 +482,8 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
               tenantId: view.tenantId,
               postId: view.postId,
               ipHash: view.ipHash,
-              userAgent: view.userAgent,
-              referer: view.referer,
-              viewedAt: new Date(view.viewedAt),
+              userId: view.userId || null,
+              createdAt: new Date(view.createdAt),
             },
           });
           results.postViews.restored++;

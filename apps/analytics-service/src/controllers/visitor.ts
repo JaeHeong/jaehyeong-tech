@@ -6,6 +6,8 @@ import { hashIP, getClientIP } from '../utils/ipHash';
 /**
  * POST /api/visitors/track
  * Public: Track a visitor (called on page load)
+ * - Logged-in users: user ID based deduplication (one entry per user per day)
+ * - Anonymous users: IP hash based deduplication (one entry per IP per day)
  */
 export async function trackVisitor(req: Request, res: Response, next: NextFunction) {
   try {
@@ -16,8 +18,9 @@ export async function trackVisitor(req: Request, res: Response, next: NextFuncti
     // Get tenant-specific database connection
     const prisma = tenantPrisma.getClient(req.tenant.id);
 
-    const clientIp = getClientIP(req);
-    const ipHash = hashIP(clientIp);
+    // Use user ID for logged-in users, IP hash for anonymous
+    const userId = req.user?.id;
+    const identifier = userId ? `user:${userId}` : hashIP(getClientIP(req));
 
     // Get today's date (UTC) without time
     const today = new Date();
@@ -28,14 +31,15 @@ export async function trackVisitor(req: Request, res: Response, next: NextFuncti
       where: {
         tenantId_ipHash_date: {
           tenantId: req.tenant.id,
-          ipHash,
+          ipHash: identifier,
           date: today,
         },
       },
       update: {}, // Already exists, do nothing
       create: {
         tenantId: req.tenant.id,
-        ipHash,
+        ipHash: identifier,
+        userId: userId || null,
         date: today,
       },
     });

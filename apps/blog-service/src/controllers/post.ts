@@ -323,18 +323,21 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
       }
     }
 
-    // Track unique view by IP hash (24-hour based)
-    const ipHash = hashIP(getClientIP(req));
+    // Track unique view (24-hour based)
+    // - Logged-in users: user ID based deduplication
+    // - Anonymous users: IP hash based deduplication
+    const userId = req.user?.id;
+    const identifier = userId ? `user:${userId}` : hashIP(getClientIP(req));
     let viewIncremented = false;
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // Check if this IP has viewed this post within the last 24 hours
+    // Check if this user/IP has viewed this post within the last 24 hours
     const existingView = await prisma.postView.findUnique({
       where: {
         tenantId_postId_ipHash: {
           tenantId: req.tenant.id,
           postId: post.id,
-          ipHash,
+          ipHash: identifier,
         },
       },
     });
@@ -346,7 +349,8 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
           data: {
             tenantId: req.tenant.id,
             postId: post.id,
-            ipHash,
+            ipHash: identifier,
+            userId: userId || null,
           },
         }),
         prisma.post.update({
