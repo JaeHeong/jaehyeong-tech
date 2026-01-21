@@ -1334,12 +1334,12 @@ export default function PostDetailPage() {
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2 text-slate-500">
                     <span className="material-symbols-outlined text-[20px]">visibility</span>
-                    <span className="text-sm font-medium">{post.viewCount.toLocaleString()}</span>
+                    <span className="text-sm font-medium">{(post.viewCount ?? 0).toLocaleString()}</span>
                   </div>
                   <button
                     onClick={handleLike}
                     disabled={isLiking}
-                    title={`좋아요 ${likeCount.toLocaleString()}개`}
+                    title={`좋아요 ${(likeCount ?? 0).toLocaleString()}개`}
                     className={`flex items-center gap-2 transition-colors ${
                       liked
                         ? 'text-red-500'
