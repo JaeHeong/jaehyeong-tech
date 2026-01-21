@@ -568,6 +568,74 @@ export async function linkFilesByUrls(req: Request, res: Response, next: NextFun
 }
 
 /**
+ * URL로 파일 연결 해제 (Internal API - 서비스간 통신용)
+ * POST /internal/unlink-files
+ * Used by blog-service when cover image changes to clear old image's resourceId
+ */
+export async function unlinkFilesByUrls(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const { urls } = req.body as { urls: string[] };
+
+    if (!urls || !Array.isArray(urls) || urls.length === 0) {
+      res.json({ message: 'No URLs provided', unlinked: 0 });
+      return;
+    }
+
+    // Clear resourceId and resourceType for matching files
+    const result = await prisma.file.updateMany({
+      where: {
+        tenantId: tenant.id,
+        url: { in: urls },
+      },
+      data: {
+        resourceType: null,
+        resourceId: null,
+      },
+    });
+
+    console.log(`[Storage] Unlinked ${result.count} files`);
+
+    res.json({
+      message: `${result.count} files unlinked`,
+      unlinked: result.count,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 특정 리소스에 연결된 파일 URL 목록 조회 (Internal API)
+ * GET /internal/linked-files/:resourceType/:resourceId
+ * Used by blog-service to get currently linked images before update
+ */
+export async function getLinkedFiles(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const { resourceType, resourceId } = req.params;
+
+    const files = await prisma.file.findMany({
+      where: {
+        tenantId: tenant.id,
+        resourceType,
+        resourceId,
+      },
+      select: { url: true },
+    });
+
+    res.json({
+      urls: files.map((f) => f.url),
+      count: files.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * Extract image URLs from HTML content
  */
 function extractImageUrls(content: string | null, coverImage: string | null): string[] {

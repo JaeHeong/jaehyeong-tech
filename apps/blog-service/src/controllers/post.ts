@@ -83,6 +83,75 @@ async function linkFilesToResource(
   }
 }
 
+/**
+ * Unlink files from a resource via storage-service
+ */
+async function unlinkFiles(
+  tenantId: string,
+  tenantName: string,
+  urls: string[]
+): Promise<void> {
+  if (urls.length === 0) return;
+
+  try {
+    const response = await fetch(`${STORAGE_SERVICE_URL}/internal/unlink-files`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-request': 'true',
+        'x-tenant-id': tenantId,
+        'x-tenant-name': tenantName,
+      },
+      body: JSON.stringify({ urls }),
+    });
+
+    if (!response.ok) {
+      console.warn(`[Blog] Failed to unlink files: ${response.status}`);
+    } else {
+      const result = await response.json() as { unlinked: number };
+      console.log(`[Blog] Unlinked ${result.unlinked} files`);
+    }
+  } catch (error) {
+    console.error('[Blog] Error unlinking files:', error);
+  }
+}
+
+/**
+ * Get linked files for a resource from storage-service
+ */
+async function getLinkedFiles(
+  tenantId: string,
+  tenantName: string,
+  resourceType: string,
+  resourceId: string
+): Promise<string[]> {
+  try {
+    const response = await fetch(
+      `${STORAGE_SERVICE_URL}/internal/linked-files/${resourceType}/${resourceId}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-request': 'true',
+          'x-tenant-id': tenantId,
+          'x-tenant-name': tenantName,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.warn(`[Blog] Failed to get linked files: ${response.status}`);
+      return [];
+    }
+
+    const result = await response.json() as { urls: string[] };
+    return result.urls || [];
+  } catch (error) {
+    console.error('[Blog] Error getting linked files:', error);
+    return [];
+  }
+}
+
 // Author info type
 interface AuthorInfo {
   id: string;
@@ -801,6 +870,14 @@ export async function updatePost(req: Request, res: Response, next: NextFunction
     }
     if (featured !== undefined) updateData.featured = featured;
 
+    // Get currently linked files before update
+    const previouslyLinkedUrls = await getLinkedFiles(
+      req.tenant.id,
+      req.tenant.name,
+      'POST',
+      id
+    );
+
     const post = await prisma.post.update({
       where: { id },
       data: {
@@ -813,12 +890,23 @@ export async function updatePost(req: Request, res: Response, next: NextFunction
       },
     });
 
-    // Re-link images to the post (handles added/removed images)
-    const imageUrls = extractImageUrls(post.content, post.coverImage);
+    // Get new image URLs from updated content
+    const newImageUrls = extractImageUrls(post.content, post.coverImage);
+    const newImageUrlSet = new Set(newImageUrls);
+
+    // Find images that were removed (in previous but not in new)
+    const removedUrls = previouslyLinkedUrls.filter((url) => !newImageUrlSet.has(url));
+
+    // Unlink removed images
+    if (removedUrls.length > 0) {
+      await unlinkFiles(req.tenant.id, req.tenant.name, removedUrls);
+    }
+
+    // Link new images to the post
     await linkFilesToResource(
       req.tenant.id,
       req.tenant.name,
-      imageUrls,
+      newImageUrls,
       'POST',
       post.id
     );
@@ -868,7 +956,20 @@ export async function deletePost(req: Request, res: Response, next: NextFunction
       throw new AppError('게시글을 찾을 수 없습니다.', 404);
     }
 
+    // Get linked files before deletion
+    const linkedUrls = await getLinkedFiles(
+      req.tenant.id,
+      req.tenant.name,
+      'POST',
+      id
+    );
+
     await prisma.post.delete({ where: { id } });
+
+    // Unlink all images that were linked to this post
+    if (linkedUrls.length > 0) {
+      await unlinkFiles(req.tenant.id, req.tenant.name, linkedUrls);
+    }
 
     // Publish event
     await eventPublisher.publish({
@@ -960,10 +1061,22 @@ export async function bulkDeletePosts(req: Request, res: Response, next: NextFun
 
     const postIds = posts.map((p) => p.id);
 
+    // Get all linked files for these posts before deletion
+    const linkedUrlsPromises = postIds.map((postId) =>
+      getLinkedFiles(req.tenant.id, req.tenant.name, 'POST', postId)
+    );
+    const linkedUrlsArrays = await Promise.all(linkedUrlsPromises);
+    const allLinkedUrls = linkedUrlsArrays.flat();
+
     // Delete the posts (cascades to related records)
     const result = await prisma.post.deleteMany({
       where: { id: { in: postIds } },
     });
+
+    // Unlink all images that were linked to these posts
+    if (allLinkedUrls.length > 0) {
+      await unlinkFiles(req.tenant.id, req.tenant.name, allLinkedUrls);
+    }
 
     // Publish events for each deleted post in PARALLEL
     await Promise.all(
