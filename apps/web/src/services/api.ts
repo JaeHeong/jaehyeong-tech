@@ -432,10 +432,11 @@ class ApiClient {
 
   // Fetch URL metadata for link bookmarks
   async fetchUrlMetadata(url: string): Promise<UrlMetadata> {
-    return this.request<UrlMetadata>('/metadata', {
+    const response = await this.request<{ data: UrlMetadata }>('/metadata', {
       method: 'POST',
       body: { url },
     })
+    return response.data
   }
 
   // Pages endpoints
