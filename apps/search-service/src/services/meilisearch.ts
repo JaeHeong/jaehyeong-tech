@@ -28,11 +28,11 @@ class MeilisearchService {
 
   async connect() {
     try {
-      const host = process.env.MEILISEARCH_URL || 'http://meilisearch.meilisearch:7700';
-      const apiKey = process.env.MEILISEARCH_MASTER_KEY;
+      const host = process.env.MEILISEARCH_HOST || 'http://meilisearch.meilisearch:7700';
+      const apiKey = process.env.MEILISEARCH_API_KEY;
 
       if (!apiKey) {
-        throw new Error('MEILISEARCH_MASTER_KEY is required');
+        throw new Error('MEILISEARCH_API_KEY is required');
       }
 
       this.client = new MeiliSearch({ host, apiKey });
