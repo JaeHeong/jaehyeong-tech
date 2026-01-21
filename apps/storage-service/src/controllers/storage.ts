@@ -59,6 +59,23 @@ async function getDraftImageUrls(tenantId: string, tenantName: string): Promise<
 }
 
 /**
+ * Check if a URL is an external image (not from our CDN/storage)
+ */
+function isExternalUrl(url: string): boolean {
+  const cdnDomain = process.env.CDN_DOMAIN;
+  const ociRegion = process.env.OCI_REGION || 'ap-chuncheon-1';
+
+  // Internal URL patterns
+  const internalPatterns = [
+    cdnDomain ? `https://${cdnDomain}/` : null,
+    `https://objectstorage.${ociRegion}.oraclecloud.com/`,
+    '/api/files/', // Relative API URLs
+  ].filter(Boolean) as string[];
+
+  return !internalPatterns.some((pattern) => url.includes(pattern));
+}
+
+/**
  * 파일 업로드
  */
 export async function uploadFile(req: Request, res: Response, next: NextFunction) {
@@ -411,6 +428,158 @@ export async function deleteFileByUrl(req: Request, res: Response, next: NextFun
 }
 
 /**
+ * URL로 파일 연결 (Internal API - 서비스간 통신용)
+ * POST /internal/link-files
+ * Used by blog-service when publishing posts to set resourceId for images
+ */
+export async function linkFilesByUrls(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+    const { urls, resourceType, resourceId } = req.body as {
+      urls: string[];
+      resourceType: string;
+      resourceId: string;
+    };
+
+    if (!urls || !Array.isArray(urls) || urls.length === 0) {
+      res.json({ message: 'No URLs provided', linked: 0 });
+      return;
+    }
+
+    if (!resourceType || !resourceId) {
+      throw new AppError('resourceType and resourceId are required', 400);
+    }
+
+    // Update files that match the URLs
+    const result = await prisma.file.updateMany({
+      where: {
+        tenantId: tenant.id,
+        url: { in: urls },
+      },
+      data: {
+        resourceType,
+        resourceId,
+      },
+    });
+
+    console.log(`[Storage] Linked ${result.count} files to ${resourceType}:${resourceId}`);
+
+    res.json({
+      message: `${result.count} files linked`,
+      linked: result.count,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Extract image URLs from HTML content
+ */
+function extractImageUrls(content: string | null, coverImage: string | null): string[] {
+  const urls: string[] = [];
+
+  if (coverImage) {
+    urls.push(coverImage);
+  }
+
+  if (!content) return urls;
+
+  // Extract from HTML img tags
+  const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+  let match;
+  while ((match = imgRegex.exec(content)) !== null) {
+    urls.push(match[1]);
+  }
+
+  // Extract from Markdown images
+  const mdImgRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
+  while ((match = mdImgRegex.exec(content)) !== null) {
+    urls.push(match[1]);
+  }
+
+  return urls;
+}
+
+/**
+ * 기존 게시글 이미지 마이그레이션 (Internal API - 일회성)
+ * POST /internal/migrate-post-images
+ * Fetches all posts from blog-service and links their images in the files table
+ */
+export async function migratePostImages(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenant = req.tenant!;
+    const prisma = tenantPrisma.getClient(tenant.id);
+
+    // Fetch all posts from blog-service
+    const blogServiceUrl = process.env.BLOG_SERVICE_URL || 'http://blog-service:3002';
+    const response = await fetch(`${blogServiceUrl}/internal/posts/all`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-request': 'true',
+        'x-tenant-id': tenant.id,
+        'x-tenant-name': tenant.name,
+      },
+    });
+
+    if (!response.ok) {
+      throw new AppError(`Failed to fetch posts from blog-service: ${response.status}`, 500);
+    }
+
+    const result = await response.json() as {
+      success: boolean;
+      data: Array<{
+        id: string;
+        content: string;
+        coverImage: string | null;
+      }>;
+    };
+
+    const posts = result.data || [];
+    let totalLinked = 0;
+    const postResults: Array<{ postId: string; linked: number }> = [];
+
+    // Process each post
+    for (const post of posts) {
+      const imageUrls = extractImageUrls(post.content, post.coverImage);
+
+      if (imageUrls.length === 0) continue;
+
+      // Update files that match the URLs
+      const updateResult = await prisma.file.updateMany({
+        where: {
+          tenantId: tenant.id,
+          url: { in: imageUrls },
+        },
+        data: {
+          resourceType: 'POST',
+          resourceId: post.id,
+        },
+      });
+
+      if (updateResult.count > 0) {
+        totalLinked += updateResult.count;
+        postResults.push({ postId: post.id, linked: updateResult.count });
+      }
+    }
+
+    console.log(`[Storage] Migration complete: linked ${totalLinked} files across ${postResults.length} posts`);
+
+    res.json({
+      message: 'Migration completed',
+      postsProcessed: posts.length,
+      postsWithImages: postResults.length,
+      totalFilesLinked: totalLinked,
+      details: postResults,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * 파일/이미지 통계 조회 (Internal API)
  * GET /api/images/stats
  * Note: Avatars are managed separately (old deleted on new upload)
@@ -420,8 +589,11 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
     const tenant = req.tenant!;
     const prisma = tenantPrisma.getClient(tenant.id);
 
-    // Get draft image URLs to calculate usedInDrafts
+    // Get draft image URLs to calculate usedInDrafts and external images
     const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
+
+    // Count external images (URLs found in posts/drafts that are not from our storage)
+    const externalUrls = Array.from(draftImageUrls).filter((url) => isExternalUrl(url));
 
     // Get all unlinked files (exclude avatars - managed separately)
     const unlinkedFiles = await prisma.file.findMany({
@@ -462,6 +634,8 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
         usedInDrafts,
         orphaned,
         orphanSize,
+        externalCount: externalUrls.length,
+        externalUrls: externalUrls.slice(0, 10), // Return up to 10 external URLs for display
       },
     });
   } catch (error) {
@@ -521,6 +695,9 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
 
     const orphanSize = orphans.reduce((sum, file) => sum + file.size, 0);
 
+    // Count external images
+    const externalUrls = Array.from(draftImageUrls).filter((url) => isExternalUrl(url));
+
     res.json({
       data: {
         orphans: orphans.map((file) => ({
@@ -540,6 +717,8 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
           orphaned: orphans.length,
           totalSize: totalSizeResult._sum.size || 0,
           orphanSize,
+          externalCount: externalUrls.length,
+          externalUrls: externalUrls.slice(0, 10), // Return up to 10 external URLs
         },
       },
     });

@@ -15,6 +15,73 @@ const slugify: SlugifyFn =
 
 // Auth service URL for internal calls (K8s service discovery)
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://jaehyeong-tech-dev-auth:3001';
+// Storage service URL for internal calls
+const STORAGE_SERVICE_URL = process.env.STORAGE_SERVICE_URL || 'http://storage-service:3006';
+
+/**
+ * Extract image URLs from HTML content and coverImage
+ */
+function extractImageUrls(content: string | null, coverImage: string | null): string[] {
+  const urls: string[] = [];
+
+  // Add coverImage if exists
+  if (coverImage) {
+    urls.push(coverImage);
+  }
+
+  if (!content) return urls;
+
+  // Extract from HTML img tags
+  const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+  let match;
+  while ((match = imgRegex.exec(content)) !== null) {
+    urls.push(match[1]);
+  }
+
+  // Extract from Markdown images
+  const mdImgRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
+  while ((match = mdImgRegex.exec(content)) !== null) {
+    urls.push(match[1]);
+  }
+
+  return urls;
+}
+
+/**
+ * Link files to a resource via storage-service
+ */
+async function linkFilesToResource(
+  tenantId: string,
+  tenantName: string,
+  urls: string[],
+  resourceType: string,
+  resourceId: string
+): Promise<void> {
+  if (urls.length === 0) return;
+
+  try {
+    const response = await fetch(`${STORAGE_SERVICE_URL}/internal/link-files`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-request': 'true',
+        'x-tenant-id': tenantId,
+        'x-tenant-name': tenantName,
+      },
+      body: JSON.stringify({ urls, resourceType, resourceId }),
+    });
+
+    if (!response.ok) {
+      console.warn(`[Blog] Failed to link files: ${response.status}`);
+    } else {
+      const result = await response.json() as { linked: number };
+      console.log(`[Blog] Linked ${result.linked} files to ${resourceType}:${resourceId}`);
+    }
+  } catch (error) {
+    console.error('[Blog] Error linking files:', error);
+    // Don't throw - linking failure shouldn't block post creation
+  }
+}
 
 // Author info type
 interface AuthorInfo {
@@ -631,6 +698,16 @@ export async function createPost(req: Request, res: Response, next: NextFunction
       },
     });
 
+    // Link images to the post (extract from content and coverImage)
+    const imageUrls = extractImageUrls(post.content, post.coverImage);
+    await linkFilesToResource(
+      req.tenant.id,
+      req.tenant.name,
+      imageUrls,
+      'POST',
+      post.id
+    );
+
     // Update featured post
     await updateFeaturedPost(req.tenant.id);
 
@@ -735,6 +812,16 @@ export async function updatePost(req: Request, res: Response, next: NextFunction
         tags: true,
       },
     });
+
+    // Re-link images to the post (handles added/removed images)
+    const imageUrls = extractImageUrls(post.content, post.coverImage);
+    await linkFilesToResource(
+      req.tenant.id,
+      req.tenant.name,
+      imageUrls,
+      'POST',
+      post.id
+    );
 
     // Publish event
     await eventPublisher.publish({

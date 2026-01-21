@@ -17,6 +17,8 @@ interface ImageStats {
   usedInDrafts: number
   orphaned: number
   totalSize: number
+  externalCount?: number
+  externalUrls?: string[]
 }
 
 export default function AdminManagementPage() {
@@ -538,7 +540,7 @@ export default function AdminManagementPage() {
 
           {/* Image Stats */}
           {imageStats && (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4 mb-4 md:mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-4 mb-4 md:mb-6">
               <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                 <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">전체 이미지</p>
                 <p className="text-lg md:text-2xl font-bold">{imageStats.total}</p>
@@ -555,7 +557,11 @@ export default function AdminManagementPage() {
                 <p className="text-[10px] md:text-sm text-red-600 dark:text-red-400">고아 이미지</p>
                 <p className="text-lg md:text-2xl font-bold text-red-600 dark:text-red-400">{imageStats.orphaned}</p>
               </div>
-              <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg col-span-2 md:col-span-1">
+              <div className="p-3 md:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg" title={imageStats.externalUrls?.join('\n')}>
+                <p className="text-[10px] md:text-sm text-blue-600 dark:text-blue-400">외부 링크</p>
+                <p className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400">{imageStats.externalCount || 0}</p>
+              </div>
+              <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                 <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">총 용량</p>
                 <p className="text-lg md:text-2xl font-bold">{formatBytes(imageStats.totalSize)}</p>
               </div>

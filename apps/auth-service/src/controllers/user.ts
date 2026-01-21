@@ -4,6 +4,38 @@ import { AppError } from '../middleware/errorHandler';
 import { Tenant } from '../middleware/tenantResolver';
 import { hashPassword, validatePassword } from '../services/passwordService';
 
+// Storage service URL for internal calls
+const STORAGE_SERVICE_URL = process.env.STORAGE_SERVICE_URL || 'http://storage-service:3006';
+
+/**
+ * Delete old avatar via storage-service when avatar changes
+ */
+async function deleteOldAvatar(tenantId: string, oldAvatarUrl: string): Promise<void> {
+  if (!oldAvatarUrl) return;
+
+  try {
+    const response = await fetch(`${STORAGE_SERVICE_URL}/internal/delete-by-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-request': 'true',
+        'x-tenant-id': tenantId,
+      },
+      body: JSON.stringify({ url: oldAvatarUrl }),
+    });
+
+    if (response.ok) {
+      const result = await response.json() as { deleted: boolean };
+      if (result.deleted) {
+        console.log(`[Auth] Deleted old avatar: ${oldAvatarUrl}`);
+      }
+    }
+  } catch (error) {
+    console.error('[Auth] Error deleting old avatar:', error);
+    // Don't throw - deletion failure shouldn't block profile update
+  }
+}
+
 /**
  * 사용자 프로필 업데이트
  */
@@ -13,6 +45,16 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
     const prisma = tenantPrisma.getClient(tenant.id);
     const userId = req.user!.id;
     const { name, bio, title, avatar, github, twitter, linkedin, website } = req.body;
+
+    // Get current user to check if avatar is changing
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatar: true },
+    });
+
+    // Check if avatar is being changed
+    const avatarChanging = avatar !== undefined && avatar !== currentUser?.avatar;
+    const oldAvatarUrl = currentUser?.avatar;
 
     const user = await prisma.user.update({
       where: { id: userId },
@@ -40,6 +82,11 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
         role: true,
       },
     });
+
+    // Delete old avatar from storage if changed
+    if (avatarChanging && oldAvatarUrl) {
+      await deleteOldAvatar(tenant.id, oldAvatarUrl);
+    }
 
     res.json({ data: user });
   } catch (error) {
