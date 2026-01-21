@@ -248,37 +248,37 @@ jobs:
 
           # 선택된 서비스만 업데이트
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_web }}" = "true" ]; then
-            sed -i "/^  web:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            sed -i "/^  web:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: \"${TAG}\"/ }" $VALUES_FILE
             echo "Updated web tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_auth }}" = "true" ]; then
-            sed -i "/^  auth:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            sed -i "/^  auth:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: \"${TAG}\"/ }" $VALUES_FILE
             echo "Updated auth tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_blog }}" = "true" ]; then
-            sed -i "/^  blog:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            sed -i "/^  blog:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: \"${TAG}\"/ }" $VALUES_FILE
             echo "Updated blog tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_comment }}" = "true" ]; then
-            sed -i "/^  comment:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            sed -i "/^  comment:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: \"${TAG}\"/ }" $VALUES_FILE
             echo "Updated comment tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_storage }}" = "true" ]; then
-            sed -i "/^  storage:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            sed -i "/^  storage:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: \"${TAG}\"/ }" $VALUES_FILE
             echo "Updated storage tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_page }}" = "true" ]; then
-            sed -i "/^  page:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            sed -i "/^  page:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: \"${TAG}\"/ }" $VALUES_FILE
             echo "Updated page tag"
           fi
 
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_analytics }}" = "true" ]; then
-            sed -i "/^  analytics:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            sed -i "/^  analytics:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: \"${TAG}\"/ }" $VALUES_FILE
             echo "Updated analytics tag"
           fi
 
