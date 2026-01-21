@@ -3,6 +3,9 @@ import { createClient, RedisClientType } from 'redis';
 // Redis URL from environment or default to K8s service
 const REDIS_URL = process.env.REDIS_URL || 'redis://redis.redis-system.svc.cluster.local:6379';
 
+// Environment prefix for key namespacing (dev/prod isolation)
+const ENV_PREFIX = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+
 let redisClient: RedisClientType | null = null;
 let isConnecting = false;
 let connectionPromise: Promise<RedisClientType> | null = null;
@@ -62,7 +65,7 @@ export class CacheService {
   }
 
   private getKey(key: string): string {
-    return `${this.prefix}:${key}`;
+    return `${ENV_PREFIX}:${this.prefix}:${key}`;
   }
 
   async get<T>(key: string): Promise<T | null> {

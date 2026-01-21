@@ -2,10 +2,13 @@ import amqp from 'amqplib';
 import { generateEventId } from '@shared/utils';
 import { Event } from '@shared/events';
 
+// Environment prefix for exchange namespacing (dev/prod isolation)
+const ENV_PREFIX = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+
 class EventPublisher {
   private connection: Awaited<ReturnType<typeof amqp.connect>> | null = null;
   private channel: Awaited<ReturnType<Awaited<ReturnType<typeof amqp.connect>>['createChannel']>> | null = null;
-  private readonly exchangeName = 'msa-events';
+  private readonly exchangeName = `msa-events-${ENV_PREFIX}`;
 
   async connect() {
     try {
