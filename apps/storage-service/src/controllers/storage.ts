@@ -419,7 +419,6 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
   try {
     const tenant = req.tenant!;
     const prisma = tenantPrisma.getClient(tenant.id);
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // Get draft image URLs to calculate usedInDrafts
     const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
@@ -432,14 +431,12 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
         resourceId: null,
         folder: { not: 'avatars' },
       },
-      select: { url: true, size: true, createdAt: true },
+      select: { url: true, size: true },
     });
 
     // Calculate usedInDrafts and orphan candidates
     const usedInDrafts = unlinkedFiles.filter((file) => draftImageUrls.has(file.url)).length;
-    const orphanCandidates = unlinkedFiles.filter(
-      (file) => !draftImageUrls.has(file.url) && file.createdAt < twentyFourHoursAgo
-    );
+    const orphanCandidates = unlinkedFiles.filter((file) => !draftImageUrls.has(file.url));
     const orphaned = orphanCandidates.length;
     const orphanSize = orphanCandidates.reduce((sum, file) => sum + file.size, 0);
 
@@ -474,7 +471,7 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
 
 /**
  * 고아 파일 목록 조회 (관리자 전용)
- * 리소스에 연결되지 않고 24시간 이상 경과한 파일
+ * 리소스에 연결되지 않은 파일 (posts/drafts content/coverImage에서 사용되지 않음)
  * Excludes:
  * - Images used in draft content
  * - Avatar images (managed separately by users)
@@ -487,19 +484,17 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
 
     const tenant = req.tenant!;
     const prisma = tenantPrisma.getClient(tenant.id);
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // Fetch image URLs used in drafts from blog-service
     const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
 
-    // 리소스에 연결되지 않고 24시간 이상 경과한 파일 조회
+    // 리소스에 연결되지 않은 파일 조회
     // Exclude 'avatars' folder - profile images are managed separately
     const candidates = await prisma.file.findMany({
       where: {
         tenantId: tenant.id,
         resourceId: null,
         folder: { not: 'avatars' },
-        createdAt: { lt: twentyFourHoursAgo },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -635,7 +630,6 @@ export async function deleteOrphanFiles(req: Request, res: Response, next: NextF
 
     const tenant = req.tenant!;
     const prisma = tenantPrisma.getClient(tenant.id);
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // Fetch image URLs used in drafts from blog-service
     const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
@@ -646,7 +640,6 @@ export async function deleteOrphanFiles(req: Request, res: Response, next: NextF
         tenantId: tenant.id,
         resourceId: null,
         folder: { not: 'avatars' },
-        createdAt: { lt: twentyFourHoursAgo },
       },
     });
 
