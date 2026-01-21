@@ -606,7 +606,8 @@ const Bookmark = Node.create({
     const domain = url ? new URL(url).hostname.replace(/^www\./, '') : ''
 
     // Build content children dynamically to avoid empty strings (ProseMirror doesn't support them)
-    const contentChildren: (string | Record<string, unknown> | (string | Record<string, unknown>)[])[] = [
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contentChildren: any[] = [
       ['div', { class: 'bookmark-title' }, title || url || 'Link'],
     ]
     if (description) {
@@ -614,7 +615,8 @@ const Bookmark = Node.create({
     }
 
     // Build meta children
-    const metaChildren: (string | Record<string, unknown> | (string | Record<string, unknown>)[])[] = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const metaChildren: any[] = []
     if (favicon) {
       metaChildren.push(['img', { src: favicon, alt: '', class: 'bookmark-favicon' }])
     }
@@ -622,7 +624,8 @@ const Bookmark = Node.create({
     contentChildren.push(['div', { class: 'bookmark-meta' }, ...metaChildren])
 
     // Build link children
-    const linkChildren: (string | Record<string, unknown> | (string | Record<string, unknown>)[])[] = [
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const linkChildren: any[] = [
       ['div', { class: 'bookmark-content' }, ...contentChildren],
     ]
     if (image) {
