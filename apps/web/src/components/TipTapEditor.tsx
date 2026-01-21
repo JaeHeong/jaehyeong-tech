@@ -605,46 +605,56 @@ const Bookmark = Node.create({
     const { url, title, description, image, favicon, siteName } = node.attrs
     const domain = url ? new URL(url).hostname.replace(/^www\./, '') : ''
 
+    // Build content children dynamically to avoid empty strings (ProseMirror doesn't support them)
+    const contentChildren: (string | Record<string, unknown> | (string | Record<string, unknown>)[])[] = [
+      ['div', { class: 'bookmark-title' }, title || url || 'Link'],
+    ]
+    if (description) {
+      contentChildren.push(['div', { class: 'bookmark-description' }, description])
+    }
+
+    // Build meta children
+    const metaChildren: (string | Record<string, unknown> | (string | Record<string, unknown>)[])[] = []
+    if (favicon) {
+      metaChildren.push(['img', { src: favicon, alt: '', class: 'bookmark-favicon' }])
+    }
+    metaChildren.push(['span', { class: 'bookmark-site' }, siteName || domain || 'Link'])
+    contentChildren.push(['div', { class: 'bookmark-meta' }, ...metaChildren])
+
+    // Build link children
+    const linkChildren: (string | Record<string, unknown> | (string | Record<string, unknown>)[])[] = [
+      ['div', { class: 'bookmark-content' }, ...contentChildren],
+    ]
+    if (image) {
+      linkChildren.push([
+        'div',
+        { class: 'bookmark-image' },
+        ['img', { src: image, alt: '' }],
+      ])
+    }
+
     // Create bookmark card HTML structure for storage/preview
     return [
       'div',
       {
         'data-bookmark': '',
-        'data-url': url,
-        'data-title': title,
-        'data-description': description,
-        'data-image': image,
-        'data-favicon': favicon,
-        'data-sitename': siteName,
+        'data-url': url || '',
+        'data-title': title || '',
+        'data-description': description || '',
+        'data-image': image || '',
+        'data-favicon': favicon || '',
+        'data-sitename': siteName || '',
         class: 'bookmark-card-static',
       },
       [
         'a',
         {
-          href: url,
+          href: url || '#',
           target: '_blank',
           rel: 'noopener noreferrer',
           class: 'bookmark-link',
         },
-        [
-          'div',
-          { class: 'bookmark-content' },
-          ['div', { class: 'bookmark-title' }, title || url],
-          description ? ['div', { class: 'bookmark-description' }, description] : '',
-          [
-            'div',
-            { class: 'bookmark-meta' },
-            favicon ? ['img', { src: favicon, alt: '', class: 'bookmark-favicon' }] : '',
-            ['span', { class: 'bookmark-site' }, siteName || domain],
-          ],
-        ],
-        image
-          ? [
-              'div',
-              { class: 'bookmark-image' },
-              ['img', { src: image, alt: '' }],
-            ]
-          : '',
+        ...linkChildren,
       ],
     ]
   },
