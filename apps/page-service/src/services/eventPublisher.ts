@@ -54,7 +54,10 @@ class EventPublisher {
     if (this.isReconnecting) return;
     this.isReconnecting = true;
     console.info(`🔄 RabbitMQ reconnecting in ${RECONNECT_DELAY / 1000}s...`);
-    setTimeout(() => this.connect(), RECONNECT_DELAY);
+    setTimeout(() => {
+      this.isReconnecting = false;
+      this.connect();
+    }, RECONNECT_DELAY);
   }
 
   async publish(event: Omit<Event, 'eventId' | 'timestamp' | 'version'>): Promise<void> {

@@ -160,6 +160,7 @@ class EventConsumer {
     this.isReconnecting = true;
     console.info(`🔄 RabbitMQ consumer reconnecting in ${RECONNECT_DELAY / 1000}s...`);
     setTimeout(async () => {
+      this.isReconnecting = false;
       await this.connect();
       // 재연결 후 자동으로 consuming 재시작
       if (this.channel) {
