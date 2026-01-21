@@ -56,31 +56,33 @@ router.post('/reindex', verifyInternalRequest, async (req: Request, res: Respons
       throw new Error(`Failed to fetch posts: ${response.statusText}`);
     }
 
-    const result = await response.json() as { data: unknown[] };
+    interface BlogPost {
+      id: string;
+      tenantId: string;
+      slug: string;
+      title: string;
+      excerpt?: string;
+      content?: string;
+      categoryId: string;
+      category?: { name: string; slug: string };
+      tags?: { name: string }[];
+      authorId: string;
+      author?: { name: string };
+      status: string;
+      publishedAt?: string;
+      createdAt: string;
+      updatedAt: string;
+      viewCount?: number;
+      likeCount?: number;
+    }
+
+    const result = await response.json() as { data: BlogPost[] };
     const posts = result.data;
 
     // Transform posts to Meilisearch documents
     const documents: PostDocument[] = posts
-      .filter((post: { status: string }) => post.status === 'PUBLIC')
-      .map((post: {
-        id: string;
-        tenantId: string;
-        slug: string;
-        title: string;
-        excerpt?: string;
-        content?: string;
-        categoryId: string;
-        category?: { name: string; slug: string };
-        tags?: { name: string }[];
-        authorId: string;
-        author?: { name: string };
-        status: string;
-        publishedAt?: string;
-        createdAt: string;
-        updatedAt: string;
-        viewCount?: number;
-        likeCount?: number;
-      }) => ({
+      .filter((post) => post.status === 'PUBLIC')
+      .map((post) => ({
         id: post.id,
         tenantId: post.tenantId,
         slug: post.slug,
