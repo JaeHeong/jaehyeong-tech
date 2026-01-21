@@ -1,10 +1,20 @@
-name: Build and Deploy (Prod - MSA)
+name: Build and Deploy (MSA)
 
-run-name: "🚀 Prod MSA - ${{ github.ref_name }} by @${{ github.actor }}"
+run-name: "🚀 ${{ inputs.environment }} MSA - ${{ github.ref_name }} by @${{ github.actor }}"
 
 on:
   workflow_dispatch:
     inputs:
+      # 환경 선택
+      environment:
+        description: '배포 환경'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
       # 서비스 선택 (체크박스)
       build_all:
         description: '모든 서비스 빌드'
@@ -65,17 +75,31 @@ jobs:
       image_tag: ${{ steps.meta.outputs.tag }}
       owner_lc: ${{ steps.owner.outputs.owner_lc }}
       services: ${{ steps.services.outputs.matrix }}
+      values_file: ${{ steps.env.outputs.values_file }}
 
     steps:
       - name: Set lowercase owner name
         id: owner
         run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
 
+      - name: Set environment variables
+        id: env
+        run: |
+          if [ "${{ inputs.environment }}" = "prod" ]; then
+            echo "values_file=apps/jaehyeong-tech/values-prod.yaml" >> $GITHUB_OUTPUT
+          else
+            echo "values_file=apps/jaehyeong-tech/values-dev.yaml" >> $GITHUB_OUTPUT
+          fi
+
       - name: Generate image tag
         id: meta
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          TAG="${SHORT_SHA}"
+          if [ "${{ inputs.environment }}" = "prod" ]; then
+            TAG="${SHORT_SHA}"
+          else
+            TAG="dev-${SHORT_SHA}"
+          fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "Image tag: ${TAG}"
 
@@ -217,7 +241,7 @@ jobs:
         run: |
           cd my-k8s-gitops
           TAG="${{ needs.prepare.outputs.image_tag }}"
-          VALUES_FILE="apps/jaehyeong-tech/values-prod.yaml"
+          VALUES_FILE="${{ needs.prepare.outputs.values_file }}"
           BUILD_ALL="${{ inputs.build_all }}"
 
           echo "Updating ${VALUES_FILE} with tag: ${TAG}"
@@ -280,5 +304,5 @@ jobs:
             SERVICES="${SERVICES%,}"
           fi
 
-          git diff --staged --quiet || git commit -m "chore(prod): update [${SERVICES}] to ${{ needs.prepare.outputs.image_tag }}"
+          git diff --staged --quiet || git commit -m "chore(${{ inputs.environment }}): update [${SERVICES}] to ${{ needs.prepare.outputs.image_tag }}"
           git push
