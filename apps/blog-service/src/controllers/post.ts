@@ -17,6 +17,45 @@ const slugify: SlugifyFn =
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://jaehyeong-tech-dev-auth:3001';
 // Storage service URL for internal calls
 const STORAGE_SERVICE_URL = process.env.STORAGE_SERVICE_URL || 'http://storage-service:3006';
+// Timezone for view reset (default: KST)
+const VIEW_RESET_TIMEZONE = process.env.VIEW_RESET_TIMEZONE || 'Asia/Seoul';
+
+/**
+ * Get today's midnight in the configured timezone
+ * Used for daily view count reset
+ */
+function getTodayMidnight(timezone: string = VIEW_RESET_TIMEZONE): Date {
+  const now = new Date();
+  // Format current date in the target timezone to get the date string
+  const dateStr = now.toLocaleDateString('en-CA', { timeZone: timezone }); // YYYY-MM-DD format
+  // Create a date at midnight in the target timezone
+  // Parse as local date then adjust for timezone offset
+  const [year, month, day] = dateStr.split('-').map(Number);
+
+  // Create date at midnight UTC, then adjust for timezone
+  const midnightLocal = new Date(Date.UTC(year, month - 1, day));
+
+  // Get the timezone offset at that time
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: 'numeric',
+    timeZoneName: 'shortOffset',
+  });
+  const parts = formatter.formatToParts(midnightLocal);
+  const offsetPart = parts.find(p => p.type === 'timeZoneName');
+
+  // Parse offset like "GMT+9" or "GMT-5"
+  let offsetHours = 0;
+  if (offsetPart) {
+    const match = offsetPart.value.match(/GMT([+-]?\d+)/);
+    if (match) {
+      offsetHours = parseInt(match[1], 10);
+    }
+  }
+
+  // Subtract the offset to get UTC time of midnight in that timezone
+  return new Date(midnightLocal.getTime() - offsetHours * 60 * 60 * 1000);
+}
 
 /**
  * Extract image URLs from HTML content and coverImage
@@ -459,15 +498,15 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
       }
     }
 
-    // Track unique view (24-hour based)
+    // Track unique view (daily reset at midnight in configured timezone)
     // - Logged-in users: user ID based deduplication
     // - Anonymous users: IP hash based deduplication
     const userId = req.user?.id;
     const identifier = userId ? `user:${userId}` : hashIP(getClientIP(req));
     let viewIncremented = false;
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const todayMidnight = getTodayMidnight();
 
-    // Check if this user/IP has viewed this post within the last 24 hours
+    // Check if this user/IP has viewed this post today
     const existingView = await prisma.postView.findUnique({
       where: {
         tenantId_postId_ipHash: {
@@ -495,8 +534,8 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
         }),
       ]);
       viewIncremented = true;
-    } else if (existingView.createdAt < twentyFourHoursAgo) {
-      // View record exists but is older than 24 hours - update timestamp and increment count
+    } else if (existingView.createdAt < todayMidnight) {
+      // View record exists but is from before today's midnight - new day, increment count
       await prisma.$transaction([
         prisma.postView.update({
           where: { id: existingView.id },

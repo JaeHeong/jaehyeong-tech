@@ -6,6 +6,65 @@ import { hashPassword, validatePassword } from '../services/passwordService';
 
 // Storage service URL for internal calls
 const STORAGE_SERVICE_URL = process.env.STORAGE_SERVICE_URL || 'http://storage-service:3006';
+// Timezone for stats calculation (default: KST)
+const STATS_TIMEZONE = process.env.VIEW_RESET_TIMEZONE || 'Asia/Seoul';
+
+/**
+ * Get today's midnight in the configured timezone
+ */
+function getTodayMidnight(timezone: string = STATS_TIMEZONE): Date {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-CA', { timeZone: timezone });
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const midnightLocal = new Date(Date.UTC(year, month - 1, day));
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: 'numeric',
+    timeZoneName: 'shortOffset',
+  });
+  const parts = formatter.formatToParts(midnightLocal);
+  const offsetPart = parts.find(p => p.type === 'timeZoneName');
+
+  let offsetHours = 0;
+  if (offsetPart) {
+    const match = offsetPart.value.match(/GMT([+-]?\d+)/);
+    if (match) {
+      offsetHours = parseInt(match[1], 10);
+    }
+  }
+
+  return new Date(midnightLocal.getTime() - offsetHours * 60 * 60 * 1000);
+}
+
+/**
+ * Get a specific date's midnight in the configured timezone
+ */
+function getDateMidnight(daysAgo: number, timezone: string = STATS_TIMEZONE): Date {
+  const now = new Date();
+  const targetDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+  const dateStr = targetDate.toLocaleDateString('en-CA', { timeZone: timezone });
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const midnightLocal = new Date(Date.UTC(year, month - 1, day));
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: 'numeric',
+    timeZoneName: 'shortOffset',
+  });
+  const parts = formatter.formatToParts(midnightLocal);
+  const offsetPart = parts.find(p => p.type === 'timeZoneName');
+
+  let offsetHours = 0;
+  if (offsetPart) {
+    const match = offsetPart.value.match(/GMT([+-]?\d+)/);
+    if (match) {
+      offsetHours = parseInt(match[1], 10);
+    }
+  }
+
+  return new Date(midnightLocal.getTime() - offsetHours * 60 * 60 * 1000);
+}
 
 /**
  * Delete old avatar via storage-service when avatar changes
@@ -629,19 +688,24 @@ export async function getUserStats(req: Request, res: Response, next: NextFuncti
     const tenant = req.tenant as Tenant;
     const prisma = tenantPrisma.getClient(tenant.id);
 
+    // Use configured timezone (default: KST) for date calculations
+    const todayStart = getTodayMidnight();
+    const yesterdayStart = getDateMidnight(1);
+
+    // 이번 주 시작 (월요일) - calculate in configured timezone
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
-
-    // 이번 주 시작 (월요일)
-    const dayOfWeek = now.getDay();
+    const dateStr = now.toLocaleDateString('en-CA', { timeZone: STATS_TIMEZONE });
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day);
+    const dayOfWeek = localDate.getDay();
     const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const thisWeekStart = new Date(todayStart.getTime() - daysToMonday * 24 * 60 * 60 * 1000);
-    const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thisWeekStart = getDateMidnight(daysToMonday);
+    const lastWeekStart = getDateMidnight(daysToMonday + 7);
 
-    // 이번 달 시작
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    // 이번 달 시작 - use configured timezone
+    const thisMonthStart = getDateMidnight(day - 1); // First day of current month
+    const lastMonthDate = new Date(year, month - 1, 0); // Last day of previous month
+    const lastMonthStart = getDateMidnight(day - 1 + lastMonthDate.getDate());
 
     const baseWhere = { tenantId: tenant.id };
 

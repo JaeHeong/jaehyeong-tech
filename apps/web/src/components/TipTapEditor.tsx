@@ -522,6 +522,16 @@ const PullQuote = Node.create({
   },
 })
 
+// Helper to safely extract hostname from URL
+function safeGetHostname(url: string | null | undefined): string {
+  if (!url) return 'Link'
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url.split('/')[0] || 'Link'
+  }
+}
+
 // Bookmark Component for link previews
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BookmarkComponent({ node, deleteNode }: any) {
@@ -530,13 +540,13 @@ function BookmarkComponent({ node, deleteNode }: any) {
   return (
     <NodeViewWrapper className="bookmark-wrapper" contentEditable={false}>
       <a
-        href={url}
+        href={url || '#'}
         target="_blank"
         rel="noopener noreferrer"
         className="bookmark-card"
       >
         <div className="bookmark-content">
-          <div className="bookmark-title">{title || url}</div>
+          <div className="bookmark-title">{title || url || 'Link'}</div>
           {description && (
             <div className="bookmark-description">{description}</div>
           )}
@@ -544,7 +554,7 @@ function BookmarkComponent({ node, deleteNode }: any) {
             {favicon && (
               <img src={favicon} alt="" className="bookmark-favicon" />
             )}
-            <span className="bookmark-site">{siteName || new URL(url).hostname}</span>
+            <span className="bookmark-site">{siteName || safeGetHostname(url)}</span>
           </div>
         </div>
         {image && (
@@ -603,7 +613,14 @@ const Bookmark = Node.create({
 
   renderHTML({ node }) {
     const { url, title, description, image, favicon, siteName } = node.attrs
-    const domain = url ? new URL(url).hostname.replace(/^www\./, '') : ''
+    let domain = ''
+    if (url) {
+      try {
+        domain = new URL(url).hostname.replace(/^www\./, '')
+      } catch {
+        domain = url.split('/')[0] || 'Link'
+      }
+    }
 
     // Build content children dynamically to avoid empty strings (ProseMirror doesn't support them)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -10,6 +10,38 @@ const slugify: SlugifyFn =
   (slugifyLib as unknown as { default?: SlugifyFn }).default ||
   (slugifyLib as unknown as SlugifyFn);
 
+// Timezone for view reset (default: KST)
+const VIEW_RESET_TIMEZONE = process.env.VIEW_RESET_TIMEZONE || 'Asia/Seoul';
+
+/**
+ * Get today's midnight in the configured timezone
+ * Used for daily view count reset
+ */
+function getTodayMidnight(timezone: string = VIEW_RESET_TIMEZONE): Date {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-CA', { timeZone: timezone });
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const midnightLocal = new Date(Date.UTC(year, month - 1, day));
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: 'numeric',
+    timeZoneName: 'shortOffset',
+  });
+  const parts = formatter.formatToParts(midnightLocal);
+  const offsetPart = parts.find(p => p.type === 'timeZoneName');
+
+  let offsetHours = 0;
+  if (offsetPart) {
+    const match = offsetPart.value.match(/GMT([+-]?\d+)/);
+    if (match) {
+      offsetHours = parseInt(match[1], 10);
+    }
+  }
+
+  return new Date(midnightLocal.getTime() - offsetHours * 60 * 60 * 1000);
+}
+
 /**
  * GET /api/pages
  * Public: Get all published pages with filtering by type
@@ -136,12 +168,12 @@ export async function getPageBySlug(req: Request, res: Response, next: NextFunct
       }
     }
 
-    // Track unique view by IP hash (24-hour based)
+    // Track unique view by IP hash (daily reset at midnight in configured timezone)
     const ipHash = hashIP(getClientIP(req));
     let viewIncremented = false;
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const todayMidnight = getTodayMidnight();
 
-    // Check if this IP has viewed this page within the last 24 hours
+    // Check if this IP has viewed this page today
     const existingView = await prisma.pageView.findUnique({
       where: {
         tenantId_pageId_ipHash: {
@@ -168,8 +200,8 @@ export async function getPageBySlug(req: Request, res: Response, next: NextFunct
         }),
       ]);
       viewIncremented = true;
-    } else if (existingView.createdAt < twentyFourHoursAgo) {
-      // View record exists but is older than 24 hours - update timestamp and increment count
+    } else if (existingView.createdAt < todayMidnight) {
+      // View record exists but is from before today's midnight - new day, increment count
       await prisma.$transaction([
         prisma.pageView.update({
           where: { id: existingView.id },
