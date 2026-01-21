@@ -17,16 +17,60 @@ import {
 
 const BLOG_SERVICE_URL = process.env.BLOG_SERVICE_URL || 'http://blog-service:3002';
 
+interface ImageUrlsResponse {
+  urls: string[];
+  count: number;
+  breakdown: {
+    postCover: string[];
+    postContent: string[];
+    draftCover: string[];
+    draftContent: string[];
+  };
+}
+
+interface ImageUrlsCounts {
+  postCover: number;
+  postContent: number;
+  draftCover: number;
+  draftContent: number;
+}
+
+interface DetailedImageUrls {
+  allUrls: Set<string>;
+  breakdown: {
+    postCover: Set<string>;
+    postContent: Set<string>;
+    draftCover: Set<string>;
+    draftContent: Set<string>;
+  };
+  counts: ImageUrlsCounts;
+}
+
 /**
- * Fetch image URLs used in drafts from blog-service (with Redis caching)
+ * Fetch image URLs used in posts/drafts from blog-service (with Redis caching)
+ * Returns detailed breakdown: postCover, postContent, draftCover, draftContent
  */
-async function getDraftImageUrls(tenantId: string, tenantName: string): Promise<Set<string>> {
-  const cacheKey = `draft-urls:${tenantId}`;
+async function getDetailedImageUrls(tenantId: string, tenantName: string): Promise<DetailedImageUrls> {
+  const cacheKey = `image-urls-detailed:${tenantId}`;
 
   // Check cache first (short TTL since drafts change frequently)
-  const cached = await storageCache.get<string[]>(cacheKey);
+  const cached = await storageCache.get<{
+    urls: string[];
+    breakdown: ImageUrlsResponse['breakdown'];
+    counts: ImageUrlsCounts;
+  }>(cacheKey);
+
   if (cached) {
-    return new Set(cached);
+    return {
+      allUrls: new Set(cached.urls),
+      breakdown: {
+        postCover: new Set(cached.breakdown.postCover),
+        postContent: new Set(cached.breakdown.postContent),
+        draftCover: new Set(cached.breakdown.draftCover),
+        draftContent: new Set(cached.breakdown.draftContent),
+      },
+      counts: cached.counts,
+    };
   }
 
   try {
@@ -41,21 +85,71 @@ async function getDraftImageUrls(tenantId: string, tenantName: string): Promise<
     });
 
     if (!response.ok) {
-      console.warn('[Storage] Failed to fetch draft image URLs:', response.status);
-      return new Set();
+      console.warn('[Storage] Failed to fetch image URLs:', response.status);
+      return {
+        allUrls: new Set(),
+        breakdown: {
+          postCover: new Set(),
+          postContent: new Set(),
+          draftCover: new Set(),
+          draftContent: new Set(),
+        },
+        counts: { postCover: 0, postContent: 0, draftCover: 0, draftContent: 0 },
+      };
     }
 
-    const result = await response.json() as { success: boolean; data: { urls: string[] } };
-    const urls = result.data?.urls || [];
+    const result = await response.json() as {
+      success: boolean;
+      data: ImageUrlsResponse;
+      meta: { counts: ImageUrlsCounts };
+    };
+
+    const data = result.data;
+    const counts = result.meta?.counts || {
+      postCover: data.breakdown?.postCover?.length || 0,
+      postContent: data.breakdown?.postContent?.length || 0,
+      draftCover: data.breakdown?.draftCover?.length || 0,
+      draftContent: data.breakdown?.draftContent?.length || 0,
+    };
 
     // Cache for 30 seconds
-    await storageCache.set(cacheKey, urls, 30);
+    await storageCache.set(cacheKey, {
+      urls: data.urls,
+      breakdown: data.breakdown,
+      counts,
+    }, 30);
 
-    return new Set(urls);
+    return {
+      allUrls: new Set(data.urls),
+      breakdown: {
+        postCover: new Set(data.breakdown?.postCover || []),
+        postContent: new Set(data.breakdown?.postContent || []),
+        draftCover: new Set(data.breakdown?.draftCover || []),
+        draftContent: new Set(data.breakdown?.draftContent || []),
+      },
+      counts,
+    };
   } catch (error) {
-    console.error('[Storage] Error fetching draft image URLs:', error);
-    return new Set();
+    console.error('[Storage] Error fetching image URLs:', error);
+    return {
+      allUrls: new Set(),
+      breakdown: {
+        postCover: new Set(),
+        postContent: new Set(),
+        draftCover: new Set(),
+        draftContent: new Set(),
+      },
+      counts: { postCover: 0, postContent: 0, draftCover: 0, draftContent: 0 },
+    };
   }
+}
+
+/**
+ * Legacy function for backward compatibility
+ */
+async function getDraftImageUrls(tenantId: string, tenantName: string): Promise<Set<string>> {
+  const detailed = await getDetailedImageUrls(tenantId, tenantName);
+  return detailed.allUrls;
 }
 
 /**
@@ -589,11 +683,11 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
     const tenant = req.tenant!;
     const prisma = tenantPrisma.getClient(tenant.id);
 
-    // Get draft image URLs to calculate usedInDrafts and external images
-    const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
+    // Get detailed image URLs breakdown
+    const imageUrlsData = await getDetailedImageUrls(tenant.id, tenant.name);
 
     // Count external images (URLs found in posts/drafts that are not from our storage)
-    const externalUrls = Array.from(draftImageUrls).filter((url) => isExternalUrl(url));
+    const externalUrls = Array.from(imageUrlsData.allUrls).filter((url) => isExternalUrl(url));
 
     // Get all unlinked files (exclude avatars - managed separately)
     const unlinkedFiles = await prisma.file.findMany({
@@ -606,9 +700,11 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
       select: { url: true, size: true },
     });
 
-    // Calculate usedInDrafts and orphan candidates
-    const usedInDrafts = unlinkedFiles.filter((file) => draftImageUrls.has(file.url)).length;
-    const orphanCandidates = unlinkedFiles.filter((file) => !draftImageUrls.has(file.url));
+    // Calculate usedInDrafts breakdown
+    const draftCoverFiles = unlinkedFiles.filter((file) => imageUrlsData.breakdown.draftCover.has(file.url));
+    const draftContentFiles = unlinkedFiles.filter((file) => imageUrlsData.breakdown.draftContent.has(file.url));
+    const usedInDrafts = unlinkedFiles.filter((file) => imageUrlsData.allUrls.has(file.url) && !imageUrlsData.breakdown.postCover.has(file.url) && !imageUrlsData.breakdown.postContent.has(file.url)).length;
+    const orphanCandidates = unlinkedFiles.filter((file) => !imageUrlsData.allUrls.has(file.url));
     const orphaned = orphanCandidates.length;
     const orphanSize = orphanCandidates.reduce((sum, file) => sum + file.size, 0);
 
@@ -635,7 +731,17 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
         orphaned,
         orphanSize,
         externalCount: externalUrls.length,
-        externalUrls: externalUrls.slice(0, 10), // Return up to 10 external URLs for display
+        externalUrls, // Return all external URLs
+        // Detailed breakdown from blog-service
+        breakdown: {
+          postCover: imageUrlsData.counts.postCover,
+          postContent: imageUrlsData.counts.postContent,
+          draftCover: imageUrlsData.counts.draftCover,
+          draftContent: imageUrlsData.counts.draftContent,
+          // Files in our storage that are used in drafts (not yet linked to posts)
+          draftCoverFiles: draftCoverFiles.length,
+          draftContentFiles: draftContentFiles.length,
+        },
       },
     });
   } catch (error) {
@@ -695,8 +801,17 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
 
     const orphanSize = orphans.reduce((sum, file) => sum + file.size, 0);
 
-    // Count external images
-    const externalUrls = Array.from(draftImageUrls).filter((url) => isExternalUrl(url));
+    // Get detailed breakdown
+    const imageUrlsData = await getDetailedImageUrls(tenant.id, tenant.name);
+    const externalUrls = Array.from(imageUrlsData.allUrls).filter((url) => isExternalUrl(url));
+
+    // Calculate draft file breakdown
+    const allUnlinkedFilesForBreakdown = await prisma.file.findMany({
+      where: { tenantId: tenant.id, resourceId: null, folder: { not: 'avatars' } },
+      select: { url: true },
+    });
+    const draftCoverFiles = allUnlinkedFilesForBreakdown.filter((file) => imageUrlsData.breakdown.draftCover.has(file.url));
+    const draftContentFiles = allUnlinkedFilesForBreakdown.filter((file) => imageUrlsData.breakdown.draftContent.has(file.url));
 
     res.json({
       data: {
@@ -718,7 +833,15 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
           totalSize: totalSizeResult._sum.size || 0,
           orphanSize,
           externalCount: externalUrls.length,
-          externalUrls: externalUrls.slice(0, 10), // Return up to 10 external URLs
+          externalUrls,
+          breakdown: {
+            postCover: imageUrlsData.counts.postCover,
+            postContent: imageUrlsData.counts.postContent,
+            draftCover: imageUrlsData.counts.draftCover,
+            draftContent: imageUrlsData.counts.draftContent,
+            draftCoverFiles: draftCoverFiles.length,
+            draftContentFiles: draftContentFiles.length,
+          },
         },
       },
     });

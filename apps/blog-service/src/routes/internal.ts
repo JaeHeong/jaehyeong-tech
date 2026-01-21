@@ -100,6 +100,7 @@ router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request,
  * GET /internal/draft-image-urls
  * Get image URLs used in posts AND drafts (content and coverImage) for orphan detection
  * Note: Name kept for backward compatibility, but now includes posts too
+ * Returns detailed breakdown: postCover, postContent, draftCover, draftContent
  */
 router.get('/draft-image-urls', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -115,48 +116,82 @@ router.get('/draft-image-urls', verifyInternalRequest, resolveTenant, async (req
       }),
     ]);
 
-    // Extract image URLs from content and coverImage
-    const imageUrls = new Set<string>();
+    // Separate URL sets for detailed breakdown
+    const allUrls = new Set<string>();
+    const postCoverUrls = new Set<string>();
+    const postContentUrls = new Set<string>();
+    const draftCoverUrls = new Set<string>();
+    const draftContentUrls = new Set<string>();
+
     const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
     const mdImgRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
 
     // Helper function to extract URLs from content
-    const extractUrls = (items: Array<{ content: string | null; coverImage: string | null }>) => {
-      for (const item of items) {
-        // Add coverImage URL if exists
-        if (item.coverImage) {
-          imageUrls.add(item.coverImage);
-        }
+    const extractContentUrls = (content: string | null): string[] => {
+      if (!content) return [];
+      const urls: string[] = [];
 
-        if (!item.content) continue;
-
-        // HTML img tags - reset regex lastIndex
-        imgRegex.lastIndex = 0;
-        let match;
-        while ((match = imgRegex.exec(item.content)) !== null) {
-          imageUrls.add(match[1]);
-        }
-
-        // Markdown images - reset regex lastIndex
-        mdImgRegex.lastIndex = 0;
-        while ((match = mdImgRegex.exec(item.content)) !== null) {
-          imageUrls.add(match[1]);
-        }
+      // HTML img tags
+      imgRegex.lastIndex = 0;
+      let match;
+      while ((match = imgRegex.exec(content)) !== null) {
+        urls.push(match[1]);
       }
+
+      // Markdown images
+      mdImgRegex.lastIndex = 0;
+      while ((match = mdImgRegex.exec(content)) !== null) {
+        urls.push(match[1]);
+      }
+
+      return urls;
     };
 
-    extractUrls(posts);
-    extractUrls(drafts);
+    // Process posts
+    for (const post of posts) {
+      if (post.coverImage) {
+        postCoverUrls.add(post.coverImage);
+        allUrls.add(post.coverImage);
+      }
+      for (const url of extractContentUrls(post.content)) {
+        postContentUrls.add(url);
+        allUrls.add(url);
+      }
+    }
+
+    // Process drafts
+    for (const draft of drafts) {
+      if (draft.coverImage) {
+        draftCoverUrls.add(draft.coverImage);
+        allUrls.add(draft.coverImage);
+      }
+      for (const url of extractContentUrls(draft.content)) {
+        draftContentUrls.add(url);
+        allUrls.add(url);
+      }
+    }
 
     res.json({
       success: true,
       data: {
-        urls: Array.from(imageUrls),
-        count: imageUrls.size,
+        urls: Array.from(allUrls),
+        count: allUrls.size,
+        breakdown: {
+          postCover: Array.from(postCoverUrls),
+          postContent: Array.from(postContentUrls),
+          draftCover: Array.from(draftCoverUrls),
+          draftContent: Array.from(draftContentUrls),
+        },
       },
       meta: {
         postsScanned: posts.length,
         draftsScanned: drafts.length,
+        counts: {
+          postCover: postCoverUrls.size,
+          postContent: postContentUrls.size,
+          draftCover: draftCoverUrls.size,
+          draftContent: draftContentUrls.size,
+        },
         tenantId: req.tenant!.id,
       },
     });

@@ -19,6 +19,14 @@ interface ImageStats {
   totalSize: number
   externalCount?: number
   externalUrls?: string[]
+  breakdown?: {
+    postCover: number
+    postContent: number
+    draftCover: number
+    draftContent: number
+    draftCoverFiles?: number
+    draftContentFiles?: number
+  }
 }
 
 export default function AdminManagementPage() {
@@ -45,6 +53,7 @@ export default function AdminManagementPage() {
   const [isDeletingOrphans, setIsDeletingOrphans] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [imageMessage, setImageMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [showExternalLinksModal, setShowExternalLinksModal] = useState(false)
 
   // Backup functions
   const fetchBackups = async () => {
@@ -540,32 +549,61 @@ export default function AdminManagementPage() {
 
           {/* Image Stats */}
           {imageStats && (
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-4 mb-4 md:mb-6">
-              <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">전체 이미지</p>
-                <p className="text-lg md:text-2xl font-bold">{imageStats.total}</p>
+            <>
+              {/* Main Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-4 mb-3 md:mb-4">
+                <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                  <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">전체 이미지</p>
+                  <p className="text-lg md:text-2xl font-bold">{imageStats.total}</p>
+                </div>
+                <div className="p-3 md:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <p className="text-[10px] md:text-sm text-green-600 dark:text-green-400">게시글 연결</p>
+                  <p className="text-lg md:text-2xl font-bold text-green-600 dark:text-green-400">{imageStats.linked}</p>
+                </div>
+                <div className="p-3 md:p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                  <p className="text-[10px] md:text-sm text-amber-600 dark:text-amber-400">임시저장 사용</p>
+                  <p className="text-lg md:text-2xl font-bold text-amber-600 dark:text-amber-400">{imageStats.usedInDrafts}</p>
+                </div>
+                <div className="p-3 md:p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                  <p className="text-[10px] md:text-sm text-red-600 dark:text-red-400">고아 이미지</p>
+                  <p className="text-lg md:text-2xl font-bold text-red-600 dark:text-red-400">{imageStats.orphaned}</p>
+                </div>
+                <button
+                  onClick={() => setShowExternalLinksModal(true)}
+                  disabled={!imageStats.externalCount}
+                  className="p-3 md:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-left hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors disabled:cursor-default disabled:hover:bg-blue-50 dark:disabled:hover:bg-blue-900/20"
+                >
+                  <p className="text-[10px] md:text-sm text-blue-600 dark:text-blue-400">외부 링크</p>
+                  <p className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400">{imageStats.externalCount || 0}</p>
+                </button>
+                <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                  <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">총 용량</p>
+                  <p className="text-lg md:text-2xl font-bold">{formatBytes(imageStats.totalSize)}</p>
+                </div>
               </div>
-              <div className="p-3 md:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <p className="text-[10px] md:text-sm text-green-600 dark:text-green-400">게시글 연결</p>
-                <p className="text-lg md:text-2xl font-bold text-green-600 dark:text-green-400">{imageStats.linked}</p>
-              </div>
-              <div className="p-3 md:p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                <p className="text-[10px] md:text-sm text-amber-600 dark:text-amber-400">임시저장 사용</p>
-                <p className="text-lg md:text-2xl font-bold text-amber-600 dark:text-amber-400">{imageStats.usedInDrafts}</p>
-              </div>
-              <div className="p-3 md:p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <p className="text-[10px] md:text-sm text-red-600 dark:text-red-400">고아 이미지</p>
-                <p className="text-lg md:text-2xl font-bold text-red-600 dark:text-red-400">{imageStats.orphaned}</p>
-              </div>
-              <div className="p-3 md:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg" title={imageStats.externalUrls?.join('\n')}>
-                <p className="text-[10px] md:text-sm text-blue-600 dark:text-blue-400">외부 링크</p>
-                <p className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400">{imageStats.externalCount || 0}</p>
-              </div>
-              <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">총 용량</p>
-                <p className="text-lg md:text-2xl font-bold">{formatBytes(imageStats.totalSize)}</p>
-              </div>
-            </div>
+
+              {/* Detailed Breakdown */}
+              {imageStats.breakdown && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6 p-3 md:p-4 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+                  <div className="text-center">
+                    <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">게시글 커버</p>
+                    <p className="text-sm md:text-lg font-semibold text-green-600 dark:text-green-400">{imageStats.breakdown.postCover}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">게시글 본문</p>
+                    <p className="text-sm md:text-lg font-semibold text-green-600 dark:text-green-400">{imageStats.breakdown.postContent}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">임시저장 커버</p>
+                    <p className="text-sm md:text-lg font-semibold text-amber-600 dark:text-amber-400">{imageStats.breakdown.draftCover}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">임시저장 본문</p>
+                    <p className="text-sm md:text-lg font-semibold text-amber-600 dark:text-amber-400">{imageStats.breakdown.draftContent}</p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* Orphan Images List */}
@@ -822,6 +860,73 @@ export default function AdminManagementPage() {
                     백업 생성
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* External Links Modal */}
+      {showExternalLinksModal && imageStats?.externalUrls && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowExternalLinksModal(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-blue-500">link</span>
+                외부 링크 이미지 ({imageStats.externalUrls.length}개)
+              </h3>
+              <button
+                onClick={() => setShowExternalLinksModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
+              {imageStats.externalUrls.length === 0 ? (
+                <p className="text-center text-slate-500 dark:text-slate-400 py-8">외부 링크 이미지가 없습니다.</p>
+              ) : (
+                <div className="space-y-2">
+                  {imageStats.externalUrls.map((url, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg group">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-mono text-slate-700 dark:text-slate-300 truncate" title={url}>
+                          {url}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(url)
+                          setImageMessage({ type: 'success', text: 'URL이 복사되었습니다.' })
+                          setTimeout(() => setImageMessage(null), 2000)
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-primary transition-colors shrink-0"
+                        title="복사"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                      </button>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 text-slate-400 hover:text-blue-500 transition-colors shrink-0"
+                        title="열기"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 md:p-6 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setShowExternalLinksModal(false)}
+                className="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-colors"
+              >
+                닫기
               </button>
             </div>
           </div>
