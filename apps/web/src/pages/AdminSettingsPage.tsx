@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useBlocker } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useModal } from '../contexts/ModalContext'
 import { api } from '../services/api'
 import {
   getPaginationSettings,
@@ -10,12 +12,17 @@ import {
 
 export default function AdminSettingsPage() {
   const { user, refreshUser } = useAuth()
+  const { confirm } = useModal()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isInitializedRef = useRef(false)
-  const avatarRef = useRef<string>('')  // Track avatar separately to avoid stale closure
-  const [isLoading, setIsLoading] = useState(false)
+  const initialAvatarRef = useRef<string>('')  // Track initial avatar to detect changes
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+
+  // Pending avatar file (not yet uploaded)
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string>('')
 
   const [formData, setFormData] = useState({
     name: '',
@@ -32,11 +39,25 @@ export default function AdminSettingsPage() {
     getPaginationSettings()
   )
 
+  // Check if avatar has unsaved changes (pending file or deleted)
+  const hasUnsavedAvatarChanges = useCallback(() => {
+    return pendingAvatarFile !== null || formData.avatar !== initialAvatarRef.current
+  }, [pendingAvatarFile, formData.avatar])
+
+  // Cleanup preview URL when component unmounts or file changes
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl) {
+        URL.revokeObjectURL(avatarPreviewUrl)
+      }
+    }
+  }, [avatarPreviewUrl])
+
   // 초기 로드 시에만 user 데이터로 폼 초기화
   useEffect(() => {
     if (user && !isInitializedRef.current) {
       const avatarValue = user.avatar || ''
-      avatarRef.current = avatarValue
+      initialAvatarRef.current = avatarValue  // Track initial value for change detection
       setFormData({
         name: user.name || '',
         title: user.title || '',
@@ -51,12 +72,59 @@ export default function AdminSettingsPage() {
     }
   }, [user])
 
+  // beforeunload handler for browser refresh/close
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedAvatarChanges()) {
+        e.preventDefault()
+        // Show browser's native dialog
+        e.returnValue = '저장하지 않은 프로필 사진 변경사항이 있습니다.'
+        return e.returnValue
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedAvatarChanges])
+
+  // Block navigation when there are unsaved avatar changes
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasUnsavedAvatarChanges() && currentLocation.pathname !== nextLocation.pathname
+  )
+
+  // Show confirmation dialog when navigation is blocked
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      (async () => {
+        const shouldSave = await confirm({
+          title: '저장하지 않은 변경사항',
+          message: '프로필 사진 변경사항이 저장되지 않았습니다.\n저장하지 않고 나가시겠습니까?',
+          cancelText: '나가기',
+          confirmText: '저장하기',
+          type: 'warning',
+        })
+
+        if (shouldSave) {
+          // User wants to save - submit form and reset blocker
+          if (formRef.current) {
+            formRef.current.requestSubmit()
+          }
+          blocker.reset()
+        } else {
+          // User wants to discard - just proceed (no server cleanup needed)
+          blocker.proceed()
+        }
+      })()
+    }
+  }, [blocker, confirm])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -65,23 +133,25 @@ export default function AdminSettingsPage() {
       return
     }
 
-    setIsLoading(true)
-    try {
-      const uploadFormData = new FormData()
-      uploadFormData.append('image', file)
-      const response = await api.uploadImage(uploadFormData, 'avatar')
-      avatarRef.current = response.url
-      setFormData((prev) => ({ ...prev, avatar: response.url }))
-      setMessage({ type: 'success', text: '프로필 사진이 업로드되었습니다.' })
-    } catch {
-      setMessage({ type: 'error', text: '이미지 업로드에 실패했습니다.' })
-    } finally {
-      setIsLoading(false)
+    // Revoke previous preview URL if exists
+    if (avatarPreviewUrl) {
+      URL.revokeObjectURL(avatarPreviewUrl)
     }
+
+    // Store file locally and create preview URL
+    setPendingAvatarFile(file)
+    const previewUrl = URL.createObjectURL(file)
+    setAvatarPreviewUrl(previewUrl)
+    setMessage({ type: 'success', text: '프로필 사진이 선택되었습니다. 저장하기를 눌러 적용하세요.' })
   }
 
   const handleAvatarDelete = () => {
-    avatarRef.current = ''
+    // Revoke preview URL if exists
+    if (avatarPreviewUrl) {
+      URL.revokeObjectURL(avatarPreviewUrl)
+      setAvatarPreviewUrl('')
+    }
+    setPendingAvatarFile(null)
     setFormData((prev) => ({ ...prev, avatar: '' }))
   }
 
@@ -99,22 +169,32 @@ export default function AdminSettingsPage() {
     setMessage(null)
 
     try {
-      // Use ref as source of truth for avatar
+      let avatarUrl = formData.avatar
+
+      // Upload pending avatar file if exists
+      if (pendingAvatarFile) {
+        const uploadFormData = new FormData()
+        uploadFormData.append('image', pendingAvatarFile)
+        const uploadResponse = await api.uploadImage(uploadFormData, 'avatar')
+        avatarUrl = uploadResponse.url
+      }
+
       const profileData = {
         name: formData.name || '',
         title: formData.title || '',
         bio: formData.bio || '',
-        avatar: avatarRef.current,
+        avatar: avatarUrl,
         github: formData.github || '',
         twitter: formData.twitter || '',
         linkedin: formData.linkedin || '',
         website: formData.website || '',
       }
       const response = await api.updateProfile(profileData)
+
       // 저장된 데이터로 폼 업데이트
       if (response.data) {
         const responseAvatar = response.data.avatar || ''
-        avatarRef.current = responseAvatar
+        initialAvatarRef.current = responseAvatar  // Update initial value after save
         setFormData({
           name: response.data.name || '',
           title: response.data.title || '',
@@ -126,6 +206,14 @@ export default function AdminSettingsPage() {
           website: response.data.website || '',
         })
       }
+
+      // Clear pending file state
+      if (avatarPreviewUrl) {
+        URL.revokeObjectURL(avatarPreviewUrl)
+        setAvatarPreviewUrl('')
+      }
+      setPendingAvatarFile(null)
+
       if (refreshUser) {
         await refreshUser()
       }
@@ -168,7 +256,7 @@ export default function AdminSettingsPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-8">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 md:space-y-8">
           {/* Basic Info */}
           <div className="bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-8">
             <h2 className="text-base md:text-xl font-bold mb-4 md:mb-6 flex items-center gap-2">
@@ -184,9 +272,9 @@ export default function AdminSettingsPage() {
                 <div className="flex items-center gap-4 md:gap-6">
                   <div
                     className="size-16 md:size-24 rounded-full bg-slate-200 dark:bg-slate-700 bg-cover bg-center border border-slate-200 dark:border-slate-700 shrink-0 flex items-center justify-center"
-                    style={formData.avatar ? { backgroundImage: `url('${formData.avatar}')` } : {}}
+                    style={(avatarPreviewUrl || formData.avatar) ? { backgroundImage: `url('${avatarPreviewUrl || formData.avatar}')` } : {}}
                   >
-                    {!formData.avatar && (
+                    {!avatarPreviewUrl && !formData.avatar && (
                       <span className="material-symbols-outlined text-slate-400 text-[28px] md:text-[40px]">person</span>
                     )}
                   </div>
@@ -202,12 +290,11 @@ export default function AdminSettingsPage() {
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={isLoading}
-                        className="px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white text-xs md:text-sm font-medium rounded-lg transition-colors shadow-sm shadow-primary/20 disabled:opacity-50"
+                        className="px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary/90 text-white text-xs md:text-sm font-medium rounded-lg transition-colors shadow-sm shadow-primary/20"
                       >
-                        {isLoading ? '업로드 중...' : '사진 변경'}
+                        사진 변경
                       </button>
-                      {formData.avatar && (
+                      {(avatarPreviewUrl || formData.avatar) && (
                         <button
                           type="button"
                           onClick={handleAvatarDelete}

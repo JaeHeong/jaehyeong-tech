@@ -167,7 +167,7 @@ class ApiClient {
   }
 
   async updatePost(id: string, data: UpdatePostData) {
-    return this.request<{ post: Post }>(`/posts/${id}`, {
+    return this.request<{ data: Post }>(`/posts/${id}`, {
       method: 'PUT',
       body: data,
     })
@@ -239,7 +239,8 @@ class ApiClient {
     if (params?.limit) searchParams.set('limit', params.limit.toString())
 
     const query = searchParams.toString()
-    return this.request<PostsResponse>(`/tags/${slug}/posts${query ? `?${query}` : ''}`)
+    const response = await this.request<{ data: Post[]; meta: PostsResponse['meta'] & { tag?: Tag } }>(`/tags/${slug}/posts${query ? `?${query}` : ''}`)
+    return { posts: response.data, meta: response.meta }
   }
 
   async createTag(data: CreateTagData) {
@@ -347,7 +348,7 @@ class ApiClient {
   }
 
   async getPageBySlug(slug: string) {
-    const response = await this.request<{ data: Page }>(`/pages/slug/${slug}`)
+    const response = await this.request<{ data: Page }>(`/pages/${slug}`)
     return { page: response.data }
   }
 
@@ -403,19 +404,19 @@ class ApiClient {
 
   // Backup endpoints
   async createBackup(description?: string) {
-    return this.request<{ data: BackupResult }>('/backups', {
+    return this.request<{ data: BackupResult }>('/backup', {
       method: 'POST',
       body: { description },
     })
   }
 
   async listBackups() {
-    const response = await this.request<{ data: BackupInfo[] }>('/backups')
+    const response = await this.request<{ data: BackupInfo[] }>('/backup')
     return response.data
   }
 
   async downloadBackup(fileName: string) {
-    const response = await fetch(`${this.baseUrl}/backups/${fileName}`, {
+    const response = await fetch(`${this.baseUrl}/backup/${fileName}`, {
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
     })
 
@@ -435,17 +436,17 @@ class ApiClient {
   }
 
   async getBackupInfo(fileName: string) {
-    return this.request<{ data: BackupInfoDetail }>(`/backups/${fileName}/info`)
+    return this.request<{ data: BackupInfoDetail }>(`/backup/${fileName}/info`)
   }
 
   async restoreBackup(fileName: string) {
-    return this.request<{ data: RestoreResult }>(`/backups/${fileName}/restore`, {
+    return this.request<{ data: RestoreResult }>(`/backup/${fileName}/restore`, {
       method: 'POST',
     })
   }
 
   async deleteBackup(fileName: string) {
-    return this.request<{ data: { success: boolean } }>(`/backups/${fileName}`, {
+    return this.request<{ data: { success: boolean } }>(`/backup/${fileName}`, {
       method: 'DELETE',
     })
   }
@@ -463,6 +464,20 @@ class ApiClient {
     return response.data
   }
 
+  async syncImages() {
+    const response = await this.request<{ data: { checked: number; removed: number; freedSpace: number } }>('/files/sync', {
+      method: 'POST',
+    })
+    return response.data
+  }
+
+  async deleteImage(url: string) {
+    return this.request<{ message: string; deleted: boolean }>('/files/delete-by-url', {
+      method: 'POST',
+      body: { url },
+    })
+  }
+
   // Comment endpoints
   async getRecentComments(limit: number = 5) {
     const response = await this.request<{ data: RecentComment[] }>(`/comments/recent?limit=${limit}`)
@@ -470,21 +485,92 @@ class ApiClient {
   }
 
   async getComments(postId: string) {
-    const response = await this.request<{ data: CommentsResponse }>(`/comments/post/${postId}`)
-    return response.data
+    // Backend returns { data: Comment[], meta: {...} }
+    // We need to transform it to CommentsResponse format
+    interface BackendComment {
+      id: string
+      content: string
+      authorId: string | null
+      guestName: string | null
+      resourceType: string
+      resourceId: string
+      status: string
+      parentId: string | null
+      isPrivate: boolean
+      isDeleted: boolean
+      canView: boolean
+      createdAt: string
+      updatedAt: string
+      _count?: { replies: number }
+      author?: { id: string; name: string; avatar: string | null } | null
+    }
+
+    const response = await this.request<{ data: BackendComment[]; meta: { total: number } }>(`/comments?resourceType=post&resourceId=${postId}`)
+
+    // Transform backend comments to frontend format
+    const allComments: Comment[] = response.data.map(c => ({
+      id: c.id,
+      content: c.content,
+      postId: c.resourceId,
+      parentId: c.parentId,
+      isPrivate: c.isPrivate,
+      isDeleted: c.isDeleted,
+      author: c.author || null,
+      guestName: c.guestName,
+      isOwner: false, // Can't determine without current user
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+      replyCount: c._count?.replies || 0,
+      replies: [],
+      canView: c.canView,
+    }))
+
+    // Build nested structure: separate top-level comments and replies
+    const commentsMap = new Map<string, Comment>()
+    const topLevelComments: Comment[] = []
+
+    // First pass: index all comments
+    for (const comment of allComments) {
+      commentsMap.set(comment.id, comment)
+    }
+
+    // Second pass: nest replies under parents
+    for (const comment of allComments) {
+      if (comment.parentId) {
+        const parent = commentsMap.get(comment.parentId)
+        if (parent) {
+          parent.replies = parent.replies || []
+          parent.replies.push(comment)
+        }
+      } else {
+        topLevelComments.push(comment)
+      }
+    }
+
+    // Sort replies by createdAt ascending (oldest first)
+    for (const comment of topLevelComments) {
+      if (comment.replies && comment.replies.length > 0) {
+        comment.replies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      }
+    }
+
+    return {
+      comments: topLevelComments,
+      totalCount: response.meta.total,
+    }
   }
 
   async createComment(postId: string, data: CreateCommentData) {
-    const response = await this.request<{ data: Comment }>(`/comments/post/${postId}`, {
+    const response = await this.request<{ data: Comment }>('/comments', {
       method: 'POST',
-      body: data,
+      body: { ...data, resourceType: 'post', resourceId: postId },
     })
     return response.data
   }
 
   async updateComment(commentId: string, data: UpdateCommentData) {
     const response = await this.request<{ data: Comment }>(`/comments/${commentId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: data,
     })
     return response.data
@@ -531,6 +617,13 @@ class ApiClient {
     return this.request<{ data: { deletedCount: number; message: string } }>('/comments/admin/bulk-delete', {
       method: 'POST',
       body: { ids },
+    })
+  }
+
+  async updateCommentStatus(commentId: string, status: CommentStatusType) {
+    return this.request<{ data: AdminComment }>(`/comments/${commentId}/status`, {
+      method: 'PATCH',
+      body: { status },
     })
   }
 
@@ -597,7 +690,7 @@ class ApiClient {
   }
 
   async checkBookmarkStatus(postId: string) {
-    const response = await this.request<{ data: BookmarkResponse }>(`/bookmarks/${postId}`)
+    const response = await this.request<{ data: BookmarkResponse }>(`/bookmarks/${postId}/status`)
     return response.data
   }
 
@@ -607,24 +700,74 @@ class ApiClient {
     if (params?.limit) searchParams.set('limit', params.limit.toString())
 
     const query = searchParams.toString()
-    const response = await this.request<MyBookmarksResponse>(`/bookmarks${query ? `?${query}` : ''}`)
-    return response.data
+
+    // Backend returns { data: Bookmark[], meta: {...} }
+    // We need to transform it to { posts: BookmarkedPost[], pagination: {...} }
+    interface BookmarkData {
+      id: string
+      postId: string
+      userId: string
+      createdAt: string
+      post: {
+        id: string
+        slug: string
+        title: string
+        excerpt: string | null
+        coverImage: string | null
+        viewCount: number
+        likeCount: number
+        readingTime: number
+        createdAt: string
+        publishedAt: string | null
+        category: { id: string; name: string; slug: string }
+        tags: { id: string; name: string; slug: string }[]
+      }
+    }
+
+    const response = await this.request<{ data: BookmarkData[]; meta: { total: number; page: number; limit: number; totalPages: number } }>(`/bookmarks${query ? `?${query}` : ''}`)
+
+    // Transform to expected format
+    const posts: BookmarkedPost[] = response.data.map(bookmark => ({
+      id: bookmark.post.id,
+      slug: bookmark.post.slug,
+      title: bookmark.post.title,
+      excerpt: bookmark.post.excerpt || '',
+      coverImage: bookmark.post.coverImage,
+      viewCount: bookmark.post.viewCount,
+      likeCount: bookmark.post.likeCount,
+      readingTime: bookmark.post.readingTime,
+      createdAt: bookmark.post.createdAt,
+      publishedAt: bookmark.post.publishedAt,
+      category: bookmark.post.category,
+      tags: bookmark.post.tags,
+      commentCount: 0, // Not available from bookmark endpoint
+      bookmarkedAt: bookmark.createdAt,
+    }))
+
+    return {
+      posts,
+      pagination: {
+        page: response.meta.page,
+        limit: response.meta.limit,
+        total: response.meta.total,
+        totalPages: response.meta.totalPages,
+      },
+    }
   }
 
   async removeBookmark(postId: string) {
-    return this.request<{ message: string }>(`/bookmarks/${postId}`, {
-      method: 'DELETE',
-    })
+    // Backend uses POST toggle, so we call toggleBookmark to remove
+    return this.toggleBookmark(postId)
   }
 
   // User profile endpoints
   async getMyProfile() {
-    const response = await this.request<{ data: UserProfile }>('/users/me')
+    const response = await this.request<{ data: UserProfile }>('/auth/me')
     return response.data
   }
 
   async updateMyProfile(data: { name?: string; avatar?: string | null; bio?: string | null }) {
-    const response = await this.request<{ data: UserProfile }>('/users/me', {
+    const response = await this.request<{ data: UserProfile }>('/auth/me', {
       method: 'PUT',
       body: data,
     })
@@ -655,7 +798,8 @@ class ApiClient {
   }
 
   async getVisitorStats() {
-    return this.request<VisitorStats>('/visitors/stats')
+    const response = await this.request<{ data: VisitorStats }>('/visitors/stats')
+    return response.data
   }
 
   // User management endpoints
@@ -926,6 +1070,7 @@ export interface DashboardStats {
   stats: {
     totalPosts: number
     publishedPosts: number
+    privatePosts: number
     draftPosts: number
     totalComments: number
     recentComments: number
@@ -1117,24 +1262,44 @@ export interface BackupInfoDetail {
   }
 }
 
+// MSA restore result type
+interface RestoreStats {
+  deleted: number
+  restored: number
+  skipped: number
+}
+
 export interface RestoreResult {
   success: boolean
-  message: string
-  restoredAt: string
-  stats: {
-    users: number
-    categories: number
-    tags: number
-    posts: number
-    drafts: number
-    pages: number
-    comments: number
-    bookmarks: number
-    likes: number
-    images: number
-    bugReports: number
-    siteVisitors: number
+  partial?: boolean
+  fileName: string
+  backupVersion: string
+  backupCreatedAt: string
+  results: {
+    auth: {
+      users: RestoreStats
+      tenant: { restored: boolean }
+    }
+    blog: {
+      categories: RestoreStats
+      tags: RestoreStats
+      posts: RestoreStats
+      drafts: RestoreStats
+    }
+    comment: {
+      comments: RestoreStats
+    }
+    page: {
+      pages: RestoreStats
+      pageViews: RestoreStats
+    }
+    analytics: {
+      siteVisitors: RestoreStats
+      bugReports: RestoreStats
+    }
   }
+  failures?: string[]
+  restoredAt: string
 }
 
 // Image types
@@ -1186,6 +1351,7 @@ export interface Comment {
   parentId: string | null
   isPrivate: boolean
   isDeleted: boolean
+  canView?: boolean
   author: {
     id: string
     name: string
@@ -1218,23 +1384,29 @@ export interface UpdateCommentData {
   isPrivate?: boolean
 }
 
+export type CommentStatusType = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SPAM'
+
 export interface AdminComment {
   id: string
   content: string
   isPrivate: boolean
   isDeleted: boolean
+  status: CommentStatusType
   author: {
     id: string
     name: string
     avatar: string | null
   } | null
   guestName: string | null
-  post: {
+  post?: {
     id: string
     title: string
     slug: string
   }
+  resourceType?: string
+  resourceId?: string
   parentId: string | null
+  parentIsDeleted?: boolean
   createdAt: string
 }
 

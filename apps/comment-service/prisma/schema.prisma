@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Comment Model (범용 리소스)
+model Comment {
+  id       String @id @default(cuid())
+  tenantId String
+
+  // 범용 리소스 식별
+  resourceType String // 'post', 'product', 'video', 'ticket', 등
+  resourceId   String // 외부 리소스의 ID
+
+  // 댓글 내용
+  content String
+
+  // 작성자 (Tenant의 User ID 또는 null)
+  authorId String? // Tenant User ID (외부 참조, FK 없음)
+
+  // 익명 사용자 지원
+  guestName  String?
+  guestEmail String?
+
+  // 계층 구조 (대댓글)
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId String?
+  replies  Comment[] @relation("CommentReplies")
+
+  // 상태 (Moderation)
+  status CommentStatus @default(PENDING)
+
+  // 기능
+  isPrivate Boolean @default(false)
+  isDeleted Boolean @default(false)
+
+  // 메타데이터
+  ipHash    String // 스팸 방지
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, resourceType, resourceId])
+  @@index([tenantId, status])
+  @@index([parentId])
+  @@map("comments")
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SPAM
+}

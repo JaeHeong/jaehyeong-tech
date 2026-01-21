@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jaehyeong-tech-dev
+  labels:
+    name: jaehyeong-tech-dev
+    environment: development
+    istio-injection: enabled  # Istio sidecar 자동 주입 활성화

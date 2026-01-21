@@ -256,6 +256,7 @@ function CommentItem({
   const [isUpdating, setIsUpdating] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isHovered, setIsHovered] = useState(false)
 
   const canEdit = isAdmin || comment.isOwner || (!comment.author && comment.guestName)
   const canDelete = isAdmin || comment.isOwner || (!comment.author && comment.guestName)
@@ -264,7 +265,8 @@ function CommentItem({
   const isPostAuthor = postAuthorId && comment.author?.id === postAuthorId
 
   const handleReplySubmit = (reply: Comment) => {
-    onReplyAdded(comment.id, reply)
+    // Use parent's id for replies to keep depth=1
+    onReplyAdded(comment.parentId || comment.id, reply)
     setShowReplyForm(false)
   }
 
@@ -318,13 +320,27 @@ function CommentItem({
   // Deleted comment placeholder
   if (comment.isDeleted) {
     return (
-      <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg opacity-60">
-        <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm italic">
-          삭제된 댓글입니다.
-        </p>
-        {/* Show replies even for deleted comments */}
+      <div className="group">
+        <div className="p-3 md:p-4 rounded-lg">
+          {/* Header with anonymous profile */}
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="size-8 md:size-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 shrink-0">
+              <span className="material-symbols-outlined text-[18px] md:text-[22px]">person</span>
+            </div>
+            <div>
+              <span className="font-medium text-slate-400 dark:text-slate-500 text-sm md:text-base">
+                알 수 없음
+              </span>
+            </div>
+          </div>
+          {/* Deleted message */}
+          <p className="mt-2 md:mt-3 text-slate-400 dark:text-slate-500 text-xs md:text-sm italic">
+            삭제된 댓글입니다.
+          </p>
+        </div>
+        {/* Show replies without opacity */}
         {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-3 md:mt-4 space-y-3 md:space-y-4">
+          <div className="mt-2 md:mt-3 space-y-2 md:space-y-3">
             {comment.replies.map((reply) => (
               <div key={reply.id} className="flex gap-1.5 md:gap-2 ml-2 md:ml-4">
                 <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[16px] md:text-[20px] mt-1 shrink-0">
@@ -350,8 +366,12 @@ function CommentItem({
   }
 
   return (
-    <div className="group">
-      <div className="p-3 md:p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+    <>
+      <div
+        className="p-3 md:p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         {/* Header */}
         <div className="flex items-start justify-between gap-2 md:gap-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -434,16 +454,20 @@ function CommentItem({
             </div>
           </div>
         ) : (
-          <p className="mt-2 md:mt-3 text-slate-700 dark:text-slate-300 text-xs md:text-sm leading-relaxed whitespace-pre-wrap">
+          <p className={`mt-2 md:mt-3 text-xs md:text-sm leading-relaxed whitespace-pre-wrap ${
+            comment.isDeleted || (comment.isPrivate && comment.canView === false)
+              ? 'text-slate-400 dark:text-slate-500 italic'
+              : 'text-slate-700 dark:text-slate-300'
+          }`}>
             {comment.content}
           </p>
         )}
 
-        {/* Actions */}
-        {!showEditForm && (
-          <div className="flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-            {/* Only show reply button for top-level comments (not nested replies) */}
-            {!comment.parentId && (
+        {/* Actions - hide for deleted comments */}
+        {!showEditForm && !comment.isDeleted && (
+          <div className={`flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 transition-opacity ${isHovered ? 'opacity-100' : 'md:opacity-0'}`}>
+            {/* Show reply button on all comments (replies will attach to parent, keeping depth=1) */}
+            {comment.canView !== false && (
               <button
                 onClick={() => setShowReplyForm(!showReplyForm)}
                 className="px-2 md:px-3 py-1 md:py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] md:text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-0.5 md:gap-1"
@@ -474,12 +498,12 @@ function CommentItem({
         )}
       </div>
 
-      {/* Reply Form */}
+      {/* Reply Form - use parent's id for replies to keep depth=1 */}
       {showReplyForm && (
         <div className="ml-8 md:ml-12 mt-2">
           <CommentForm
             postId={postId}
-            parentId={comment.id}
+            parentId={comment.parentId || comment.id}
             onSubmit={handleReplySubmit}
             onCancel={() => setShowReplyForm(false)}
             isReply
@@ -487,7 +511,7 @@ function CommentItem({
         </div>
       )}
 
-      {/* Replies */}
+      {/* Replies - outside group so they have independent hover */}
       {comment.replies && comment.replies.length > 0 && (
         <div className="mt-2 md:mt-3 space-y-2 md:space-y-3">
           {comment.replies.map((reply) => (
@@ -566,36 +590,46 @@ function CommentItem({
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
 // Main CommentSection Component
 export default function CommentSection({ postId, postAuthorId }: CommentSectionProps) {
-  const { isAdmin } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [comments, setComments] = useState<Comment[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Helper to set isOwner based on current user
+  const setOwnership = useCallback((comment: Comment): Comment => ({
+    ...comment,
+    isOwner: user?.id ? comment.author?.id === user.id : false,
+    replies: comment.replies?.map(r => ({
+      ...r,
+      isOwner: user?.id ? r.author?.id === user.id : false,
+    })),
+  }), [user?.id])
+
   const fetchComments = useCallback(async () => {
     try {
       const data = await api.getComments(postId)
-      setComments(data.comments)
+      setComments(data.comments.map(setOwnership))
       setTotalCount(data.totalCount)
     } catch (err) {
       setError(err instanceof Error ? err.message : '댓글을 불러오는데 실패했습니다.')
     } finally {
       setIsLoading(false)
     }
-  }, [postId])
+  }, [postId, setOwnership])
 
   useEffect(() => {
     fetchComments()
   }, [fetchComments])
 
   const handleNewComment = (comment: Comment) => {
-    setComments([comment, ...comments])
+    setComments([setOwnership(comment), ...comments])
     setTotalCount(totalCount + 1)
   }
 
@@ -605,7 +639,7 @@ export default function CommentSection({ postId, postAuthorId }: CommentSectionP
         if (c.id === parentId) {
           return {
             ...c,
-            replies: [...(c.replies || []), reply],
+            replies: [...(c.replies || []), setOwnership(reply)],
             replyCount: c.replyCount + 1,
           }
         }

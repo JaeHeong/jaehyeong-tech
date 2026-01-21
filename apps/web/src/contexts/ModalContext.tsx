@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react'
 
 interface ConfirmOptions {
   title?: string
@@ -177,8 +177,14 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   const confirmStyles = getConfirmTypeStyles()
   const alertStyles = getAlertTypeStyles()
 
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo(
+    () => ({ confirm, alert }),
+    [confirm, alert]
+  )
+
   return (
-    <ModalContext.Provider value={{ confirm, alert }}>
+    <ModalContext.Provider value={value}>
       {children}
 
       {/* Confirm Modal */}

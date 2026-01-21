@@ -17,7 +17,7 @@ import { Typography } from '@tiptap/extension-typography'
 import { Extension, Node } from '@tiptap/core'
 import { InputRule } from '@tiptap/core'
 import { common, createLowlight } from 'lowlight'
-import { useCallback, useEffect, useRef, useState, MouseEvent as ReactMouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, MouseEvent as ReactMouseEvent } from 'react'
 import { api } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
 import { useToast } from '../contexts/ToastContext'
@@ -1680,13 +1680,56 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
     setHoveredCell(null)
   }, [editor, hoveredCell])
 
+  // Loading placeholder SVG as data URL
+  const loadingPlaceholderSvg = useMemo(() => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+      <rect fill="#f1f5f9" width="400" height="300"/>
+      <g transform="translate(200, 130)">
+        <circle cx="0" cy="0" r="24" fill="none" stroke="#94a3b8" stroke-width="4" stroke-dasharray="40 20">
+          <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1s" repeatCount="indefinite"/>
+        </circle>
+      </g>
+      <text x="200" y="180" text-anchor="middle" fill="#64748b" font-family="system-ui, sans-serif" font-size="14">이미지 최적화 중...</text>
+    </svg>`
+    return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`
+  }, [])
+
   const handleImageUpload = useCallback(async (file: File) => {
     if (!editor) return
 
     setIsUploading(true)
+
+    // Generate unique ID for placeholder
+    const placeholderId = `upload-placeholder-${Date.now()}`
+
+    // Insert placeholder image first
+    editor.chain().focus().setImage({
+      src: loadingPlaceholderSvg,
+      alt: placeholderId,  // Use alt to identify placeholder
+    }).run()
+
     try {
       const result = await api.uploadImage(file)
-      editor.chain().focus().setImage({ src: result.url }).run()
+
+      // Find and replace placeholder with actual image
+      const { state } = editor
+      let placeholderPos: number | null = null
+
+      state.doc.descendants((node, pos) => {
+        if (node.type.name === 'image' && node.attrs.alt === placeholderId) {
+          placeholderPos = pos
+          return false
+        }
+        return true
+      })
+
+      if (placeholderPos !== null) {
+        // Replace placeholder with actual image
+        editor.chain()
+          .setNodeSelection(placeholderPos)
+          .setImage({ src: result.url, alt: '' })
+          .run()
+      }
 
       // Show optimization toast
       const originalKB = (result.originalSize / 1024).toFixed(1)
@@ -1700,11 +1743,31 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
       })
     } catch (error) {
       console.error('Image upload failed:', error)
+
+      // Remove placeholder on error
+      const { state } = editor
+      let placeholderPos: number | null = null
+
+      state.doc.descendants((node, pos) => {
+        if (node.type.name === 'image' && node.attrs.alt === placeholderId) {
+          placeholderPos = pos
+          return false
+        }
+        return true
+      })
+
+      if (placeholderPos !== null) {
+        editor.chain()
+          .setNodeSelection(placeholderPos)
+          .deleteSelection()
+          .run()
+      }
+
       await alert({ message: error instanceof Error ? error.message : '이미지 업로드에 실패했습니다.', type: 'error' })
     } finally {
       setIsUploading(false)
     }
-  }, [editor, alert, showToast])
+  }, [editor, alert, showToast, loadingPlaceholderSvg])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

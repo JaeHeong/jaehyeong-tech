@@ -1,0 +1,68 @@
+{
+  "name": "@shared/events",
+  "version": "1.0.0",
+  "description": "Shared event definitions for MSA",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./analytics-events": {
+      "types": "./dist/analytics-events.d.ts",
+      "require": "./dist/analytics-events.js",
+      "import": "./dist/analytics-events.js"
+    },
+    "./base": {
+      "types": "./dist/base.d.ts",
+      "require": "./dist/base.js",
+      "import": "./dist/base.js"
+    },
+    "./comment-events": {
+      "types": "./dist/comment-events.d.ts",
+      "require": "./dist/comment-events.js",
+      "import": "./dist/comment-events.js"
+    },
+    "./file-events": {
+      "types": "./dist/file-events.d.ts",
+      "require": "./dist/file-events.js",
+      "import": "./dist/file-events.js"
+    },
+    "./like-events": {
+      "types": "./dist/like-events.d.ts",
+      "require": "./dist/like-events.js",
+      "import": "./dist/like-events.js"
+    },
+    "./page-events": {
+      "types": "./dist/page-events.d.ts",
+      "require": "./dist/page-events.js",
+      "import": "./dist/page-events.js"
+    },
+    "./post-events": {
+      "types": "./dist/post-events.d.ts",
+      "require": "./dist/post-events.js",
+      "import": "./dist/post-events.js"
+    },
+    "./user-events": {
+      "types": "./dist/user-events.d.ts",
+      "require": "./dist/user-events.js",
+      "import": "./dist/user-events.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["msa", "events", "rabbitmq", "shared"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@shared/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

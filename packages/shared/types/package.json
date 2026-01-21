@@ -1,0 +1,57 @@
+{
+  "name": "@shared/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for MSA",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./comment": {
+      "types": "./dist/comment.d.ts",
+      "require": "./dist/comment.js",
+      "import": "./dist/comment.js"
+    },
+    "./error": {
+      "types": "./dist/error.d.ts",
+      "require": "./dist/error.js",
+      "import": "./dist/error.js"
+    },
+    "./express": {
+      "types": "./dist/express.d.ts",
+      "require": "./dist/express.js",
+      "import": "./dist/express.js"
+    },
+    "./storage": {
+      "types": "./dist/storage.d.ts",
+      "require": "./dist/storage.js",
+      "import": "./dist/storage.js"
+    },
+    "./tenant": {
+      "types": "./dist/tenant.d.ts",
+      "require": "./dist/tenant.js",
+      "import": "./dist/tenant.js"
+    },
+    "./user": {
+      "types": "./dist/user.d.ts",
+      "require": "./dist/user.js",
+      "import": "./dist/user.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["msa", "types", "shared"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.0"
+  }
+}

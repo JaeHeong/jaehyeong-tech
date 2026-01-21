@@ -1,11 +1,34 @@
 import { Link } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-import api, { Post, Category } from '../services/api'
+import { useState, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { usePosts, useCategories } from '../hooks/useApi'
 import Sidebar from '../components/Sidebar'
 import MobileProfileModal from '../components/MobileProfileModal'
 import NoticeModal from '../components/NoticeModal'
 import { useSEO } from '../hooks/useSEO'
+
+// Static data hoisted outside component (rendering-hoist-jsx)
+const DEFAULT_CATEGORIES = [
+  { name: 'DevOps', icon: 'settings_suggest', color: 'blue', description: 'CI/CD 파이프라인, 자동화, 그리고 인프라 관리에 대한 실무 가이드' },
+  { name: 'MLOps', icon: 'psychology', color: 'purple', description: '모델 서빙, 모니터링, 데이터 파이프라인 구축을 위한 엔지니어링' },
+  { name: 'Cloud Native', icon: 'cloud', color: 'orange', description: 'Kubernetes, Docker 및 클라우드 네이티브 아키텍처 패턴' },
+  { name: 'AI & ML', icon: 'smart_toy', color: 'green', description: '최신 AI 트렌드, LLM 활용법 및 데이터 사이언스 인사이트' },
+] as const
+
+// Date formatter with cache (js-cache-function-results)
+const dateFormatCache = new Map<string, string>()
+const formatDate = (dateString: string) => {
+  if (dateFormatCache.has(dateString)) {
+    return dateFormatCache.get(dateString)!
+  }
+  const formatted = new Date(dateString).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+  dateFormatCache.set(dateString, formatted)
+  return formatted
+}
 
 export default function HomePage() {
   useSEO({
@@ -15,54 +38,23 @@ export default function HomePage() {
     type: 'website',
   })
   const { user } = useAuth()
-  const [featuredPost, setFeaturedPost] = useState<Post | null>(null)
-  const [latestPosts, setLatestPosts] = useState<Post[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch featured post
-        const featuredRes = await api.getPosts({ featured: true, limit: 1 })
-        if (featuredRes.posts.length > 0) {
-          setFeaturedPost(featuredRes.posts[0] ?? null)
-        }
+  // SWR hooks - requests are automatically deduped and cached (client-swr-dedup)
+  const { data: featuredData, isLoading: featuredLoading } = usePosts({ featured: true, limit: 1 })
+  const { data: postsData, isLoading: postsLoading } = usePosts({ limit: 5 })
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories()
 
-        // Fetch latest posts
-        const postsRes = await api.getPosts({ limit: 5 })
-        setLatestPosts(postsRes.posts)
+  // Derived state with useMemo (rerender-derived-state)
+  const featuredPost = useMemo(() => featuredData?.posts?.[0] ?? null, [featuredData])
+  const latestPosts = useMemo(() => postsData?.posts ?? [], [postsData])
+  const categories = useMemo(() => categoriesData?.categories?.slice(0, 4) ?? [], [categoriesData])
+  const displayCategories = useMemo(
+    () => categories.length > 0 ? categories : DEFAULT_CATEGORIES,
+    [categories]
+  )
 
-        // Fetch categories
-        const catRes = await api.getCategories()
-        setCategories(catRes.categories.slice(0, 4))
-      } catch (error) {
-        console.error('Failed to fetch data:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [])
-
-  const defaultCategories = [
-    { name: 'DevOps', icon: 'settings_suggest', color: 'blue', description: 'CI/CD 파이프라인, 자동화, 그리고 인프라 관리에 대한 실무 가이드' },
-    { name: 'MLOps', icon: 'psychology', color: 'purple', description: '모델 서빙, 모니터링, 데이터 파이프라인 구축을 위한 엔지니어링' },
-    { name: 'Cloud Native', icon: 'cloud', color: 'orange', description: 'Kubernetes, Docker 및 클라우드 네이티브 아키텍처 패턴' },
-    { name: 'AI & ML', icon: 'smart_toy', color: 'green', description: '최신 AI 트렌드, LLM 활용법 및 데이터 사이언스 인사이트' },
-  ]
-
-  const displayCategories = categories.length > 0 ? categories : defaultCategories
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
+  const isLoading = featuredLoading || postsLoading || categoriesLoading
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -320,7 +312,7 @@ export default function HomePage() {
                           {(expandedTags.has(post.id) ? post.tags : post.tags.slice(0, 3)).map((tag) => (
                             <Link
                               key={tag.id}
-                              to={`/search?q=${encodeURIComponent(tag.name)}`}
+                              to={`/search?tag=${encodeURIComponent(tag.slug)}`}
                               className="px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] md:text-xs text-slate-500 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >

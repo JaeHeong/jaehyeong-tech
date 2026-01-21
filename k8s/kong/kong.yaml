@@ -1,0 +1,161 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-config
+  namespace: jaehyeong-tech-dev
+data:
+  kong.yml: |
+    _format_version: "3.0"
+
+    services:
+      - name: auth-service
+        url: http://auth-service:3001
+        routes:
+          - name: auth-route
+            paths:
+              - /api/auth
+            strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 100
+              policy: local
+
+      - name: blog-service
+        url: http://blog-service:3002
+        routes:
+          - name: blog-route
+            paths:
+              - /api/posts
+              - /api/categories
+            strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 200
+              policy: local
+
+      - name: comment-service
+        url: http://comment-service:3003
+        routes:
+          - name: comment-route
+            paths:
+              - /api/comments
+            strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 200
+              policy: local
+
+      - name: storage-service
+        url: http://storage-service:3006
+        routes:
+          - name: storage-route
+            paths:
+              - /api/upload
+              - /api/files
+            strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 50
+              policy: local
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-proxy
+  namespace: jaehyeong-tech-dev
+spec:
+  selector:
+    app: kong
+  ports:
+    - name: proxy
+      port: 8000
+      targetPort: 8000
+    - name: proxy-ssl
+      port: 8443
+      targetPort: 8443
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-admin
+  namespace: jaehyeong-tech-dev
+spec:
+  selector:
+    app: kong
+  ports:
+    - name: admin
+      port: 8001
+      targetPort: 8001
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong
+  namespace: jaehyeong-tech-dev
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kong
+  template:
+    metadata:
+      labels:
+        app: kong
+    spec:
+      containers:
+        - name: kong
+          image: kong:3.5-alpine
+          env:
+            - name: KONG_DATABASE
+              value: "off"
+            - name: KONG_DECLARATIVE_CONFIG
+              value: /kong/kong.yml
+            - name: KONG_PROXY_ACCESS_LOG
+              value: /dev/stdout
+            - name: KONG_ADMIN_ACCESS_LOG
+              value: /dev/stdout
+            - name: KONG_PROXY_ERROR_LOG
+              value: /dev/stderr
+            - name: KONG_ADMIN_ERROR_LOG
+              value: /dev/stderr
+            - name: KONG_ADMIN_LISTEN
+              value: "0.0.0.0:8001"
+          ports:
+            - containerPort: 8000
+              name: proxy
+            - containerPort: 8443
+              name: proxy-ssl
+            - containerPort: 8001
+              name: admin
+          volumeMounts:
+            - name: kong-config
+              mountPath: /kong
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: kong-config
+          configMap:
+            name: kong-config

@@ -8,6 +8,7 @@ import api from '../services/api'
 
 interface SidebarStats {
   publishedPosts: number
+  privatePosts: number
   draftPosts: number
   totalCategories: number
   totalTags: number
@@ -51,6 +52,7 @@ export default function AdminLayout() {
       const response = await api.getDashboardStats()
       setStats({
         publishedPosts: response.stats.publishedPosts,
+        privatePosts: response.stats.privatePosts,
         draftPosts: response.stats.draftPosts,
         totalCategories: response.categories.length,
         totalTags: response.tags.length,
@@ -121,11 +123,17 @@ export default function AdminLayout() {
               <nav className="flex flex-col p-2 gap-1">
                 {baseSidebarItems.map((item) => {
                   // Determine badge based on badgeKey and stats
-                  let badge: { text: string; isNew: boolean } | null = null
+                  let badge: { text: string; isNew: boolean; secondary?: string } | null = null
                   if (stats && item.badgeKey) {
                     switch (item.badgeKey) {
                       case 'posts':
-                        if (stats.publishedPosts > 0) badge = { text: stats.publishedPosts.toString(), isNew: false }
+                        if (stats.publishedPosts > 0 || stats.privatePosts > 0) {
+                          badge = {
+                            text: stats.publishedPosts.toString(),
+                            isNew: false,
+                            secondary: stats.privatePosts > 0 ? `+${stats.privatePosts}` : undefined,
+                          }
+                        }
                         break
                       case 'categories':
                         if (stats.totalCategories > 0) badge = { text: stats.totalCategories.toString(), isNew: false }
@@ -162,13 +170,21 @@ export default function AdminLayout() {
                     <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
                     {item.label}
                     {badge && (
-                      <span className={`ml-auto text-xs py-0.5 px-2 rounded-full font-bold ${
-                        badge.isNew
-                          ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                          : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                      }`}>
-                        {badge.text}
-                      </span>
+                      <div className="ml-auto flex items-center gap-1">
+                        <span className={`text-xs py-0.5 px-2 rounded-full font-bold ${
+                          badge.isNew
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                            : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}>
+                          {badge.text}
+                        </span>
+                        {badge.secondary && (
+                          <span className="text-[10px] py-0.5 px-1.5 rounded-full font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center gap-0.5">
+                            <span className="material-symbols-outlined text-[10px]">visibility_off</span>
+                            {badge.secondary}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </Link>
                   )

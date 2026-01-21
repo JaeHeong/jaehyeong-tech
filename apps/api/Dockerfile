@@ -42,7 +42,7 @@ COPY --from=builder /app/apps/api/prisma ./apps/api/prisma/
 RUN pnpm install --frozen-lockfile
 
 # Generate Prisma client with schema location
-RUN cd apps/api && pnpm exec prisma generate
+RUN cd apps/api && ./node_modules/.bin/prisma generate
 
 # Copy built files
 COPY --from=builder /app/apps/api/dist ./apps/api/dist

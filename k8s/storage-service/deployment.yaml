@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage-service
+  namespace: jaehyeong-tech-dev
+  labels:
+    app: storage-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: storage-service
+  template:
+    metadata:
+      labels:
+        app: storage-service
+    spec:
+      containers:
+        - name: storage-service
+          image: ghcr.io/jaehyeong/storage-service:dev-latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3006
+              name: http
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: storage-service-config
+                  key: PORT
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: storage-service-config
+                  key: NODE_ENV
+            - name: OCI_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: storage-service-config
+                  key: OCI_REGION
+            - name: MAX_FILE_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: storage-service-config
+                  key: MAX_FILE_SIZE
+            - name: ALLOWED_FILE_TYPES
+              valueFrom:
+                configMapKeyRef:
+                  name: storage-service-config
+                  key: ALLOWED_FILE_TYPES
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: storage-service-secret
+                  key: DATABASE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: storage-service-secret
+                  key: RABBITMQ_URL
+            - name: OCI_NAMESPACE
+              valueFrom:
+                secretKeyRef:
+                  name: storage-service-secret
+                  key: OCI_NAMESPACE
+            - name: OCI_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: storage-service-secret
+                  key: OCI_BUCKET
+            - name: OCI_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: storage-service-secret
+                  key: OCI_ACCESS_KEY
+            - name: OCI_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: storage-service-secret
+                  key: OCI_SECRET_KEY
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3006
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3006
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storage-service
+  namespace: jaehyeong-tech-dev
+  labels:
+    app: storage-service
+spec:
+  type: ClusterIP
+  selector:
+    app: storage-service
+  ports:
+    - port: 3006
+      targetPort: 3006
+      protocol: TCP
+      name: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: storage-service-hpa
+  namespace: jaehyeong-tech-dev
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: storage-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

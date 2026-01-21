@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import api, { type Page } from '../services/api'
 import { useModal } from '../contexts/ModalContext'
+import { sanitizeHtml } from '../utils/sanitize'
 
 // Types for template content
 interface IntroduceContent {
@@ -164,7 +165,7 @@ function IntroducePreview({ content }: { content: IntroduceContent }) {
               </h2>
               <p
                 className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm md:text-base"
-                dangerouslySetInnerHTML={{ __html: content.blogPurpose.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.blogPurpose.content) }}
               />
             </section>
           </div>

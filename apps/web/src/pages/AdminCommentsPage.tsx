@@ -1,8 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { api, type AdminComment } from '../services/api'
+import { api, type AdminComment, type CommentStatusType } from '../services/api'
 import LimitSelector from '../components/LimitSelector'
 import { getPageLimit } from '../utils/paginationSettings'
+
+const STATUS_CONFIG: Record<CommentStatusType, { label: string; color: string; icon: string }> = {
+  PENDING: { label: '대기', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', icon: 'schedule' },
+  APPROVED: { label: '승인', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', icon: 'check_circle' },
+  REJECTED: { label: '거부', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', icon: 'cancel' },
+  SPAM: { label: '스팸', color: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300', icon: 'report' },
+}
 
 export default function AdminCommentsPage() {
   const [comments, setComments] = useState<AdminComment[]>([])
@@ -11,14 +18,20 @@ export default function AdminCommentsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
-  const [includeDeleted, setIncludeDeleted] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; comment: AdminComment | null }>({
     isOpen: false,
     comment: null,
   })
+  const [editModal, setEditModal] = useState<{ isOpen: boolean; comment: AdminComment | null }>({
+    isOpen: false,
+    comment: null,
+  })
+  const [editContent, setEditContent] = useState('')
   const [bulkDeleteModal, setBulkDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
   const defaultLimit = getPageLimit('comments')
   const [isAllMode, setIsAllMode] = useState(false)
   const limit = isAllMode ? 0 : defaultLimit
@@ -27,7 +40,7 @@ export default function AdminCommentsPage() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await api.getAdminComments({ page: limit === 0 ? 1 : page, limit: limit === 0 ? 9999 : limit, includeDeleted })
+      const response = await api.getAdminComments({ page: limit === 0 ? 1 : page, limit: limit === 0 ? 9999 : limit, includeDeleted: true })
       setComments(response.data)
       setTotalPages(limit === 0 ? 1 : response.meta.totalPages)
       setTotal(response.meta.total)
@@ -36,7 +49,7 @@ export default function AdminCommentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [page, includeDeleted, limit])
+  }, [page, limit])
 
   const handleToggleAll = () => {
     setIsAllMode(!isAllMode)
@@ -50,7 +63,7 @@ export default function AdminCommentsPage() {
   // 페이지/필터 변경 시 선택 초기화
   useEffect(() => {
     setSelectedIds([])
-  }, [page, includeDeleted])
+  }, [page])
 
   // ESC/Enter 키로 모달 제어
   useEffect(() => {
@@ -59,10 +72,14 @@ export default function AdminCommentsPage() {
         if (deleteModal.isOpen) {
           setDeleteModal({ isOpen: false, comment: null })
         }
+        if (editModal.isOpen) {
+          setEditModal({ isOpen: false, comment: null })
+          setEditContent('')
+        }
         if (bulkDeleteModal) {
           setBulkDeleteModal(false)
         }
-      } else if (e.key === 'Enter') {
+      } else if (e.key === 'Enter' && !e.shiftKey) {
         if (deleteModal.isOpen) {
           e.preventDefault()
           handleDelete()
@@ -74,7 +91,7 @@ export default function AdminCommentsPage() {
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [deleteModal.isOpen, bulkDeleteModal])
+  }, [deleteModal.isOpen, editModal.isOpen, bulkDeleteModal])
 
   const handleSelectAll = () => {
     if (selectedIds.length === comments.length) {
@@ -118,6 +135,45 @@ export default function AdminCommentsPage() {
       setError(err instanceof Error ? err.message : '댓글 삭제에 실패했습니다.')
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const handleEdit = async () => {
+    if (!editModal.comment || !editContent.trim()) return
+
+    setIsEditing(true)
+    try {
+      await api.updateComment(editModal.comment.id, { content: editContent.trim() })
+      // Update local state without refetching
+      setComments((prev) =>
+        prev.map((c) => (c.id === editModal.comment?.id ? { ...c, content: editContent.trim() } : c))
+      )
+      setEditModal({ isOpen: false, comment: null })
+      setEditContent('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '댓글 수정에 실패했습니다.')
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
+  const openEditModal = (comment: AdminComment) => {
+    setEditContent(comment.content)
+    setEditModal({ isOpen: true, comment })
+  }
+
+  const handleStatusChange = async (commentId: string, newStatus: CommentStatusType) => {
+    setUpdatingStatusId(commentId)
+    try {
+      await api.updateCommentStatus(commentId, newStatus)
+      // Update local state without refetching
+      setComments((prev) =>
+        prev.map((c) => (c.id === commentId ? { ...c, status: newStatus } : c))
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '상태 변경에 실패했습니다.')
+    } finally {
+      setUpdatingStatusId(null)
     }
   }
 
@@ -175,18 +231,6 @@ export default function AdminCommentsPage() {
             </div>
           )}
           <LimitSelector defaultLimit={defaultLimit} isAll={isAllMode} onToggle={handleToggleAll} />
-          <label className="flex items-center gap-2 text-xs md:text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeDeleted}
-              onChange={(e) => {
-                setIncludeDeleted(e.target.checked)
-                setPage(1)
-              }}
-              className="rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary/20"
-            />
-            삭제된 댓글 포함
-          </label>
         </div>
       </div>
 
@@ -298,10 +342,22 @@ export default function AdminCommentsPage() {
                                 삭제됨
                               </span>
                             )}
+                            {comment.status && STATUS_CONFIG[comment.status] && (
+                              <span className={`px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium flex items-center gap-0.5 ${STATUS_CONFIG[comment.status].color}`}>
+                                <span className="material-symbols-outlined text-[10px] md:text-[12px]">{STATUS_CONFIG[comment.status].icon}</span>
+                                {STATUS_CONFIG[comment.status].label}
+                              </span>
+                            )}
                             {comment.parentId && (
-                              <span className="px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 flex items-center gap-0.5 md:gap-1">
-                                <span className="material-symbols-outlined text-[10px] md:text-[12px]">reply</span>
-                                답글
+                              <span className={`px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium flex items-center gap-0.5 md:gap-1 ${
+                                comment.parentIsDeleted
+                                  ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                              }`}>
+                                <span className="material-symbols-outlined text-[10px] md:text-[12px]">
+                                  {comment.parentIsDeleted ? 'link_off' : 'reply'}
+                                </span>
+                                {comment.parentIsDeleted ? '고아 답글' : '답글'}
                               </span>
                             )}
                           </div>
@@ -315,18 +371,79 @@ export default function AdminCommentsPage() {
                           </p>
 
                           <div className="flex flex-wrap items-center justify-between gap-2 md:gap-4">
-                            <Link
-                              to={`/posts/${comment.post.slug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-[10px] md:text-xs text-primary hover:underline flex items-center gap-0.5 md:gap-1 line-clamp-1"
-                            >
-                              <span className="material-symbols-outlined text-[12px] md:text-[14px]">article</span>
-                              <span className="line-clamp-1">{comment.post.title}</span>
-                            </Link>
+                            {comment.post ? (
+                              <Link
+                                to={`/posts/${comment.post.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-[10px] md:text-xs text-primary hover:underline flex items-center gap-0.5 md:gap-1 line-clamp-1"
+                              >
+                                <span className="material-symbols-outlined text-[12px] md:text-[14px]">article</span>
+                                <span className="line-clamp-1">{comment.post.title}</span>
+                              </Link>
+                            ) : (
+                              <span className="text-[10px] md:text-xs text-slate-400 flex items-center gap-0.5 md:gap-1">
+                                <span className="material-symbols-outlined text-[12px] md:text-[14px]">article</span>
+                                <span>알 수 없는 게시물</span>
+                              </span>
+                            )}
 
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-1 md:gap-2">
+                              {/* Status management buttons */}
+                              {!comment.isDeleted && (
+                                <>
+                                  {comment.status !== 'APPROVED' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleStatusChange(comment.id, 'APPROVED')
+                                      }}
+                                      disabled={updatingStatusId === comment.id}
+                                      className="px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors flex items-center gap-0.5 md:gap-1 disabled:opacity-50"
+                                    >
+                                      <span className="material-symbols-outlined text-[14px] md:text-[16px]">check_circle</span>
+                                      승인
+                                    </button>
+                                  )}
+                                  {comment.status !== 'REJECTED' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleStatusChange(comment.id, 'REJECTED')
+                                      }}
+                                      disabled={updatingStatusId === comment.id}
+                                      className="px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors flex items-center gap-0.5 md:gap-1 disabled:opacity-50"
+                                    >
+                                      <span className="material-symbols-outlined text-[14px] md:text-[16px]">cancel</span>
+                                      거부
+                                    </button>
+                                  )}
+                                  {comment.status !== 'SPAM' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleStatusChange(comment.id, 'SPAM')
+                                      }}
+                                      disabled={updatingStatusId === comment.id}
+                                      className="px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-0.5 md:gap-1 disabled:opacity-50"
+                                    >
+                                      <span className="material-symbols-outlined text-[14px] md:text-[16px]">report</span>
+                                      스팸
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openEditModal(comment)
+                                    }}
+                                    className="px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex items-center gap-0.5 md:gap-1"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px] md:text-[16px]">edit</span>
+                                    수정
+                                  </button>
+                                </>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -453,6 +570,56 @@ export default function AdminCommentsPage() {
                 className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold transition-colors disabled:opacity-50"
               >
                 {isDeleting ? '삭제 중...' : `${selectedIds.length}개 삭제`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => {
+              setEditModal({ isOpen: false, comment: null })
+              setEditContent('')
+            }}
+          />
+          <div className="relative bg-card-light dark:bg-card-dark rounded-lg md:rounded-xl shadow-2xl p-4 md:p-6 max-w-lg w-full border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg text-primary">
+                <span className="material-symbols-outlined text-[20px] md:text-[24px]">edit</span>
+              </div>
+              <h3 className="text-base md:text-lg font-bold">댓글 수정</h3>
+            </div>
+            <div className="mb-3 md:mb-4">
+              <span className="text-xs md:text-sm text-slate-500 dark:text-slate-400">
+                작성자: <strong className="text-slate-900 dark:text-white">{editModal.comment && getAuthorName(editModal.comment)}</strong>
+              </span>
+            </div>
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full h-32 md:h-40 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              placeholder="댓글 내용을 입력하세요..."
+            />
+            <div className="flex gap-2 md:gap-3 justify-end mt-3 md:mt-4">
+              <button
+                onClick={() => {
+                  setEditModal({ isOpen: false, comment: null })
+                  setEditContent('')
+                }}
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs md:text-sm font-medium transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleEdit}
+                disabled={isEditing || !editContent.trim()}
+                className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs md:text-sm font-bold transition-colors disabled:opacity-50"
+              >
+                {isEditing ? '저장 중...' : '저장'}
               </button>
             </div>
           </div>

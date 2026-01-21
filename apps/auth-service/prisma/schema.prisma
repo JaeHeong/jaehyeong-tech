@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// Tenant Model (핵심)
+// ========================================
+model Tenant {
+  id   String @id @default(cuid())
+  name String @unique  // 고유 식별자 (jaehyeong-tech, my-shop)
+
+  // 도메인 설정
+  domain String  // jaehyeong.tech, myshop.com
+
+  // JWT 설정
+  jwtSecret String  // Tenant별 독립적인 JWT Secret
+  jwtExpiry String  @default("7d")  // 7d, 30d, 1y
+
+  // OAuth 설정
+  googleClientId     String?
+  googleClientSecret String?
+  githubClientId     String?
+  githubClientSecret String?
+
+  // 기능 토글
+  allowRegistration Boolean @default(true)
+  allowGoogleOauth  Boolean @default(false)
+  allowGithubOauth  Boolean @default(false)
+
+  // 비밀번호 정책
+  passwordMinLength        Int     @default(8)
+  passwordRequireUppercase Boolean @default(true)
+  passwordRequireNumber    Boolean @default(true)
+  passwordRequireSpecial   Boolean @default(false)
+
+  // 메타
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users User[]
+
+  @@map("tenants")
+}
+
+// ========================================
+// User Model (Tenant 격리)
+// ========================================
+model User {
+  id       String @id @default(cuid())
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String
+
+  email    String
+  password String? // OAuth 사용자는 비밀번호 없음
+  googleId String?
+  githubId String?
+
+  name   String
+  avatar String?
+  bio    String?
+  title  String?
+
+  // Social links
+  github   String?
+  twitter  String?
+  linkedin String?
+  website  String?
+
+  role   Role       @default(USER)
+  status UserStatus @default(ACTIVE)
+
+  // Metadata
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Unique constraints (Tenant 격리)
+  @@unique([tenantId, email])
+  @@unique([tenantId, googleId])
+  @@unique([tenantId, githubId])
+  @@index([tenantId])
+  @@index([tenantId, email])
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}

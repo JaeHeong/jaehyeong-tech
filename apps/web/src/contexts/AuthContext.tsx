@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
 import { api, type AuthUser } from '../services/api'
 
 interface AuthContextType {
@@ -88,19 +88,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null)
   }, [])
 
-  const value: AuthContextType = {
-    user,
-    isLoading,
-    isAuthenticated: !!user,
-    isAdmin: user?.role === 'ADMIN',
-    isSuspended: user?.status === 'SUSPENDED',
-    login,
-    googleLogin,
-    logout,
-    refreshUser,
-    error,
-    clearError,
-  }
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      isAdmin: user?.role === 'ADMIN',
+      isSuspended: user?.status === 'SUSPENDED',
+      login,
+      googleLogin,
+      logout,
+      refreshUser,
+      error,
+      clearError,
+    }),
+    [user, isLoading, error, login, googleLogin, logout, refreshUser, clearError]
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -1,22 +1,63 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { Link, useSearchParams, useParams, useNavigate } from 'react-router-dom'
-import api, { Post, Category } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { usePosts, useCategories, useTopViewedPost } from '../hooks/useApi'
 import Sidebar from '../components/Sidebar'
 import MobileProfileModal from '../components/MobileProfileModal'
 import { useSEO } from '../hooks/useSEO'
+
+// Date formatter with cache (js-cache-function-results)
+const dateFormatCache = new Map<string, string>()
+const formatDate = (dateString: string) => {
+  if (dateFormatCache.has(dateString)) {
+    return dateFormatCache.get(dateString)!
+  }
+  const formatted = new Date(dateString).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+  dateFormatCache.set(dateString, formatted)
+  return formatted
+}
+
+const formatViewCount = (count: number) => {
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}k`
+  }
+  return count.toString()
+}
 
 export default function PostListPage() {
   const { user } = useAuth()
   const { slug: pathSlug } = useParams<{ slug: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const [posts, setPosts] = useState<Post[]>([])
-  const [featuredPost, setFeaturedPost] = useState<Post | null>(null)
-  const [categories, setCategories] = useState<Category[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [totalPages, setTotalPages] = useState(1)
   const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set())
+
+  // Refs for category buttons to enable auto-scroll
+  const categoryButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+
+  const currentPage = parseInt(searchParams.get('page') || '1', 10)
+  // Use path slug (/categories/:slug) or query param (?category=)
+  const currentCategory = pathSlug || searchParams.get('category') || ''
+
+  // SWR hooks - requests run in parallel automatically (async-parallel + client-swr-dedup)
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories()
+  const { data: topViewedData, isLoading: topViewedLoading } = useTopViewedPost(currentCategory || undefined)
+  const { data: postsData, isLoading: postsLoading } = usePosts({
+    page: currentPage,
+    limit: 10,
+    category: currentCategory || undefined,
+  })
+
+  // Derived state with useMemo (rerender-derived-state)
+  const categories = useMemo(() => categoriesData?.categories ?? [], [categoriesData])
+  const featuredPost = useMemo(() => topViewedData?.data ?? null, [topViewedData])
+  const posts = useMemo(() => postsData?.posts ?? [], [postsData])
+  const totalPages = useMemo(() => postsData?.meta?.totalPages ?? 1, [postsData])
+
+  const isLoading = categoriesLoading || topViewedLoading || postsLoading
 
   // SEO - 카테고리에 따른 동적 설정
   const currentCategorySlug = pathSlug || searchParams.get('category') || ''
@@ -32,13 +73,6 @@ export default function PostListPage() {
     url: currentCategorySlug ? `/categories/${currentCategorySlug}` : '/posts',
     type: 'website',
   })
-
-  // Refs for category buttons to enable auto-scroll
-  const categoryButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
-
-  const currentPage = parseInt(searchParams.get('page') || '1', 10)
-  // Use path slug (/categories/:slug) or query param (?category=)
-  const currentCategory = pathSlug || searchParams.get('category') || ''
 
   // Scroll to selected category button
   const scrollToSelectedCategory = useCallback(() => {
@@ -62,37 +96,10 @@ export default function PostListPage() {
     }
   }, [categories, currentCategory, scrollToSelectedCategory])
 
+  // Scroll to top when page/category changes
   useEffect(() => {
     window.scrollTo(0, 0)
-
-    const fetchData = async () => {
-      setIsLoading(true)
-      try {
-        // Fetch categories
-        const catRes = await api.getCategories()
-        setCategories(catRes.categories)
-
-        // Fetch top viewed post (overall or by category)
-        const topViewedRes = await api.getTopViewedPost(currentCategory || undefined)
-        setFeaturedPost(topViewedRes.data)
-
-        // Fetch posts
-        const postsRes = await api.getPosts({
-          page: currentPage,
-          limit: 10,
-          category: currentCategory || undefined,
-        })
-        setPosts(postsRes.posts)
-        setTotalPages(postsRes.meta.totalPages)
-      } catch (error) {
-        console.error('Failed to fetch data:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [currentPage, currentCategory, pathSlug])
+  }, [currentPage, currentCategory])
 
   const handleCategoryChange = (categorySlug: string) => {
     // If we're on /categories/:slug path, navigate to appropriate URL
@@ -121,21 +128,6 @@ export default function PostListPage() {
       params.set('page', page.toString())
       setSearchParams(params)
     }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
-
-  const formatViewCount = (count: number) => {
-    if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}k`
-    }
-    return count.toString()
   }
 
   return (
@@ -333,7 +325,7 @@ export default function PostListPage() {
                         {(expandedTags.has(post.id) ? post.tags : post.tags.slice(0, 3)).map((tag) => (
                           <Link
                             key={tag.id}
-                            to={`/search?q=${encodeURIComponent(tag.name)}`}
+                            to={`/search?tag=${encodeURIComponent(tag.slug)}`}
                             className="px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] md:text-xs text-slate-500 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
                             onClick={(e) => e.stopPropagation()}
                           >

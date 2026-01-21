@@ -1,0 +1,282 @@
+version: '3.8'
+
+services:
+  # ==================== Infrastructure ====================
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: msa-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - msa-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: msa-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - msa-network
+
+  # PostgreSQL Databases (one per service)
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: postgres-auth
+    environment:
+      POSTGRES_DB: auth_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    networks:
+      - msa-network
+
+  postgres-comment:
+    image: postgres:16-alpine
+    container_name: postgres-comment
+    environment:
+      POSTGRES_DB: comment_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-comment-data:/var/lib/postgresql/data
+    networks:
+      - msa-network
+
+  postgres-storage:
+    image: postgres:16-alpine
+    container_name: postgres-storage
+    environment:
+      POSTGRES_DB: storage_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-storage-data:/var/lib/postgresql/data
+    networks:
+      - msa-network
+
+  postgres-blog:
+    image: postgres:16-alpine
+    container_name: postgres-blog
+    environment:
+      POSTGRES_DB: blog_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-blog-data:/var/lib/postgresql/data
+    networks:
+      - msa-network
+
+  postgres-page:
+    image: postgres:16-alpine
+    container_name: postgres-page
+    environment:
+      POSTGRES_DB: page_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres-page-data:/var/lib/postgresql/data
+    networks:
+      - msa-network
+
+  postgres-analytics:
+    image: postgres:16-alpine
+    container_name: postgres-analytics
+    environment:
+      POSTGRES_DB: analytics_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres-analytics-data:/var/lib/postgresql/data
+    networks:
+      - msa-network
+
+  # ==================== Microservices ====================
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+    container_name: auth-service
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:password@postgres-auth:5432/auth_service
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      JWT_SECRET: your-jwt-secret-change-in-production
+      SUPER_ADMIN_API_KEY: your-super-admin-key
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres-auth
+      - rabbitmq
+    networks:
+      - msa-network
+
+  # Comment Service
+  comment-service:
+    build:
+      context: .
+      dockerfile: apps/comment-service/Dockerfile
+    container_name: comment-service
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgresql://postgres:password@postgres-comment:5432/comment_service
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres-comment
+      - rabbitmq
+    networks:
+      - msa-network
+
+  # Storage Service
+  storage-service:
+    build:
+      context: .
+      dockerfile: apps/storage-service/Dockerfile
+    container_name: storage-service
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: postgresql://postgres:password@postgres-storage:5432/storage_service
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      OCI_NAMESPACE: your-oci-namespace
+      OCI_BUCKET: your-oci-bucket
+      OCI_ACCESS_KEY: your-oci-access-key
+      OCI_SECRET_KEY: your-oci-secret-key
+      OCI_REGION: your-oci-region
+      MAX_FILE_SIZE: "10485760"
+    ports:
+      - "3003:3003"
+    depends_on:
+      - postgres-storage
+      - rabbitmq
+    networks:
+      - msa-network
+
+  # Blog Service
+  blog-service:
+    build:
+      context: .
+      dockerfile: apps/blog-service/Dockerfile
+    container_name: blog-service
+    environment:
+      NODE_ENV: production
+      PORT: 3006
+      DATABASE_URL: postgresql://postgres:password@postgres-blog:5432/blog_service
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      IP_HASH_SALT: your-ip-hash-salt
+    ports:
+      - "3013:3003"
+    depends_on:
+      - postgres-blog
+      - rabbitmq
+    networks:
+      - msa-network
+
+  # Page Service
+  page-service:
+    build:
+      context: .
+      dockerfile: apps/page-service/Dockerfile
+    container_name: page-service
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      DATABASE_URL: postgresql://postgres:password@postgres-page:5432/page_service
+      IP_HASH_SALT: your-ip-hash-salt
+    ports:
+      - "3004:3004"
+    depends_on:
+      - postgres-page
+    networks:
+      - msa-network
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: .
+      dockerfile: apps/analytics-service/Dockerfile
+    container_name: analytics-service
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      DATABASE_URL: postgresql://postgres:password@postgres-analytics:5432/analytics_service
+      IP_HASH_SALT: your-ip-hash-salt
+    ports:
+      - "3005:3005"
+    depends_on:
+      - postgres-analytics
+    networks:
+      - msa-network
+
+  # ==================== API Gateway ====================
+
+  # Kong API Gateway
+  kong:
+    image: kong:3.4-alpine
+    container_name: kong-gateway
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+    ports:
+      - "8000:8000"  # Proxy
+      - "8443:8443"  # Proxy SSL
+      - "8001:8001"  # Admin API
+    volumes:
+      - ./k8s/kong/kong-config.yaml:/usr/local/kong/declarative/kong.yml:ro
+    depends_on:
+      - auth-service
+      - comment-service
+      - storage-service
+      - blog-service
+      - page-service
+      - analytics-service
+    networks:
+      - msa-network
+
+volumes:
+  rabbitmq-data:
+  redis-data:
+  postgres-auth-data:
+  postgres-comment-data:
+  postgres-storage-data:
+  postgres-blog-data:
+  postgres-page-data:
+  postgres-analytics-data:
+
+networks:
+  msa-network:
+    driver: bridge
