@@ -375,12 +375,14 @@
 
 /* Bookmark Card */
 .preview-content .bookmark-card-static {
+  display: block;
   margin: 1.5rem 0;
 }
 
-.preview-content .bookmark-link {
+.preview-content .bookmark-card-static .bookmark-link {
   display: flex;
-  text-decoration: none;
+  text-decoration: none !important;
+  color: inherit;
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
   overflow: hidden;
@@ -388,17 +390,17 @@
   transition: all 0.2s;
 }
 
-.preview-content .bookmark-link:hover {
+.preview-content .bookmark-card-static .bookmark-link:hover {
   border-color: #cbd5e1;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 
-.dark .preview-content .bookmark-link {
+.dark .preview-content .bookmark-card-static .bookmark-link {
   border-color: #334155;
   background: #1e293b;
 }
 
-.dark .preview-content .bookmark-link:hover {
+.dark .preview-content .bookmark-card-static .bookmark-link:hover {
   border-color: #475569;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
 }
