@@ -56,7 +56,7 @@ class OCIStorageService {
   }
 
   async uploadFile(
-    tenantName: string,
+    tenantName: string | null,
     folder: string,
     fileName: string,
     buffer: Buffer,
@@ -67,8 +67,8 @@ class OCIStorageService {
     }
 
     try {
-      // 객체 이름: {tenant}/{folder}/{fileName}
-      const objectName = `${tenantName}/${folder}/${fileName}`;
+      // 객체 이름: {folder}/{fileName} 또는 {tenant}/{folder}/{fileName}
+      const objectName = tenantName ? `${tenantName}/${folder}/${fileName}` : `${folder}/${fileName}`;
 
       // 파일 업로드
       await this.client.putObject({

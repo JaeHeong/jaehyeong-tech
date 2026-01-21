@@ -182,7 +182,7 @@ export async function uploadFile(req: Request, res: Response, next: NextFunction
       throw new AppError('파일이 제공되지 않았습니다.', 400);
     }
 
-    const { resourceType, resourceId, folder = 'uploads' } = req.body;
+    const { resourceType, resourceId, folder = 'posts' } = req.body;
     const uploadType = req.query.type as string | undefined;
 
     // Determine folder based on type
@@ -242,11 +242,10 @@ export async function uploadFile(req: Request, res: Response, next: NextFunction
       }
     }
 
-    // OCI에 업로드 (tenant.name 없으면 tenant.id 사용)
-    const tenantPath = tenant.name || tenant.id;
-    const url = await ociStorage.uploadFile(tenantPath, actualFolder, finalFileName, buffer, finalMimetype);
+    // OCI에 업로드 (기존 구조 유지: posts/filename.webp, avatars/filename.webp)
+    const url = await ociStorage.uploadFile(null, actualFolder, finalFileName, buffer, finalMimetype);
 
-    const objectName = `${tenantPath}/${actualFolder}/${finalFileName}`;
+    const objectName = `${actualFolder}/${finalFileName}`;
 
     // 메타데이터 저장
     const fileRecord = await prisma.file.create({
