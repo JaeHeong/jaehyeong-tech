@@ -756,58 +756,58 @@ export async function getImageStats(req: Request, res: Response, next: NextFunct
     // Count external images (URLs found in posts/drafts that are not from our storage)
     const externalUrls = Array.from(imageUrlsData.allUrls).filter((url) => isExternalUrl(url));
 
-    // Get all unlinked files (exclude avatars - managed separately)
-    const unlinkedFiles = await prisma.file.findMany({
+    // Get all files (exclude avatars - managed separately)
+    const allFiles = await prisma.file.findMany({
       where: {
         tenantId: tenant.id,
         fileType: 'IMAGE',
-        resourceId: null,
         folder: { not: 'avatars' },
       },
-      select: { url: true, size: true },
+      select: { url: true, size: true, resourceId: true },
     });
 
-    // Calculate usedInDrafts breakdown
+    // Separate linked and unlinked files
+    const linkedFiles = allFiles.filter((file) => file.resourceId !== null);
+    const unlinkedFiles = allFiles.filter((file) => file.resourceId === null);
+
+    // Calculate breakdown based on actual DB files (not blog-service counts)
+    // This ensures only internal URLs are counted
+    const postCoverFiles = linkedFiles.filter((file) => imageUrlsData.breakdown.postCover.has(file.url));
+    const postContentFiles = linkedFiles.filter((file) => imageUrlsData.breakdown.postContent.has(file.url));
     const draftCoverFiles = unlinkedFiles.filter((file) => imageUrlsData.breakdown.draftCover.has(file.url));
     const draftContentFiles = unlinkedFiles.filter((file) => imageUrlsData.breakdown.draftContent.has(file.url));
-    const usedInDrafts = unlinkedFiles.filter((file) => imageUrlsData.allUrls.has(file.url) && !imageUrlsData.breakdown.postCover.has(file.url) && !imageUrlsData.breakdown.postContent.has(file.url)).length;
+
+    // usedInDrafts: unlinked files that appear in any draft content
+    const usedInDrafts = unlinkedFiles.filter((file) =>
+      imageUrlsData.breakdown.draftCover.has(file.url) || imageUrlsData.breakdown.draftContent.has(file.url)
+    ).length;
+
+    // Orphans: unlinked files not used anywhere
     const orphanCandidates = unlinkedFiles.filter((file) => !imageUrlsData.allUrls.has(file.url));
     const orphaned = orphanCandidates.length;
     const orphanSize = orphanCandidates.reduce((sum, file) => sum + file.size, 0);
 
-    // Exclude avatars from all stats (managed separately)
-    const [total, linked, totalSizeResult] = await Promise.all([
-      prisma.file.count({
-        where: { tenantId: tenant.id, fileType: 'IMAGE', folder: { not: 'avatars' } },
-      }),
-      prisma.file.count({
-        where: { tenantId: tenant.id, fileType: 'IMAGE', resourceId: { not: null }, folder: { not: 'avatars' } },
-      }),
-      prisma.file.aggregate({
-        where: { tenantId: tenant.id, fileType: 'IMAGE', folder: { not: 'avatars' } },
-        _sum: { size: true },
-      }),
-    ]);
+    // Stats
+    const total = allFiles.length;
+    const linked = linkedFiles.length;
+    const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
 
     res.json({
       data: {
         total,
-        totalSize: totalSizeResult._sum.size || 0,
+        totalSize,
         linked,
         usedInDrafts,
         orphaned,
         orphanSize,
         externalCount: externalUrls.length,
         externalUrls, // Return all external URLs
-        // Detailed breakdown from blog-service
+        // Detailed breakdown - counts of files in our storage
         breakdown: {
-          postCover: imageUrlsData.counts.postCover,
-          postContent: imageUrlsData.counts.postContent,
-          draftCover: imageUrlsData.counts.draftCover,
-          draftContent: imageUrlsData.counts.draftContent,
-          // Files in our storage that are used in drafts (not yet linked to posts)
-          draftCoverFiles: draftCoverFiles.length,
-          draftContentFiles: draftContentFiles.length,
+          postCover: postCoverFiles.length,
+          postContent: postContentFiles.length,
+          draftCover: draftCoverFiles.length,
+          draftContent: draftContentFiles.length,
         },
       },
     });
@@ -832,53 +832,43 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
     const tenant = req.tenant!;
     const prisma = tenantPrisma.getClient(tenant.id);
 
-    // Fetch image URLs used in drafts from blog-service
-    const draftImageUrls = await getDraftImageUrls(tenant.id, tenant.name);
+    // Get detailed image URLs breakdown from blog-service
+    const imageUrlsData = await getDetailedImageUrls(tenant.id, tenant.name);
+    const externalUrls = Array.from(imageUrlsData.allUrls).filter((url) => isExternalUrl(url));
 
-    // 리소스에 연결되지 않은 파일 조회
-    // Exclude 'avatars' folder - profile images are managed separately
-    const candidates = await prisma.file.findMany({
+    // Get all files (exclude avatars - managed separately)
+    const allFiles = await prisma.file.findMany({
       where: {
         tenantId: tenant.id,
-        resourceId: null,
+        fileType: 'IMAGE',
         folder: { not: 'avatars' },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Filter out images used in drafts
-    const orphans = candidates.filter((file) => !draftImageUrls.has(file.url));
+    // Separate linked and unlinked files
+    const linkedFiles = allFiles.filter((file) => file.resourceId !== null);
+    const unlinkedFiles = allFiles.filter((file) => file.resourceId === null);
 
-    // Get all unlinked files for usedInDrafts calculation (exclude avatars)
-    const allUnlinkedFiles = await prisma.file.findMany({
-      where: { tenantId: tenant.id, resourceId: null, folder: { not: 'avatars' } },
-      select: { url: true },
-    });
-    const usedInDrafts = allUnlinkedFiles.filter((file) => draftImageUrls.has(file.url)).length;
+    // Calculate breakdown based on actual DB files
+    const postCoverFiles = linkedFiles.filter((file) => imageUrlsData.breakdown.postCover.has(file.url));
+    const postContentFiles = linkedFiles.filter((file) => imageUrlsData.breakdown.postContent.has(file.url));
+    const draftCoverFiles = unlinkedFiles.filter((file) => imageUrlsData.breakdown.draftCover.has(file.url));
+    const draftContentFiles = unlinkedFiles.filter((file) => imageUrlsData.breakdown.draftContent.has(file.url));
 
-    // 통계 계산 (exclude avatars folder)
-    const [total, linked, totalSizeResult] = await Promise.all([
-      prisma.file.count({ where: { tenantId: tenant.id, folder: { not: 'avatars' } } }),
-      prisma.file.count({ where: { tenantId: tenant.id, resourceId: { not: null }, folder: { not: 'avatars' } } }),
-      prisma.file.aggregate({
-        where: { tenantId: tenant.id, folder: { not: 'avatars' } },
-        _sum: { size: true },
-      }),
-    ]);
+    // usedInDrafts: unlinked files that appear in any draft content
+    const usedInDrafts = unlinkedFiles.filter((file) =>
+      imageUrlsData.breakdown.draftCover.has(file.url) || imageUrlsData.breakdown.draftContent.has(file.url)
+    ).length;
 
+    // Orphans: unlinked files not used anywhere
+    const orphans = unlinkedFiles.filter((file) => !imageUrlsData.allUrls.has(file.url));
     const orphanSize = orphans.reduce((sum, file) => sum + file.size, 0);
 
-    // Get detailed breakdown
-    const imageUrlsData = await getDetailedImageUrls(tenant.id, tenant.name);
-    const externalUrls = Array.from(imageUrlsData.allUrls).filter((url) => isExternalUrl(url));
-
-    // Calculate draft file breakdown
-    const allUnlinkedFilesForBreakdown = await prisma.file.findMany({
-      where: { tenantId: tenant.id, resourceId: null, folder: { not: 'avatars' } },
-      select: { url: true },
-    });
-    const draftCoverFiles = allUnlinkedFilesForBreakdown.filter((file) => imageUrlsData.breakdown.draftCover.has(file.url));
-    const draftContentFiles = allUnlinkedFilesForBreakdown.filter((file) => imageUrlsData.breakdown.draftContent.has(file.url));
+    // Stats
+    const total = allFiles.length;
+    const linked = linkedFiles.length;
+    const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
 
     res.json({
       data: {
@@ -897,17 +887,15 @@ export async function getOrphanFiles(req: Request, res: Response, next: NextFunc
           linked,
           usedInDrafts,
           orphaned: orphans.length,
-          totalSize: totalSizeResult._sum.size || 0,
+          totalSize,
           orphanSize,
           externalCount: externalUrls.length,
           externalUrls,
           breakdown: {
-            postCover: imageUrlsData.counts.postCover,
-            postContent: imageUrlsData.counts.postContent,
-            draftCover: imageUrlsData.counts.draftCover,
-            draftContent: imageUrlsData.counts.draftContent,
-            draftCoverFiles: draftCoverFiles.length,
-            draftContentFiles: draftContentFiles.length,
+            postCover: postCoverFiles.length,
+            postContent: postContentFiles.length,
+            draftCover: draftCoverFiles.length,
+            draftContent: draftContentFiles.length,
           },
         },
       },
