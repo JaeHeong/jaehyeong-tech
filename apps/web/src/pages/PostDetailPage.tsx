@@ -1336,21 +1336,25 @@ export default function PostDetailPage() {
                     <span className="material-symbols-outlined text-[20px]">visibility</span>
                     <span className="text-sm font-medium">{(post.viewCount ?? 0).toLocaleString()}</span>
                   </div>
-                  <button
-                    onClick={handleLike}
-                    disabled={isLiking}
-                    title={`좋아요 ${(likeCount ?? 0).toLocaleString()}개`}
-                    className={`flex items-center gap-2 transition-colors ${
-                      liked
-                        ? 'text-red-500'
-                        : 'text-slate-500 hover:text-red-500'
-                    } disabled:opacity-50`}
-                  >
-                    <span className={`material-symbols-outlined text-[20px] ${isLiking ? 'animate-pulse' : ''}`}>
-                      {liked ? 'favorite' : 'favorite_border'}
+                  <div className="relative group">
+                    <button
+                      onClick={handleLike}
+                      disabled={isLiking}
+                      className={`flex items-center gap-2 transition-colors ${
+                        liked
+                          ? 'text-red-500'
+                          : 'text-slate-500 hover:text-red-500'
+                      } disabled:opacity-50`}
+                    >
+                      <span className={`material-symbols-outlined text-[20px] ${isLiking ? 'animate-pulse' : ''}`}>
+                        {liked ? 'favorite' : 'favorite_border'}
+                      </span>
+                      <span className="text-sm font-medium">{liked ? '좋아요' : '좋아요'}</span>
+                    </button>
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 dark:bg-slate-700 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      {(likeCount ?? 0).toLocaleString()}개
                     </span>
-                    <span className="text-sm font-medium">{liked ? '좋아요' : '좋아요'}</span>
-                  </button>
+                  </div>
                   <button
                     onClick={handleShare}
                     className={`flex items-center gap-2 transition-colors ${
