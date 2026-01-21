@@ -508,6 +508,81 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
 });
 
 /**
+ * GET /internal/posts/all
+ * Get all posts with relationships for search indexing
+ */
+router.get('/posts/all', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = tenantPrisma.getClient(req.tenant!.id);
+
+    const posts = await prisma.post.findMany({
+      include: {
+        category: true,
+        tags: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      data: posts,
+      meta: {
+        count: posts.length,
+        tenantId: req.tenant!.id,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /internal/posts/:id
+ * Get a single post by ID for search indexing
+ */
+router.get('/posts/:id', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = tenantPrisma.getClient(req.tenant!.id);
+    const { id } = req.params;
+
+    const post = await prisma.post.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        tags: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      res.status(404).json({
+        success: false,
+        error: 'Post not found',
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: post,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /internal/health
  * Internal health check for service mesh
  */

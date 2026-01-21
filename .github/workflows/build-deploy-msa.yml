@@ -64,6 +64,12 @@ on:
         default: false
         type: boolean
 
+      build_search:
+        description: 'Search Service'
+        required: false
+        default: false
+        type: boolean
+
 env:
   REGISTRY: ghcr.io
 
@@ -127,6 +133,9 @@ jobs:
           fi
           if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_storage }}" = "true" ]; then
             SERVICES+=('{"name":"jaehyeong-tech-storage","path":"apps/storage-service","port":"3006"}')
+          fi
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_search }}" = "true" ]; then
+            SERVICES+=('{"name":"jaehyeong-tech-search","path":"apps/search-service","port":"3007"}')
           fi
 
           # JSON 배열 생성
@@ -282,6 +291,11 @@ jobs:
             echo "Updated analytics tag"
           fi
 
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_search }}" = "true" ]; then
+            sed -i "/^  search:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: \"${TAG}\"/ }" $VALUES_FILE
+            echo "Updated search tag"
+          fi
+
       - name: Commit and push
         run: |
           cd my-k8s-gitops
@@ -301,6 +315,7 @@ jobs:
             [ "${{ inputs.build_storage }}" = "true" ] && SERVICES="${SERVICES}storage,"
             [ "${{ inputs.build_page }}" = "true" ] && SERVICES="${SERVICES}page,"
             [ "${{ inputs.build_analytics }}" = "true" ] && SERVICES="${SERVICES}analytics,"
+            [ "${{ inputs.build_search }}" = "true" ] && SERVICES="${SERVICES}search,"
             SERVICES="${SERVICES%,}"
           fi
 
