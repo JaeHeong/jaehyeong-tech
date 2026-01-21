@@ -19,12 +19,14 @@ const purifyConfig: Config = {
     'table', 'thead', 'tbody', 'tr', 'th', 'td', 'caption',
     // Blockquotes
     'blockquote',
+    // Interactive elements (for code copy button)
+    'button',
     // Other
     'hr', 'iframe',
   ],
   ALLOWED_ATTR: [
     // Global attributes
-    'class', 'id', 'style', 'data-*',
+    'class', 'id', 'style', 'data-*', 'title',
     // Link attributes
     'href', 'target', 'rel',
     // Image attributes
@@ -37,6 +39,7 @@ const purifyConfig: Config = {
     'src', 'frameborder', 'allow', 'allowfullscreen',
     // Data attributes for custom elements
     'data-youtube-video', 'data-type', 'data-latex', 'data-display', 'data-align', 'data-language',
+    'data-copy-index',
   ],
   // Allow data: URLs for images (base64 encoded)
   ALLOW_DATA_ATTR: true,

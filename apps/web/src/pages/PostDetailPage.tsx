@@ -538,6 +538,7 @@ export default function PostDetailPage() {
           margin: 1.5rem 0;
           border-radius: 0.75rem;
           overflow: hidden;
+          overflow-x: auto;
           border: 1px solid #e2e8f0;
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
           background: linear-gradient(180deg, #f1f5f9 0%, #f1f5f9 32px, #f8fafc 32px);
@@ -547,6 +548,7 @@ export default function PostDetailPage() {
           border-color: #30363d;
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
           background: linear-gradient(180deg, #21262d 0%, #21262d 32px, #0d1117 32px);
+          overflow-x: auto;
         }
         .post-content pre::before {
           content: '';
@@ -554,7 +556,7 @@ export default function PostDetailPage() {
           height: 32px;
           background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
           border-bottom: 1px solid #e2e8f0;
-          position: relative;
+          pointer-events: none;
         }
         .dark .post-content pre::before {
           background: linear-gradient(180deg, #21262d 0%, #161b22 100%);
@@ -576,7 +578,7 @@ export default function PostDetailPage() {
           padding: 1rem;
           background: transparent;
           color: #1e293b;
-          overflow-x: auto;
+          white-space: pre;
           font-family: 'SF Mono', 'Fira Code', 'Monaco', 'Consolas', monospace;
           font-size: 0.875rem;
           line-height: 1.6;
