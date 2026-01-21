@@ -8,6 +8,7 @@ export interface PostDocument {
   title: string;
   excerpt: string;
   content: string;  // Full text content (HTML stripped)
+  coverImage: string | null;  // Cover image URL
   categoryId: string;
   categoryName: string;
   categorySlug: string;
@@ -100,6 +101,7 @@ class MeilisearchService {
           'title',
           'excerpt',
           'content',
+          'coverImage',
           'categoryId',
           'categoryName',
           'categorySlug',

@@ -63,6 +63,7 @@ router.post('/reindex', verifyInternalRequest, async (req: Request, res: Respons
       title: string;
       excerpt?: string;
       content?: string;
+      coverImage?: string | null;
       categoryId: string;
       category?: { name: string; slug: string };
       tags?: { name: string }[];
@@ -89,6 +90,7 @@ router.post('/reindex', verifyInternalRequest, async (req: Request, res: Respons
         title: post.title,
         excerpt: post.excerpt || '',
         content: stripHtml(post.content || ''),
+        coverImage: post.coverImage || null,
         categoryId: post.categoryId,
         categoryName: post.category?.name || '',
         categorySlug: post.category?.slug || '',

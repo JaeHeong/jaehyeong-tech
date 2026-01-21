@@ -300,6 +300,7 @@ class ApiClient {
       title: string
       excerpt: string
       content: string
+      coverImage: string | null
       categoryId: string
       categoryName: string
       categorySlug: string
@@ -343,7 +344,7 @@ class ApiClient {
       title: hit.title,
       excerpt: hit.excerpt,
       content: hit.content,
-      coverImage: undefined, // Not available in search results
+      coverImage: hit.coverImage || undefined,
       status: hit.status as 'PUBLIC' | 'PRIVATE',
       featured: false, // Not available in search results
       category: {
