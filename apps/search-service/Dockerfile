@@ -12,8 +12,8 @@ COPY tsconfig.base.json ./
 # Install pnpm
 RUN npm install -g pnpm
 
-# Install dependencies (no frozen-lockfile since this is a new service)
-RUN pnpm install
+# Install dependencies
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY apps/search-service ./apps/search-service
