@@ -98,41 +98,55 @@ router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request,
 
 /**
  * GET /internal/draft-image-urls
- * Get image URLs used in draft content and coverImage (for orphan detection)
+ * Get image URLs used in posts AND drafts (content and coverImage) for orphan detection
+ * Note: Name kept for backward compatibility, but now includes posts too
  */
 router.get('/draft-image-urls', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prisma = tenantPrisma.getClient(req.tenant!.id);
 
-    // Get all drafts with content AND coverImage
-    const drafts = await prisma.draft.findMany({
-      select: { content: true, coverImage: true },
-    });
+    // Get all posts and drafts with content AND coverImage
+    const [posts, drafts] = await Promise.all([
+      prisma.post.findMany({
+        select: { content: true, coverImage: true },
+      }),
+      prisma.draft.findMany({
+        select: { content: true, coverImage: true },
+      }),
+    ]);
 
-    // Extract image URLs from draft content and coverImage
+    // Extract image URLs from content and coverImage
     const imageUrls = new Set<string>();
     const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
     const mdImgRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
 
-    for (const draft of drafts) {
-      // Add coverImage URL if exists
-      if (draft.coverImage) {
-        imageUrls.add(draft.coverImage);
-      }
+    // Helper function to extract URLs from content
+    const extractUrls = (items: Array<{ content: string | null; coverImage: string | null }>) => {
+      for (const item of items) {
+        // Add coverImage URL if exists
+        if (item.coverImage) {
+          imageUrls.add(item.coverImage);
+        }
 
-      if (!draft.content) continue;
+        if (!item.content) continue;
 
-      // HTML img tags
-      let match;
-      while ((match = imgRegex.exec(draft.content)) !== null) {
-        imageUrls.add(match[1]);
-      }
+        // HTML img tags - reset regex lastIndex
+        imgRegex.lastIndex = 0;
+        let match;
+        while ((match = imgRegex.exec(item.content)) !== null) {
+          imageUrls.add(match[1]);
+        }
 
-      // Markdown images
-      while ((match = mdImgRegex.exec(draft.content)) !== null) {
-        imageUrls.add(match[1]);
+        // Markdown images - reset regex lastIndex
+        mdImgRegex.lastIndex = 0;
+        while ((match = mdImgRegex.exec(item.content)) !== null) {
+          imageUrls.add(match[1]);
+        }
       }
-    }
+    };
+
+    extractUrls(posts);
+    extractUrls(drafts);
 
     res.json({
       success: true,
@@ -141,6 +155,7 @@ router.get('/draft-image-urls', verifyInternalRequest, resolveTenant, async (req
         count: imageUrls.size,
       },
       meta: {
+        postsScanned: posts.length,
         draftsScanned: drafts.length,
         tenantId: req.tenant!.id,
       },
