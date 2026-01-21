@@ -1339,6 +1339,7 @@ export default function PostDetailPage() {
                   <button
                     onClick={handleLike}
                     disabled={isLiking}
+                    title={`좋아요 ${likeCount.toLocaleString()}개`}
                     className={`flex items-center gap-2 transition-colors ${
                       liked
                         ? 'text-red-500'
@@ -1348,7 +1349,7 @@ export default function PostDetailPage() {
                     <span className={`material-symbols-outlined text-[20px] ${isLiking ? 'animate-pulse' : ''}`}>
                       {liked ? 'favorite' : 'favorite_border'}
                     </span>
-                    <span className="text-sm font-medium">{likeCount > 0 ? likeCount : '좋아요'}</span>
+                    <span className="text-sm font-medium">{liked ? '좋아요' : '좋아요'}</span>
                   </button>
                   <button
                     onClick={handleShare}
