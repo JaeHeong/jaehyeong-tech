@@ -265,7 +265,7 @@ class ApiClient {
     })
   }
 
-  // Search endpoint
+  // Search endpoint (legacy - uses database LIKE search)
   async search(query: string, params?: { page?: number; limit?: number }) {
     const searchParams = new URLSearchParams()
     searchParams.set('search', query)
@@ -273,6 +273,118 @@ class ApiClient {
     if (params?.limit) searchParams.set('limit', params.limit.toString())
 
     return this.request<PostsResponse>(`/posts?${searchParams.toString()}`)
+  }
+
+  // Full-text search endpoint (Meilisearch powered)
+  async fullTextSearch(query: string, params?: {
+    page?: number
+    limit?: number
+    category?: string
+    tag?: string
+    sortBy?: 'relevance' | 'publishedAt' | 'viewCount' | 'likeCount'
+    sortOrder?: 'asc' | 'desc'
+  }) {
+    const searchParams = new URLSearchParams()
+    searchParams.set('q', query)
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.category) searchParams.set('category', params.category)
+    if (params?.tag) searchParams.set('tag', params.tag)
+    if (params?.sortBy) searchParams.set('sortBy', params.sortBy)
+    if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder)
+
+    interface SearchHit {
+      id: string
+      tenantId: string
+      slug: string
+      title: string
+      excerpt: string
+      content: string
+      categoryId: string
+      categoryName: string
+      categorySlug: string
+      tags: string[]
+      authorId: string
+      authorName: string
+      status: string
+      publishedAt: number | null
+      createdAt: number
+      updatedAt: number
+      viewCount: number
+      likeCount: number
+      _formatted?: {
+        title?: string
+        excerpt?: string
+        content?: string
+      }
+    }
+
+    interface SearchResponse {
+      success: boolean
+      data: SearchHit[]
+      pagination: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+      }
+      meta: {
+        query: string
+        processingTimeMs: number
+      }
+    }
+
+    const response = await this.request<SearchResponse>(`/search?${searchParams.toString()}`)
+
+    // Transform search hits to Post format
+    const posts: Post[] = response.data.map((hit) => ({
+      id: hit.id,
+      slug: hit.slug,
+      title: hit.title,
+      excerpt: hit.excerpt,
+      content: hit.content,
+      coverImage: undefined, // Not available in search results
+      status: hit.status as 'PUBLIC' | 'PRIVATE',
+      featured: false, // Not available in search results
+      category: {
+        id: hit.categoryId,
+        name: hit.categoryName,
+        slug: hit.categorySlug,
+        postCount: 0,
+      },
+      tags: hit.tags.map((tagName, idx) => ({
+        id: `tag-${idx}`,
+        name: tagName,
+        slug: tagName.toLowerCase().replace(/\s+/g, '-'),
+        postCount: 0,
+      })),
+      author: {
+        id: hit.authorId,
+        name: hit.authorName,
+        email: '',
+        role: 'USER' as const,
+        createdAt: '',
+      },
+      viewCount: hit.viewCount,
+      likeCount: hit.likeCount,
+      readingTime: Math.ceil(hit.content.length / 1000), // Rough estimate
+      createdAt: new Date(hit.createdAt).toISOString(),
+      updatedAt: new Date(hit.updatedAt).toISOString(),
+      publishedAt: hit.publishedAt ? new Date(hit.publishedAt).toISOString() : undefined,
+      // Include highlighted versions if available
+      _highlighted: hit._formatted,
+    }))
+
+    return {
+      posts,
+      meta: {
+        total: response.pagination.total,
+        page: response.pagination.page,
+        limit: response.pagination.limit,
+        totalPages: response.pagination.totalPages,
+      },
+      searchMeta: response.meta,
+    }
   }
 
   // Admin stats
@@ -954,6 +1066,11 @@ export interface Post {
   createdAt: string
   updatedAt: string
   publishedAt?: string
+  _highlighted?: {
+    title?: string
+    excerpt?: string
+    content?: string
+  }
 }
 
 export interface Draft {
