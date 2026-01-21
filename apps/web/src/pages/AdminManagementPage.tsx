@@ -74,13 +74,24 @@ export default function AdminManagementPage() {
           setBackupDescription('')
         }
       } else if (e.key === 'Enter' && showBackupModal && !isCreatingBackup) {
+        // Skip if typing in textarea (allow Shift+Enter for newlines)
+        const target = e.target as HTMLElement
+        if (target.tagName === 'TEXTAREA') {
+          if (!e.shiftKey) {
+            // Enter without Shift: submit backup
+            e.preventDefault()
+            handleCreateBackup()
+          }
+          // Shift+Enter: allow default (newline)
+          return
+        }
         e.preventDefault()
         handleCreateBackup()
       }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [previewBackup, showBackupModal, isCreatingBackup])
+  }, [previewBackup, showBackupModal, isCreatingBackup, backupDescription])
 
   const handleCreateBackup = async () => {
     setIsCreatingBackup(true)
