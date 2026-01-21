@@ -1,0 +1,284 @@
+name: Build and Deploy (Prod - MSA)
+
+run-name: "🚀 Prod MSA - ${{ github.ref_name }} by @${{ github.actor }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      # 서비스 선택 (체크박스)
+      build_all:
+        description: '모든 서비스 빌드'
+        required: false
+        default: false
+        type: boolean
+
+      build_web:
+        description: 'Web (Frontend)'
+        required: false
+        default: false
+        type: boolean
+
+      build_auth:
+        description: 'Auth Service'
+        required: false
+        default: false
+        type: boolean
+
+      build_blog:
+        description: 'Blog Service'
+        required: false
+        default: false
+        type: boolean
+
+      build_comment:
+        description: 'Comment Service'
+        required: false
+        default: false
+        type: boolean
+
+      build_storage:
+        description: 'Storage Service'
+        required: false
+        default: false
+        type: boolean
+
+      build_page:
+        description: 'Page Service'
+        required: false
+        default: false
+        type: boolean
+
+      build_analytics:
+        description: 'Analytics Service'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # 공통 설정 준비
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+      owner_lc: ${{ steps.owner.outputs.owner_lc }}
+      services: ${{ steps.services.outputs.matrix }}
+
+    steps:
+      - name: Set lowercase owner name
+        id: owner
+        run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+
+      - name: Generate image tag
+        id: meta
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          TAG="${SHORT_SHA}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Image tag: ${TAG}"
+
+      - name: Determine services to build
+        id: services
+        run: |
+          SERVICES=()
+          BUILD_ALL="${{ inputs.build_all }}"
+
+          # 모든 서비스 빌드 또는 개별 선택
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_auth }}" = "true" ]; then
+            SERVICES+=('{"name":"jaehyeong-tech-auth","path":"apps/auth-service","port":"3001"}')
+          fi
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_blog }}" = "true" ]; then
+            SERVICES+=('{"name":"jaehyeong-tech-blog","path":"apps/blog-service","port":"3002"}')
+          fi
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_comment }}" = "true" ]; then
+            SERVICES+=('{"name":"jaehyeong-tech-comment","path":"apps/comment-service","port":"3003"}')
+          fi
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_page }}" = "true" ]; then
+            SERVICES+=('{"name":"jaehyeong-tech-page","path":"apps/page-service","port":"3004"}')
+          fi
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_analytics }}" = "true" ]; then
+            SERVICES+=('{"name":"jaehyeong-tech-analytics","path":"apps/analytics-service","port":"3005"}')
+          fi
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_storage }}" = "true" ]; then
+            SERVICES+=('{"name":"jaehyeong-tech-storage","path":"apps/storage-service","port":"3006"}')
+          fi
+
+          # JSON 배열 생성
+          if [ ${#SERVICES[@]} -eq 0 ]; then
+            MATRIX="[]"
+          else
+            MATRIX="[$(IFS=,; echo "${SERVICES[*]}")]"
+          fi
+
+          echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
+          echo "Services to build: ${MATRIX}"
+
+  # MSA 서비스 빌드 (Matrix 전략)
+  build-services:
+    needs: prepare
+    if: needs.prepare.outputs.services != '[]'
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.prepare.outputs.services) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push ${{ matrix.service.name }}
+        run: |
+          IMAGE="ghcr.io/${{ needs.prepare.outputs.owner_lc }}/${{ matrix.service.name }}:${{ needs.prepare.outputs.image_tag }}"
+
+          echo "Building ${{ matrix.service.name }} from ${{ matrix.service.path }}"
+          docker build -t $IMAGE -f ./${{ matrix.service.path }}/Dockerfile .
+          docker push $IMAGE
+
+          echo "✅ Pushed: $IMAGE"
+
+      - name: Make package public
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X PATCH /user/packages/container/${{ matrix.service.name }}/visibility \
+            -f visibility=public || true
+
+      - name: Cleanup
+        if: always()
+        run: docker image prune -f
+
+  # Web 빌드 (별도 처리 - 빌드 인자 필요)
+  build-web:
+    needs: prepare
+    if: inputs.build_all == true || inputs.build_web == true
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push Web
+        run: |
+          IMAGE="ghcr.io/${{ needs.prepare.outputs.owner_lc }}/jaehyeong-tech-web:${{ needs.prepare.outputs.image_tag }}"
+          docker build -t $IMAGE \
+            --build-arg VITE_API_URL=/api \
+            --build-arg VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }} \
+            -f ./apps/web/Dockerfile .
+          docker push $IMAGE
+
+          echo "✅ Pushed: $IMAGE"
+
+      - name: Make package public
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X PATCH /user/packages/container/jaehyeong-tech-web/visibility \
+            -f visibility=public || true
+
+      - name: Cleanup
+        if: always()
+        run: docker image prune -f
+
+  # GitOps 업데이트
+  update-gitops:
+    needs: [prepare, build-services, build-web]
+    if: always() && (needs.build-services.result == 'success' || needs.build-services.result == 'skipped') && (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') && !(needs.build-services.result == 'skipped' && needs.build-web.result == 'skipped')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GITOPS_SSH_KEY }}
+
+      - name: Clone GitOps repo
+        run: |
+          git clone git@github.com:JaeHeong/my-k8s-gitops.git
+
+      - name: Update image tags
+        run: |
+          cd my-k8s-gitops
+          TAG="${{ needs.prepare.outputs.image_tag }}"
+          VALUES_FILE="apps/jaehyeong-tech/values-prod.yaml"
+          BUILD_ALL="${{ inputs.build_all }}"
+
+          echo "Updating ${VALUES_FILE} with tag: ${TAG}"
+
+          # 선택된 서비스만 업데이트
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_web }}" = "true" ]; then
+            sed -i "/^  web:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated web tag"
+          fi
+
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_auth }}" = "true" ]; then
+            sed -i "/^  auth:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated auth tag"
+          fi
+
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_blog }}" = "true" ]; then
+            sed -i "/^  blog:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated blog tag"
+          fi
+
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_comment }}" = "true" ]; then
+            sed -i "/^  comment:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated comment tag"
+          fi
+
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_storage }}" = "true" ]; then
+            sed -i "/^  storage:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated storage tag"
+          fi
+
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_page }}" = "true" ]; then
+            sed -i "/^  page:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated page tag"
+          fi
+
+          if [ "$BUILD_ALL" = "true" ] || [ "${{ inputs.build_analytics }}" = "true" ]; then
+            sed -i "/^  analytics:/,/^  [a-z]/{ /tag:/s/tag: .*/tag: ${TAG}/ }" $VALUES_FILE
+            echo "Updated analytics tag"
+          fi
+
+      - name: Commit and push
+        run: |
+          cd my-k8s-gitops
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add -A
+
+          # 변경된 서비스 목록 생성
+          SERVICES=""
+          if [ "${{ inputs.build_all }}" = "true" ]; then
+            SERVICES="all"
+          else
+            [ "${{ inputs.build_web }}" = "true" ] && SERVICES="${SERVICES}web,"
+            [ "${{ inputs.build_auth }}" = "true" ] && SERVICES="${SERVICES}auth,"
+            [ "${{ inputs.build_blog }}" = "true" ] && SERVICES="${SERVICES}blog,"
+            [ "${{ inputs.build_comment }}" = "true" ] && SERVICES="${SERVICES}comment,"
+            [ "${{ inputs.build_storage }}" = "true" ] && SERVICES="${SERVICES}storage,"
+            [ "${{ inputs.build_page }}" = "true" ] && SERVICES="${SERVICES}page,"
+            [ "${{ inputs.build_analytics }}" = "true" ] && SERVICES="${SERVICES}analytics,"
+            SERVICES="${SERVICES%,}"
+          fi
+
+          git diff --staged --quiet || git commit -m "chore(prod): update [${SERVICES}] to ${{ needs.prepare.outputs.image_tag }}"
+          git push
