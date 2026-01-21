@@ -83,23 +83,28 @@ router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request,
 
 /**
  * GET /internal/draft-image-urls
- * Get image URLs used in draft content (for orphan detection)
+ * Get image URLs used in draft content and coverImage (for orphan detection)
  */
 router.get('/draft-image-urls', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prisma = tenantPrisma.getClient(req.tenant!.id);
 
-    // Get all drafts with content
+    // Get all drafts with content AND coverImage
     const drafts = await prisma.draft.findMany({
-      select: { content: true },
+      select: { content: true, coverImage: true },
     });
 
-    // Extract image URLs from draft content
+    // Extract image URLs from draft content and coverImage
     const imageUrls = new Set<string>();
     const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
     const mdImgRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
 
     for (const draft of drafts) {
+      // Add coverImage URL if exists
+      if (draft.coverImage) {
+        imageUrls.add(draft.coverImage);
+      }
+
       if (!draft.content) continue;
 
       // HTML img tags
