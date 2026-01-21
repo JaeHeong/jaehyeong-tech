@@ -22,9 +22,13 @@ export interface PostDocument {
   likeCount: number;
 }
 
+// Environment prefix for index namespacing (dev/prod isolation)
+const ENV_PREFIX = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+
 class MeilisearchService {
   private client: MeiliSearch | null = null;
   private postsIndex: Index<PostDocument> | null = null;
+  private readonly indexName = `posts-${ENV_PREFIX}`;
 
   async connect() {
     try {
@@ -52,11 +56,9 @@ class MeilisearchService {
   private async initializeIndex() {
     if (!this.client) throw new Error('Meilisearch not connected');
 
-    const indexName = 'posts';
-
     // Create or get index
     try {
-      this.postsIndex = this.client.index<PostDocument>(indexName);
+      this.postsIndex = this.client.index<PostDocument>(this.indexName);
 
       // Configure index settings
       await this.postsIndex.updateSettings({
@@ -134,7 +136,7 @@ class MeilisearchService {
         },
       });
 
-      console.info(`✅ Meilisearch index '${indexName}' initialized`);
+      console.info(`✅ Meilisearch index '${this.indexName}' initialized`);
     } catch (error) {
       console.error('❌ Failed to initialize index:', error);
       throw error;
