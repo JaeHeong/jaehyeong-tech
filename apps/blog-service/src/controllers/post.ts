@@ -903,9 +903,10 @@ export async function getPostStats(req: Request, res: Response, next: NextFuncti
     const tenant = req.tenant!;
     const prisma = tenantPrisma.getClient(tenant.id);
 
-    const [total, published, totalViews, totalLikes] = await Promise.all([
+    const [total, published, privatePosts, totalViews, totalLikes] = await Promise.all([
       prisma.post.count({ where: { tenantId: tenant.id } }),
       prisma.post.count({ where: { tenantId: tenant.id, status: 'PUBLIC' } }),
+      prisma.post.count({ where: { tenantId: tenant.id, status: 'PRIVATE' } }),
       prisma.post.aggregate({
         where: { tenantId: tenant.id },
         _sum: { viewCount: true },
@@ -917,6 +918,7 @@ export async function getPostStats(req: Request, res: Response, next: NextFuncti
       data: {
         total,
         published,
+        private: privatePosts,
         totalViews: totalViews._sum.viewCount || 0,
         totalLikes,
       },

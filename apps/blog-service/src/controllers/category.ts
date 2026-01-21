@@ -10,7 +10,8 @@ const slugify: SlugifyFn =
 
 /**
  * GET /api/categories
- * Public: Get all categories
+ * Public: Get all categories with post counts
+ * Returns postCount (PUBLIC posts) and privateCount (PRIVATE posts, admin only)
  */
 export async function getCategories(req: Request, res: Response, next: NextFunction) {
   try {
@@ -21,15 +22,37 @@ export async function getCategories(req: Request, res: Response, next: NextFunct
     const prisma = tenantPrisma.getClient(req.tenant.id);
     const categories = await prisma.category.findMany({
       where: { tenantId: req.tenant.id },
-      include: {
-        _count: {
-          select: { posts: true },
-        },
-      },
       orderBy: { name: 'asc' },
     });
 
-    res.json({ data: categories });
+    // Get post counts by status for each category
+    const categoriesWithCounts = await Promise.all(
+      categories.map(async (category) => {
+        const publicCount = await prisma.post.count({
+          where: {
+            tenantId: req.tenant!.id,
+            categoryId: category.id,
+            status: 'PUBLIC',
+          },
+        });
+
+        const privateCount = await prisma.post.count({
+          where: {
+            tenantId: req.tenant!.id,
+            categoryId: category.id,
+            status: 'PRIVATE',
+          },
+        });
+
+        return {
+          ...category,
+          postCount: publicCount,
+          privateCount,
+        };
+      })
+    );
+
+    res.json({ data: categoriesWithCounts });
   } catch (error) {
     next(error);
   }
@@ -37,7 +60,7 @@ export async function getCategories(req: Request, res: Response, next: NextFunct
 
 /**
  * GET /api/categories/:slug
- * Public: Get category by slug
+ * Public: Get category by slug with post counts
  */
 export async function getCategoryBySlug(req: Request, res: Response, next: NextFunction) {
   try {
@@ -55,18 +78,37 @@ export async function getCategoryBySlug(req: Request, res: Response, next: NextF
           slug,
         },
       },
-      include: {
-        _count: {
-          select: { posts: true },
-        },
-      },
     });
 
     if (!category) {
       throw new AppError('카테고리를 찾을 수 없습니다.', 404);
     }
 
-    res.json({ data: category });
+    // Get post counts by status
+    const [publicCount, privateCount] = await Promise.all([
+      prisma.post.count({
+        where: {
+          tenantId: req.tenant.id,
+          categoryId: category.id,
+          status: 'PUBLIC',
+        },
+      }),
+      prisma.post.count({
+        where: {
+          tenantId: req.tenant.id,
+          categoryId: category.id,
+          status: 'PRIVATE',
+        },
+      }),
+    ]);
+
+    res.json({
+      data: {
+        ...category,
+        postCount: publicCount,
+        privateCount,
+      },
+    });
   } catch (error) {
     next(error);
   }

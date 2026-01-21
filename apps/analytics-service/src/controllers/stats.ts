@@ -72,6 +72,7 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
     interface PostStats {
       total: number;
       published: number;
+      private: number;
       totalViews: number;
       totalLikes: number;
     }
@@ -361,6 +362,7 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
         stats: {
           totalPosts: postsData.data?.total ?? 0,
           publishedPosts: postsData.data?.published ?? 0,
+          privatePosts: postsData.data?.private ?? 0,
           draftPosts: draftsData.data?.total ?? 0,
           totalComments: commentsData.data?.total ?? 0,
           recentComments: commentsData.data?.recent ?? 0,

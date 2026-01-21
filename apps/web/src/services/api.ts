@@ -1070,6 +1070,7 @@ export interface DashboardStats {
   stats: {
     totalPosts: number
     publishedPosts: number
+    privatePosts: number
     draftPosts: number
     totalComments: number
     recentComments: number

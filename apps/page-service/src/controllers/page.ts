@@ -559,8 +559,8 @@ export async function getPageStats(req: Request, res: Response, next: NextFuncti
         total,
         published,
         drafts,
-        notices,
-        staticPages,
+        notice: notices,
+        static: staticPages,
       },
     });
   } catch (error) {
