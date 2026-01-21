@@ -1,7 +1,7 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Request, Response, NextFunction, IRouter } from 'express';
 import { meilisearchService, PostDocument } from '../services/meilisearch';
 
-const router = Router();
+const router: IRouter = Router();
 
 const BLOG_SERVICE_URL = process.env.BLOG_SERVICE_URL || 'http://jaehyeong-tech-prod-blog:3002';
 
@@ -56,7 +56,8 @@ router.post('/reindex', verifyInternalRequest, async (req: Request, res: Respons
       throw new Error(`Failed to fetch posts: ${response.statusText}`);
     }
 
-    const { data: posts } = await response.json();
+    const result = await response.json() as { data: unknown[] };
+    const posts = result.data;
 
     // Transform posts to Meilisearch documents
     const documents: PostDocument[] = posts
@@ -170,4 +171,4 @@ router.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'search-service', internal: true });
 });
 
-export const internalRouter = router;
+export const internalRouter: IRouter = router;

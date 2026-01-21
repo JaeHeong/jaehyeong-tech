@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { Express } from 'express';
 import cors from 'cors';
 import { searchRouter } from './routes/search';
 import { internalRouter } from './routes/internal';
 
-const app = express();
+const app: Express = express();
 
 // Middleware
 app.use(cors());

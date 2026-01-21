@@ -3,9 +3,18 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["../../packages/shared/*/src"]
+      "@shared/types": ["../../packages/shared/types/dist"],
+      "@shared/types/*": ["../../packages/shared/types/dist/*"],
+      "@shared/events": ["../../packages/shared/events/dist"],
+      "@shared/events/*": ["../../packages/shared/events/dist/*"],
+      "@shared/utils": ["../../packages/shared/utils/dist"],
+      "@shared/utils/*": ["../../packages/shared/utils/dist/*"]
     }
   },
   "include": ["src/**/*"],

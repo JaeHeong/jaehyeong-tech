@@ -34,7 +34,27 @@ async function fetchPostData(postId: string, tenantId: string): Promise<PostDocu
       return null;
     }
 
-    const { data: post } = await response.json();
+    interface BlogPost {
+      id: string;
+      tenantId: string;
+      slug: string;
+      title: string;
+      excerpt?: string;
+      content?: string;
+      categoryId: string;
+      category?: { name: string; slug: string };
+      tags?: { name: string }[];
+      authorId: string;
+      author?: { name: string };
+      status: string;
+      publishedAt?: string;
+      createdAt: string;
+      updatedAt: string;
+      viewCount?: number;
+      likeCount?: number;
+    }
+    const result = await response.json() as { data: BlogPost };
+    const post = result.data;
 
     return {
       id: post.id,
@@ -46,7 +66,7 @@ async function fetchPostData(postId: string, tenantId: string): Promise<PostDocu
       categoryId: post.categoryId,
       categoryName: post.category?.name || '',
       categorySlug: post.category?.slug || '',
-      tags: post.tags?.map((t: { name: string }) => t.name) || [],
+      tags: post.tags?.map((t) => t.name) || [],
       authorId: post.authorId,
       authorName: post.author?.name || '',
       status: post.status,
