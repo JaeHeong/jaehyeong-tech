@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: comment-service-config
-  namespace: jaehyeong-tech-dev
-data:
-  PORT: "3003"
-  NODE_ENV: development

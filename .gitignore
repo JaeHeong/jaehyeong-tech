@@ -32,8 +32,8 @@ pnpm-debug.log*
 coverage/
 
 # Prisma
-apps/api/prisma/*.db
-apps/api/prisma/*.db-journal
+**/prisma/*.db
+**/prisma/*.db-journal
 **/generated/
 
 # TypeScript build artifacts
