@@ -48,7 +48,10 @@ export default function HomePage() {
   // Derived state with useMemo (rerender-derived-state)
   const featuredPost = useMemo(() => featuredData?.posts?.[0] ?? null, [featuredData])
   const latestPosts = useMemo(() => postsData?.posts ?? [], [postsData])
-  const categories = useMemo(() => categoriesData?.categories?.slice(0, 4) ?? [], [categoriesData])
+  const categories = useMemo(() => {
+    const allCategories = categoriesData?.categories ?? []
+    return [...allCategories].sort((a, b) => b.postCount - a.postCount).slice(0, 4)
+  }, [categoriesData])
   const displayCategories = useMemo(
     () => categories.length > 0 ? categories : DEFAULT_CATEGORIES,
     [categories]

@@ -39,6 +39,9 @@ interface BackupData {
     categories: unknown[];
     tags: unknown[];
     images: unknown[];
+    likes: unknown[];
+    bookmarks: unknown[];
+    postViews: unknown[];
     // Comment service data
     comments: unknown[];
     // Page service data
@@ -208,6 +211,9 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         categories: (blogResult.data?.categories as unknown[]) || [],
         tags: (blogResult.data?.tags as unknown[]) || [],
         images: (blogResult.data?.images as unknown[]) || [],
+        likes: (blogResult.data?.likes as unknown[]) || [],
+        bookmarks: (blogResult.data?.bookmarks as unknown[]) || [],
+        postViews: (blogResult.data?.postViews as unknown[]) || [],
         // Comment service data
         comments: (commentResult.data?.comments as unknown[]) || [],
         // Page service data
@@ -242,6 +248,9 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
           categories: backupData.data.categories.length,
           tags: backupData.data.tags.length,
           images: backupData.data.images.length,
+          likes: backupData.data.likes.length,
+          bookmarks: backupData.data.bookmarks.length,
+          postViews: backupData.data.postViews.length,
           comments: backupData.data.comments.length,
           pages: backupData.data.pages.length,
           pageViews: backupData.data.pageViews.length,
@@ -290,6 +299,9 @@ router.get('/:fileName/info', async (req: Request, res: Response, next: NextFunc
           categories: backupData.data.categories?.length || 0,
           tags: backupData.data.tags?.length || 0,
           images: backupData.data.images?.length || 0,
+          likes: backupData.data.likes?.length || 0,
+          bookmarks: backupData.data.bookmarks?.length || 0,
+          postViews: backupData.data.postViews?.length || 0,
           comments: backupData.data.comments?.length || 0,
           pages: backupData.data.pages?.length || 0,
           pageViews: backupData.data.pageViews?.length || 0,
@@ -406,6 +418,9 @@ router.post('/:fileName/restore', async (req: Request, res: Response, next: Next
       drafts: backupData.data.drafts,
       categories: backupData.data.categories,
       tags: backupData.data.tags,
+      likes: backupData.data.likes,
+      bookmarks: backupData.data.bookmarks,
+      postViews: backupData.data.postViews,
     });
 
     // Restore remaining services in parallel

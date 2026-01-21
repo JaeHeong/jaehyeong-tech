@@ -31,14 +31,14 @@ function verifyInternalRequest(req: Request, res: Response, next: NextFunction):
  * GET /internal/export
  * Export all blog data for backup purposes
  *
- * Returns: posts, drafts, categories, tags with all relationships
+ * Returns: posts, drafts, categories, tags, likes, bookmarks, postViews with all relationships
  */
 router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prisma = tenantPrisma.getClient(req.tenant!.id);
 
     // Fetch all data in parallel
-    const [posts, drafts, categories, tags] = await Promise.all([
+    const [posts, drafts, categories, tags, likes, bookmarks, postViews] = await Promise.all([
       prisma.post.findMany({
         include: {
           category: true,
@@ -55,6 +55,15 @@ router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request,
       prisma.tag.findMany({
         orderBy: { name: 'asc' },
       }),
+      prisma.like.findMany({
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.bookmark.findMany({
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.postView.findMany({
+        orderBy: { viewedAt: 'desc' },
+      }),
     ]);
 
     res.json({
@@ -64,6 +73,9 @@ router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request,
         drafts,
         categories,
         tags,
+        likes,
+        bookmarks,
+        postViews,
       },
       meta: {
         counts: {
@@ -71,6 +83,9 @@ router.get('/export', verifyInternalRequest, resolveTenant, async (req: Request,
           drafts: drafts.length,
           categories: categories.length,
           tags: tags.length,
+          likes: likes.length,
+          bookmarks: bookmarks.length,
+          postViews: postViews.length,
         },
         exportedAt: new Date().toISOString(),
         tenantId: req.tenant!.id,
@@ -187,13 +202,13 @@ router.get('/posts/basic', verifyInternalRequest, resolveTenant, async (req: Req
  * POST /internal/restore
  * Restore blog data from backup
  *
- * Restore order: categories -> tags -> posts -> drafts
+ * Restore order: categories -> tags -> posts -> drafts -> likes -> bookmarks -> postViews
  * Posts are upserted, relationships are recreated
  */
 router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prisma = tenantPrisma.getClient(req.tenant!.id);
-    const { posts, drafts, categories, tags } = req.body as {
+    const { posts, drafts, categories, tags, likes, bookmarks, postViews } = req.body as {
       posts?: Array<{
         id: string;
         tenantId: string;
@@ -247,6 +262,30 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
         createdAt: string;
         updatedAt: string;
       }>;
+      likes?: Array<{
+        id: string;
+        tenantId: string;
+        postId: string;
+        ipHash: string;
+        userId?: string | null;
+        createdAt: string;
+      }>;
+      bookmarks?: Array<{
+        id: string;
+        tenantId: string;
+        postId: string;
+        userId: string;
+        createdAt: string;
+      }>;
+      postViews?: Array<{
+        id: string;
+        tenantId: string;
+        postId: string;
+        ipHash: string;
+        userAgent?: string | null;
+        referer?: string | null;
+        viewedAt: string;
+      }>;
     };
 
     const results = {
@@ -254,6 +293,9 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
       tags: { deleted: 0, restored: 0, skipped: 0 },
       posts: { deleted: 0, restored: 0, skipped: 0 },
       drafts: { deleted: 0, restored: 0, skipped: 0 },
+      likes: { deleted: 0, restored: 0, skipped: 0 },
+      bookmarks: { deleted: 0, restored: 0, skipped: 0 },
+      postViews: { deleted: 0, restored: 0, skipped: 0 },
     };
 
     const tenantId = req.tenant!.id;
@@ -272,6 +314,9 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
     results.drafts.deleted = deletedDrafts.count;
     results.categories.deleted = deletedCategories.count;
     results.tags.deleted = deletedTags.count;
+    results.likes.deleted = deletedLikes.count;
+    results.bookmarks.deleted = deletedBookmarks.count;
+    results.postViews.deleted = deletedPostViews.count;
     console.info(`[Restore] Deleted blog data for tenant ${tenantId}: ${deletedPosts.count} posts, ${deletedDrafts.count} drafts, ${deletedCategories.count} categories, ${deletedTags.count} tags, ${deletedPostViews.count} views, ${deletedLikes.count} likes, ${deletedBookmarks.count} bookmarks`);
 
     // 2. Restore categories first (posts depend on them)
@@ -381,6 +426,72 @@ router.post('/restore', verifyInternalRequest, resolveTenant, async (req: Reques
         } catch (error) {
           console.error(`[Restore] Failed to restore draft ${draft.id}:`, error);
           results.drafts.skipped++;
+        }
+      }
+    }
+
+    // 6. Restore likes (after posts exist)
+    if (likes && Array.isArray(likes)) {
+      for (const like of likes) {
+        try {
+          await prisma.like.create({
+            data: {
+              id: like.id,
+              tenantId: like.tenantId,
+              postId: like.postId,
+              ipHash: like.ipHash,
+              userId: like.userId,
+              createdAt: new Date(like.createdAt),
+            },
+          });
+          results.likes.restored++;
+        } catch (error) {
+          console.error(`[Restore] Failed to restore like ${like.id}:`, error);
+          results.likes.skipped++;
+        }
+      }
+    }
+
+    // 7. Restore bookmarks (after posts exist)
+    if (bookmarks && Array.isArray(bookmarks)) {
+      for (const bookmark of bookmarks) {
+        try {
+          await prisma.bookmark.create({
+            data: {
+              id: bookmark.id,
+              tenantId: bookmark.tenantId,
+              postId: bookmark.postId,
+              userId: bookmark.userId,
+              createdAt: new Date(bookmark.createdAt),
+            },
+          });
+          results.bookmarks.restored++;
+        } catch (error) {
+          console.error(`[Restore] Failed to restore bookmark ${bookmark.id}:`, error);
+          results.bookmarks.skipped++;
+        }
+      }
+    }
+
+    // 8. Restore postViews (after posts exist)
+    if (postViews && Array.isArray(postViews)) {
+      for (const view of postViews) {
+        try {
+          await prisma.postView.create({
+            data: {
+              id: view.id,
+              tenantId: view.tenantId,
+              postId: view.postId,
+              ipHash: view.ipHash,
+              userAgent: view.userAgent,
+              referer: view.referer,
+              viewedAt: new Date(view.viewedAt),
+            },
+          });
+          results.postViews.restored++;
+        } catch (error) {
+          console.error(`[Restore] Failed to restore postView ${view.id}:`, error);
+          results.postViews.skipped++;
         }
       }
     }
