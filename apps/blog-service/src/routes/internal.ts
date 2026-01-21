@@ -519,12 +519,6 @@ router.get('/posts/all', verifyInternalRequest, resolveTenant, async (req: Reque
       include: {
         category: true,
         tags: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -556,12 +550,6 @@ router.get('/posts/:id', verifyInternalRequest, resolveTenant, async (req: Reque
       include: {
         category: true,
         tags: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
     });
 
