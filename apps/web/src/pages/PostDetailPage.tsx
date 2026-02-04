@@ -277,11 +277,14 @@ export default function PostDetailPage() {
 
 
   // Extract headings from content, add IDs, apply syntax highlighting, and add copy buttons to code blocks
-  const { tocHeadings, contentWithIds } = useMemo(() => {
-    if (!post?.content) return { tocHeadings: [] as TocHeading[], contentWithIds: '' }
+  const { tocHeadings, contentWithIds, shouldShowInContentAd } = useMemo(() => {
+    if (!post?.content) return { tocHeadings: [] as TocHeading[], contentWithIds: '', shouldShowInContentAd: false }
 
     const parser = new DOMParser()
     const doc = parser.parseFromString(post.content, 'text/html')
+
+    // Calculate content length (text only, no HTML tags)
+    const contentLength = doc.body.textContent?.length || 0
 
     // Add IDs to headings for TOC
     const headings = doc.querySelectorAll('h1, h2, h3')
@@ -295,6 +298,29 @@ export default function PostDetailPage() {
         level: parseInt(heading.tagName.charAt(1) || '1'),
       })
     })
+
+    // In-content ad logic: insert ad before middle H2
+    // Conditions: content >= 1000 chars, H2 count >= 3
+    const h2Elements = doc.querySelectorAll('h2')
+    const h2Count = h2Elements.length
+    let showAd = false
+
+    if (contentLength >= 1000 && h2Count >= 3) {
+      // Calculate middle H2 index (e.g., 6 H2s -> 3rd, 5 H2s -> 3rd, 4 H2s -> 2nd, 3 H2s -> 2nd)
+      const middleIndex = Math.floor(h2Count / 2)
+      const targetH2 = h2Elements[middleIndex]
+
+      if (targetH2) {
+        // Create ad placeholder div
+        const adPlaceholder = doc.createElement('div')
+        adPlaceholder.id = 'in-content-ad-placeholder'
+        adPlaceholder.className = 'in-content-ad-wrapper'
+
+        // Insert before the target H2
+        targetH2.parentNode?.insertBefore(adPlaceholder, targetH2)
+        showAd = true
+      }
+    }
 
     // Apply syntax highlighting to code blocks and add language labels
     const codeBlocks = doc.querySelectorAll('pre code')
@@ -361,8 +387,36 @@ export default function PostDetailPage() {
     return {
       tocHeadings: tocList,
       contentWithIds: doc.body.innerHTML,
+      shouldShowInContentAd: showAd,
     }
   }, [post?.content])
+
+  // Load in-content ad when placeholder is ready
+  useEffect(() => {
+    if (!shouldShowInContentAd) return
+
+    const placeholder = document.getElementById('in-content-ad-placeholder')
+    if (!placeholder || placeholder.hasChildNodes()) return
+
+    // Create ad element
+    const adElement = document.createElement('ins')
+    adElement.className = 'adsbygoogle'
+    adElement.style.display = 'block'
+    adElement.style.textAlign = 'center'
+    adElement.setAttribute('data-ad-client', 'ca-pub-6534924804736684')
+    adElement.setAttribute('data-ad-slot', '2169621198')
+    adElement.setAttribute('data-ad-format', 'auto')
+    adElement.setAttribute('data-full-width-responsive', 'true')
+
+    placeholder.appendChild(adElement)
+
+    // Push ad
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({})
+    } catch (error) {
+      console.error('In-content ad error:', error)
+    }
+  }, [shouldShowInContentAd, contentWithIds])
 
   // Handle copy button clicks via event delegation
   const handleContentClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -532,6 +586,15 @@ export default function PostDetailPage() {
           max-width: 768px;
           margin-left: auto;
           margin-right: auto;
+        }
+        /* In-content Ad */
+        .post-content .in-content-ad-wrapper {
+          margin: 2rem 0;
+          padding: 1rem 0;
+          min-height: 100px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         .post-content pre {
           position: relative;
