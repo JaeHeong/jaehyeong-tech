@@ -403,10 +403,10 @@ export default function PostDetailPage() {
     adElement.className = 'adsbygoogle'
     adElement.style.display = 'block'
     adElement.style.width = '100%'
-    adElement.style.minHeight = '100px'
+    adElement.style.height = '280px'
     adElement.setAttribute('data-ad-client', 'ca-pub-6534924804736684')
     adElement.setAttribute('data-ad-slot', '8272829268')
-    adElement.setAttribute('data-ad-format', 'horizontal')
+    adElement.setAttribute('data-ad-format', 'auto')
     adElement.setAttribute('data-full-width-responsive', 'true')
 
     placeholder.appendChild(adElement)
