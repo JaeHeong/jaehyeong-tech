@@ -4,6 +4,7 @@ import { api, type Post } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useModal } from '../contexts/ModalContext'
 import Sidebar from '../components/Sidebar'
+import AdSense from '../components/AdSense'
 import CommentSection from '../components/CommentSection'
 import MobileProfileModal from '../components/MobileProfileModal'
 import { useSEO } from '../hooks/useSEO'
@@ -277,7 +278,7 @@ export default function PostDetailPage() {
 
 
   // Extract headings from content, add IDs, apply syntax highlighting, and add copy buttons to code blocks
-  const { tocHeadings, contentWithIds, shouldShowInContentAd } = useMemo(() => {
+  const { tocHeadings, contentWithIds, shouldShowInContentAd, contentBeforeAd, contentAfterAd } = useMemo(() => {
     if (!post?.content) return { tocHeadings: [] as TocHeading[], contentWithIds: '', shouldShowInContentAd: false }
 
     const parser = new DOMParser()
@@ -299,11 +300,12 @@ export default function PostDetailPage() {
       })
     })
 
-    // In-content ad logic: insert ad before middle H2
+    // In-content ad logic: split content at middle H2
     // Conditions: content >= 1000 chars, H2 count >= 3
     const h2Elements = doc.querySelectorAll('h2')
     const h2Count = h2Elements.length
     let showAd = false
+    let adInsertIndex = -1
 
     if (contentLength >= 1000 && h2Count >= 3) {
       // Calculate middle H2 index (e.g., 6 H2s -> 3rd, 5 H2s -> 3rd, 4 H2s -> 2nd, 3 H2s -> 2nd)
@@ -311,14 +313,10 @@ export default function PostDetailPage() {
       const targetH2 = h2Elements[middleIndex]
 
       if (targetH2) {
-        // Create ad placeholder div
-        const adPlaceholder = doc.createElement('div')
-        adPlaceholder.id = 'in-content-ad-placeholder'
-        adPlaceholder.className = 'in-content-ad-wrapper'
-
-        // Insert before the target H2
-        targetH2.parentNode?.insertBefore(adPlaceholder, targetH2)
-        showAd = true
+        // Find the index of this H2 in the body's children
+        const bodyChildren = Array.from(doc.body.children)
+        adInsertIndex = bodyChildren.indexOf(targetH2 as Element)
+        showAd = adInsertIndex > 0
       }
     }
 
@@ -384,40 +382,25 @@ export default function PostDetailPage() {
     // Render LaTeX math expressions
     renderMathExpressions(doc)
 
+    // Split content if ad should be shown
+    let contentBeforeAd = ''
+    let contentAfterAd = ''
+
+    if (showAd && adInsertIndex > 0) {
+      const bodyChildren = Array.from(doc.body.children)
+      contentBeforeAd = bodyChildren.slice(0, adInsertIndex).map(el => el.outerHTML).join('')
+      contentAfterAd = bodyChildren.slice(adInsertIndex).map(el => el.outerHTML).join('')
+    }
+
     return {
       tocHeadings: tocList,
       contentWithIds: doc.body.innerHTML,
       shouldShowInContentAd: showAd,
+      contentBeforeAd,
+      contentAfterAd,
     }
   }, [post?.content])
 
-  // Load in-content ad when placeholder is ready
-  useEffect(() => {
-    if (!shouldShowInContentAd) return
-
-    const placeholder = document.getElementById('in-content-ad-placeholder')
-    if (!placeholder || placeholder.hasChildNodes()) return
-
-    // Create ad element
-    const adElement = document.createElement('ins')
-    adElement.className = 'adsbygoogle'
-    adElement.style.display = 'block'
-    adElement.style.width = '100%'
-    adElement.style.height = '280px'
-    adElement.setAttribute('data-ad-client', 'ca-pub-6534924804736684')
-    adElement.setAttribute('data-ad-slot', '8272829268')
-    adElement.setAttribute('data-ad-format', 'auto')
-    adElement.setAttribute('data-full-width-responsive', 'true')
-
-    placeholder.appendChild(adElement)
-
-    // Push ad
-    try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({})
-    } catch (error) {
-      console.error('In-content ad error:', error)
-    }
-  }, [shouldShowInContentAd, contentWithIds])
 
   // Handle copy button clicks via event delegation
   const handleContentClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -1272,12 +1255,30 @@ export default function PostDetailPage() {
               </div>
 
               {/* Content */}
-              <div
-                ref={contentRef}
-                className="post-content text-slate-700 dark:text-slate-300"
-                onClick={handleContentClick}
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentWithIds || post.content) }}
-              />
+              {shouldShowInContentAd && contentBeforeAd && contentAfterAd ? (
+                <div
+                  ref={contentRef}
+                  className="post-content text-slate-700 dark:text-slate-300"
+                  onClick={handleContentClick}
+                >
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentBeforeAd) }} />
+                  <div className="my-8">
+                    <AdSense
+                      slot="8272829268"
+                      format="auto"
+                      style={{ width: '100%', height: '280px' }}
+                    />
+                  </div>
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentAfterAd) }} />
+                </div>
+              ) : (
+                <div
+                  ref={contentRef}
+                  className="post-content text-slate-700 dark:text-slate-300"
+                  onClick={handleContentClick}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentWithIds || post.content) }}
+                />
+              )}
 
               {/* Related Posts Carousel */}
               {relatedPosts.length > 0 && (
