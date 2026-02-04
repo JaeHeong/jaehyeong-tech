@@ -404,7 +404,7 @@ export default function PostDetailPage() {
     adElement.style.display = 'block'
     adElement.style.textAlign = 'center'
     adElement.setAttribute('data-ad-client', 'ca-pub-6534924804736684')
-    adElement.setAttribute('data-ad-slot', '2169621198')
+    adElement.setAttribute('data-ad-slot', '8272829268')
     adElement.setAttribute('data-ad-format', 'auto')
     adElement.setAttribute('data-full-width-responsive', 'true')
 
