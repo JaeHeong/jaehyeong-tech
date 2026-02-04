@@ -391,33 +391,48 @@ export default function PostDetailPage() {
     }
   }, [post?.content])
 
+  // Track if ad has been loaded for current post
+  const adLoadedRef = useRef<string | null>(null)
+
   // Load in-content ad when placeholder is ready
   useEffect(() => {
-    if (!shouldShowInContentAd) return
+    if (!shouldShowInContentAd || !post?.id) return
 
-    const placeholder = document.getElementById('in-content-ad-placeholder')
-    if (!placeholder || placeholder.hasChildNodes()) return
+    // Skip if already loaded for this post
+    if (adLoadedRef.current === post.id) return
 
-    // Create ad element
-    const adElement = document.createElement('ins')
-    adElement.className = 'adsbygoogle'
-    adElement.style.display = 'block'
-    adElement.style.width = '100%'
-    adElement.style.height = '280px'
-    adElement.setAttribute('data-ad-client', 'ca-pub-6534924804736684')
-    adElement.setAttribute('data-ad-slot', '8272829268')
-    adElement.setAttribute('data-ad-format', 'auto')
-    adElement.setAttribute('data-full-width-responsive', 'true')
+    // Wait for DOM to be ready
+    const timer = setTimeout(() => {
+      const placeholder = document.getElementById('in-content-ad-placeholder')
+      if (!placeholder) return
 
-    placeholder.appendChild(adElement)
+      // Clear any existing content
+      placeholder.innerHTML = ''
 
-    // Push ad
-    try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({})
-    } catch (error) {
-      console.error('In-content ad error:', error)
-    }
-  }, [shouldShowInContentAd, contentWithIds])
+      // Create ad element
+      const adElement = document.createElement('ins')
+      adElement.className = 'adsbygoogle'
+      adElement.style.display = 'block'
+      adElement.style.width = '100%'
+      adElement.style.height = '280px'
+      adElement.setAttribute('data-ad-client', 'ca-pub-6534924804736684')
+      adElement.setAttribute('data-ad-slot', '8272829268')
+      adElement.setAttribute('data-ad-format', 'auto')
+      adElement.setAttribute('data-full-width-responsive', 'true')
+
+      placeholder.appendChild(adElement)
+
+      // Push ad
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).push({})
+        adLoadedRef.current = post.id
+      } catch (error) {
+        console.error('In-content ad error:', error)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [shouldShowInContentAd, post?.id])
 
   // Handle copy button clicks via event delegation
   const handleContentClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
