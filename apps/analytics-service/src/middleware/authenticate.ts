@@ -1,33 +1,68 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from './errorHandler';
 
-/**
- * 인증 미들웨어 (Istio 헤더 기반)
- *
- * Istio RequestAuthentication에서 JWT 검증 후 헤더로 주입:
- * - x-user-id: JWT claim에서 추출된 user ID
- * - x-user-email: JWT claim에서 추출된 email
- * - x-user-role: JWT claim에서 추출된 role
- * - x-tenant-id: JWT claim에서 추출된 tenant ID
- */
-export function authenticate(req: Request, res: Response, next: NextFunction) {
-  try {
-    const userId = req.headers['x-user-id'] as string;
-    const tenantId = req.headers['x-tenant-id'] as string;
-    const email = req.headers['x-user-email'] as string;
-    const role = req.headers['x-user-role'] as string;
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || '';
 
-    if (!userId || !tenantId) {
+/**
+ * Bearer 토큰으로 auth service에서 사용자 정보 조회
+ */
+async function verifyTokenViaAuthService(
+  authHeader: string,
+  tenantId: string
+): Promise<{ id: string; email: string; role: string; tenantId: string } | null> {
+  if (!AUTH_SERVICE_URL) return null;
+
+  try {
+    const response = await fetch(`${AUTH_SERVICE_URL}/auth/me`, {
+      headers: {
+        Authorization: authHeader,
+        'x-tenant-id': tenantId,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) return null;
+    const data = await response.json() as { data: { id: string; email: string; role: string } };
+    return { ...data.data, tenantId };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 인증 미들웨어
+ *
+ * 우선순위:
+ * 1. Istio/서비스메시 헤더 (x-user-id, x-user-role 등) - 레거시
+ * 2. Authorization: Bearer 토큰 → auth service에서 검증
+ */
+export async function authenticate(req: Request, res: Response, next: NextFunction) {
+  try {
+    const tenantId = req.headers['x-tenant-id'] as string;
+
+    // 1. Istio 헤더 기반 인증 (레거시)
+    const userId = req.headers['x-user-id'] as string;
+    if (userId) {
+      req.user = {
+        id: userId,
+        tenantId,
+        email: req.headers['x-user-email'] as string || '',
+        role: req.headers['x-user-role'] as string || 'USER',
+      };
+      return next();
+    }
+
+    // 2. Bearer 토큰 기반 인증
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new AppError('인증이 필요합니다.', 401);
     }
 
-    req.user = {
-      id: userId,
-      tenantId,
-      email: email || '',
-      role: role || 'USER',
-    };
+    const user = await verifyTokenViaAuthService(authHeader, tenantId);
+    if (!user) {
+      throw new AppError('인증이 필요합니다.', 401);
+    }
 
+    req.user = user;
     next();
   } catch (error) {
     next(error);
@@ -36,21 +71,29 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
 
 /**
  * 선택적 인증 미들웨어
- * 토큰이 있으면 사용자 정보 설정, 없으면 익명으로 처리
  */
-export function optionalAuthenticate(req: Request, res: Response, next: NextFunction) {
-  const userId = req.headers['x-user-id'] as string;
+export async function optionalAuthenticate(req: Request, res: Response, next: NextFunction) {
   const tenantId = req.headers['x-tenant-id'] as string;
-  const email = req.headers['x-user-email'] as string;
-  const role = req.headers['x-user-role'] as string;
 
-  if (userId && tenantId) {
+  // 1. Istio 헤더
+  const userId = req.headers['x-user-id'] as string;
+  if (userId) {
     req.user = {
       id: userId,
       tenantId,
-      email: email || '',
-      role: role || 'USER',
+      email: req.headers['x-user-email'] as string || '',
+      role: req.headers['x-user-role'] as string || 'USER',
     };
+    return next();
+  }
+
+  // 2. Bearer 토큰 (optional - 실패해도 통과)
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    const user = await verifyTokenViaAuthService(authHeader, tenantId);
+    if (user) {
+      req.user = user;
+    }
   }
 
   next();
