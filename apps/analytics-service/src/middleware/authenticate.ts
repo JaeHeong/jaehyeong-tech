@@ -13,7 +13,7 @@ async function verifyTokenViaAuthService(
   if (!AUTH_SERVICE_URL) return null;
 
   try {
-    const response = await fetch(`${AUTH_SERVICE_URL}/auth/me`, {
+    const response = await fetch(`${AUTH_SERVICE_URL}/api/auth/me`, {
       headers: {
         Authorization: authHeader,
         'x-tenant-id': tenantId,
