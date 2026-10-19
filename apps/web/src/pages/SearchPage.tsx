@@ -45,7 +45,7 @@ export default function SearchPage() {
             setTagName(meta.tag.name)
           }
         } else if (query) {
-          // Full-text search with Meilisearch
+          // Search published posts
           const { posts: results, meta } = await api.fullTextSearch(query, { page, limit: 10 })
           setPosts(results)
           setTotalCount(meta.total)

@@ -1,0 +1,383 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                       String   @id @default(cuid())
+  name                     String   @unique
+  domain                   String
+  jwtSecret                String
+  jwtExpiry                String   @default("7d")
+  googleClientId           String?
+  googleClientSecret       String?
+  githubClientId           String?
+  githubClientSecret       String?
+  allowRegistration        Boolean  @default(true)
+  allowGoogleOauth         Boolean  @default(false)
+  allowGithubOauth         Boolean  @default(false)
+  passwordMinLength        Int      @default(8)
+  passwordRequireUppercase Boolean  @default(true)
+  passwordRequireNumber    Boolean  @default(true)
+  passwordRequireSpecial   Boolean  @default(false)
+  isActive                 Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @default(now()) @updatedAt
+  users                    User[]
+
+  @@map("tenants")
+}
+
+model User {
+  id          String     @id @default(cuid())
+  tenantId    String
+  email       String
+  password    String?
+  googleId    String?
+  githubId    String?
+  name        String
+  avatar      String?
+  bio         String?
+  title       String?
+  github      String?
+  twitter     String?
+  linkedin    String?
+  website     String?
+  role        Role       @default(USER)
+  status      UserStatus @default(ACTIVE)
+  lastLoginAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @default(now()) @updatedAt
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, googleId])
+  @@unique([tenantId, githubId])
+  @@index([tenantId])
+  @@index([tenantId, email])
+  @@map("users")
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  tenantId    String
+  slug        String
+  title       String
+  excerpt     String
+  content     String
+  coverImage  String?
+  viewCount   Int        @default(0)
+  likeCount   Int        @default(0)
+  readingTime Int        @default(0)
+  status      PostStatus @default(DRAFT)
+  featured    Boolean    @default(false)
+  authorId    String
+  categoryId  String
+  publishedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @default(now()) @updatedAt
+  bookmarks   Bookmark[]
+  likes       Like[]
+  views       PostView[]
+  category    Category   @relation(fields: [categoryId], references: [id])
+  tags        Tag[]      @relation("PostToTag")
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, publishedAt])
+  @@index([tenantId, categoryId])
+  @@index([tenantId, authorId])
+  @@index([tenantId, featured])
+  @@map("posts")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  slug        String
+  description String?
+  icon        String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  posts       Post[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("categories")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  slug      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  posts     Post[]   @relation("PostToTag")
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("tags")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  tenantId  String
+  postId    String
+  userId    String?
+  ipHash    String?
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, postId, userId])
+  @@unique([tenantId, postId, ipHash])
+  @@index([tenantId, postId])
+  @@index([tenantId, userId])
+  @@map("likes")
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  tenantId  String
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, postId, userId])
+  @@index([tenantId, postId])
+  @@index([tenantId, userId])
+  @@map("bookmarks")
+}
+
+model PostView {
+  id        String   @id @default(cuid())
+  tenantId  String
+  postId    String
+  ipHash    String
+  createdAt DateTime @default(now())
+  userId    String?  @db.VarChar(255)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, postId, ipHash])
+  @@index([tenantId, postId])
+  @@index([tenantId, userId])
+  @@map("post_views")
+}
+
+model Draft {
+  id         String   @id @default(cuid())
+  title      String?
+  content    String   @default("")
+  excerpt    String?
+  coverImage String?
+  categoryId String?
+  tagIds     String[]
+  authorId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  tenantId   String
+
+  @@index([authorId])
+  @@index([tenantId])
+  @@index([updatedAt])
+  @@map("drafts")
+}
+
+model Comment {
+  id           String        @id @default(cuid())
+  tenantId     String
+  resourceType String
+  resourceId   String
+  content      String
+  authorId     String?
+  guestName    String?
+  guestEmail   String?
+  parentId     String?
+  status       CommentStatus @default(PENDING)
+  isPrivate    Boolean       @default(false)
+  isDeleted    Boolean       @default(false)
+  ipHash       String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
+  parent       Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      Comment[]     @relation("CommentReplies")
+
+  @@index([tenantId])
+  @@index([tenantId, resourceType, resourceId])
+  @@index([tenantId, status])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model Page {
+  id          String     @id @default(cuid())
+  tenantId    String
+  slug        String
+  title       String
+  type        PageType   @default(NOTICE)
+  content     String
+  excerpt     String?
+  status      PageStatus @default(DRAFT)
+  badge       String?
+  badgeColor  String?
+  isPinned    Boolean    @default(false)
+  template    String?
+  viewCount   Int        @default(0)
+  authorId    String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @default(now()) @updatedAt
+  publishedAt DateTime?
+  views       PageView[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, type, status])
+  @@index([tenantId, isPinned, publishedAt])
+  @@map("pages")
+}
+
+model PageView {
+  id        String   @id @default(cuid())
+  tenantId  String
+  pageId    String
+  ipHash    String
+  createdAt DateTime @default(now())
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, pageId, ipHash])
+  @@index([tenantId, pageId])
+  @@map("page_views")
+}
+
+model SiteVisitor {
+  id        String   @id @default(cuid())
+  tenantId  String
+  ipHash    String
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+  userId    String?  @db.VarChar(255)
+
+  @@unique([tenantId, ipHash, date])
+  @@index([tenantId, date])
+  @@index([tenantId, userId])
+  @@map("site_visitors")
+}
+
+model BugReport {
+  id            String            @id @default(cuid())
+  tenantId      String
+  title         String
+  description   String
+  category      BugReportCategory
+  priority      BugReportPriority @default(MEDIUM)
+  status        BugReportStatus   @default(OPEN)
+  email         String?
+  ipHash        String?
+  adminResponse String?
+  respondedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @default(now()) @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, category])
+  @@index([tenantId, createdAt])
+  @@map("bug_reports")
+}
+
+model File {
+  id               String   @id @default(cuid())
+  tenantId         String
+  fileName         String
+  originalFileName String
+  mimeType         String
+  size             Int
+  storageProvider  String   @default("oci")
+  storagePath      String
+  objectName       String
+  folder           String
+  url              String
+  resourceType     String?
+  resourceId       String?
+  fileType         FileType @default(OTHER)
+  width            Int?
+  height           Int?
+  uploadedBy       String?
+  createdAt        DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, resourceType, resourceId])
+  @@index([tenantId, folder])
+  @@index([tenantId, fileType])
+  @@map("files")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLIC
+  PRIVATE
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SPAM
+}
+
+enum PageType {
+  STATIC
+  NOTICE
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum BugReportCategory {
+  UI
+  FUNCTIONAL
+  PERFORMANCE
+  SECURITY
+  ETC
+}
+
+enum BugReportPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum BugReportStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum FileType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  AUDIO
+  OTHER
+}
+
+

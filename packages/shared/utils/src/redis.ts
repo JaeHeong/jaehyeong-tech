@@ -1,167 +1,137 @@
 import { createClient, RedisClientType } from 'redis';
 
-// Redis URL from environment or default to K8s service
 const REDIS_URL = process.env.REDIS_URL || 'redis://redis.redis-system.svc.cluster.local:6379';
-
-// Environment prefix for key namespacing (dev/prod isolation)
 const ENV_PREFIX = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
-
+const PROJECT_PREFIX = process.env.CACHE_NAMESPACE || 'jaehyeong-tech';
+const COMMAND_TIMEOUT_MS = Number(process.env.REDIS_COMMAND_TIMEOUT_MS || 150);
+const RETRY_DELAY_MS = Number(process.env.REDIS_RETRY_DELAY_MS || 5000);
 let redisClient: RedisClientType | null = null;
-let isConnecting = false;
-let connectionPromise: Promise<RedisClientType> | null = null;
+let connecting = false;
+let retryAfter = 0;
+let stopped = false;
 
+function discard(client: RedisClientType) {
+  if (redisClient === client) {
+    redisClient = null;
+    retryAfter = Date.now() + RETRY_DELAY_MS;
+    connecting = false;
+  }
+  if (client.isOpen) void client.disconnect().catch(() => {});
+}
+
+// Connect in the background. Requests never wait for Redis to come back online.
 export async function getRedisClient(): Promise<RedisClientType> {
-  if (redisClient?.isOpen) {
-    return redisClient;
+  if (!stopped && Date.now() >= retryAfter && redisClient?.isReady) return redisClient;
+  if (!stopped && !connecting && Date.now() >= retryAfter) {
+    connecting = true;
+    const client: RedisClientType = createClient({
+      url: REDIS_URL,
+      socket: { connectTimeout: 300, reconnectStrategy: false },
+      disableOfflineQueue: true,
+      commandsQueueMaxLength: 100,
+    });
+    redisClient = client;
+    client.on('error', () => { discard(client); });
+    void client.connect().then(() => {
+      connecting = false;
+      if (redisClient !== client || stopped) { discard(client); return; }
+      client.unref();
+    }).catch(() => { discard(client); });
   }
-
-  if (isConnecting && connectionPromise) {
-    return connectionPromise;
-  }
-
-  isConnecting = true;
-  connectionPromise = (async () => {
-    try {
-      redisClient = createClient({ url: REDIS_URL });
-
-      redisClient.on('error', (err) => {
-        console.error('[Redis] Connection error:', err.message);
-      });
-
-      redisClient.on('reconnecting', () => {
-        console.log('[Redis] Reconnecting...');
-      });
-
-      await redisClient.connect();
-      console.log('[Redis] Connected successfully');
-      return redisClient;
-    } catch (error) {
-      console.error('[Redis] Failed to connect:', error);
-      throw error;
-    } finally {
-      isConnecting = false;
-    }
-  })();
-
-  return connectionPromise;
+  throw new Error('Cache unavailable');
 }
 
 export async function closeRedisConnection(): Promise<void> {
-  if (redisClient?.isOpen) {
-    await redisClient.quit();
-    redisClient = null;
-    console.log('[Redis] Connection closed');
+  stopped = true;
+  const client = redisClient;
+  redisClient = null;
+  if (client?.isOpen) await client.disconnect();
+}
+
+async function cached<T>(operation: (client: RedisClientType) => Promise<T>, fallback: T): Promise<T> {
+  let client: RedisClientType | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    client = await getRedisClient();
+    const activeClient = client;
+    return await Promise.race([
+      Promise.resolve().then(() => operation(activeClient)),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          discard(activeClient);
+          reject(new Error('Cache deadline exceeded'));
+        }, COMMAND_TIMEOUT_MS);
+      }),
+    ]);
+  } catch {
+    // Cache failures never fail the underlying operation or hold up responses.
+    return fallback;
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
-// Cache utilities with service prefix
 export class CacheService {
-  private prefix: string;
-  private defaultTTL: number;
-
-  constructor(servicePrefix: string, defaultTTL: number = 60) {
-    this.prefix = servicePrefix;
-    this.defaultTTL = defaultTTL;
-  }
+  constructor(private prefix: string, private defaultTTL: number = 60) {}
 
   private getKey(key: string): string {
-    return `${ENV_PREFIX}:${this.prefix}:${key}`;
+    return `${PROJECT_PREFIX}:${ENV_PREFIX}:${this.prefix}:${key}`;
   }
 
   async get<T>(key: string): Promise<T | null> {
-    try {
-      const client = await getRedisClient();
+    return cached(async client => {
       const value = await client.get(this.getKey(key));
-      return value ? JSON.parse(value) : null;
-    } catch (error) {
-      console.error(`[Cache] Get error for ${key}:`, error);
-      return null;
-    }
+      return value ? JSON.parse(value) as T : null;
+    }, null);
   }
 
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
-    try {
-      const client = await getRedisClient();
-      await client.setEx(
-        this.getKey(key),
-        ttl ?? this.defaultTTL,
-        JSON.stringify(value)
-      );
-    } catch (error) {
-      console.error(`[Cache] Set error for ${key}:`, error);
-    }
+    await cached(async client => {
+      await client.setEx(this.getKey(key), ttl ?? this.defaultTTL, JSON.stringify(value));
+    }, undefined);
   }
 
   async del(key: string): Promise<void> {
-    try {
-      const client = await getRedisClient();
-      await client.del(this.getKey(key));
-    } catch (error) {
-      console.error(`[Cache] Delete error for ${key}:`, error);
-    }
+    await cached(async client => { await client.del(this.getKey(key)); }, undefined);
   }
 
   async delPattern(pattern: string): Promise<void> {
-    try {
-      const client = await getRedisClient();
-      const keys = await client.keys(this.getKey(pattern));
-      if (keys.length > 0) {
-        await client.del(keys);
+    await cached(async client => {
+      for await (const key of client.scanIterator({ MATCH: this.getKey(pattern), COUNT: 100 })) {
+        await client.del(key);
       }
-    } catch (error) {
-      console.error(`[Cache] Delete pattern error for ${pattern}:`, error);
-    }
+    }, undefined);
   }
 
-  async getOrSet<T>(
-    key: string,
-    fetcher: () => Promise<T>,
-    ttl?: number
-  ): Promise<T> {
-    const cached = await this.get<T>(key);
-    if (cached !== null) {
-      return cached;
-    }
-
-    const value = await fetcher();
-    await this.set(key, value, ttl);
-    return value;
+  async getOrSet<T>(key: string, fetcher: () => Promise<T>, ttl?: number): Promise<T> {
+    const value = await this.get<T>(key);
+    if (value !== null) return value;
+    const result = await fetcher();
+    await this.set(key, result, ttl);
+    return result;
   }
 
-  // Batch get for multiple keys
   async mget<T>(keys: string[]): Promise<(T | null)[]> {
-    try {
-      const client = await getRedisClient();
-      const fullKeys = keys.map(k => this.getKey(k));
-      const values = await client.mGet(fullKeys);
-      return values.map(v => (v ? JSON.parse(v) : null));
-    } catch (error) {
-      console.error('[Cache] MGet error:', error);
-      return keys.map(() => null);
-    }
+    if (!keys.length) return [];
+    return cached(async client => {
+      const values = await client.mGet(keys.map(key => this.getKey(key)));
+      return values.map(value => value ? JSON.parse(value) as T : null);
+    }, keys.map(() => null));
   }
 
-  // Batch set for multiple key-value pairs
   async mset<T>(entries: { key: string; value: T; ttl?: number }[]): Promise<void> {
-    try {
-      const client = await getRedisClient();
+    if (!entries.length) return;
+    await cached(async client => {
       const pipeline = client.multi();
-
-      for (const { key, value, ttl } of entries) {
-        pipeline.setEx(this.getKey(key), ttl ?? this.defaultTTL, JSON.stringify(value));
-      }
-
+      for (const entry of entries) pipeline.setEx(this.getKey(entry.key), entry.ttl ?? this.defaultTTL, JSON.stringify(entry.value));
       await pipeline.exec();
-    } catch (error) {
-      console.error('[Cache] MSet error:', error);
-    }
+    }, undefined);
   }
 }
 
-// Pre-configured cache instances for each service
-export const authCache = new CacheService('auth', 300); // 5 min
-export const blogCache = new CacheService('blog', 60);  // 1 min
+export const authCache = new CacheService('auth', 300);
+export const blogCache = new CacheService('blog', 60);
 export const commentCache = new CacheService('comment', 60);
-export const pageCache = new CacheService('page', 120); // 2 min
-export const analyticsCache = new CacheService('analytics', 300); // 5 min
+export const pageCache = new CacheService('page', 120);
+export const analyticsCache = new CacheService('analytics', 300);
 export const storageCache = new CacheService('storage', 60);

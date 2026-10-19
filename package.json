@@ -5,15 +5,22 @@
   "description": "DevOps & MLOps 기술 블로그",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @jaehyeong-tech/api prisma:generate && pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean && rm -rf node_modules",
-    "db:migrate": "pnpm --filter api db:migrate",
-    "db:generate": "pnpm --filter api db:generate",
-    "db:studio": "pnpm --filter api db:studio"
+    "db:migrate": "pnpm --filter @jaehyeong-tech/api exec prisma migrate dev",
+    "db:generate": "pnpm --filter @jaehyeong-tech/api prisma:generate",
+    "db:studio": "pnpm --filter @jaehyeong-tech/api exec prisma studio",
+    "test": "pnpm --filter @shared/utils test && pnpm --filter @jaehyeong-tech/api test"
   },
-  "keywords": ["blog", "devops", "mlops", "react", "typescript"],
+  "keywords": [
+    "blog",
+    "devops",
+    "mlops",
+    "react",
+    "typescript"
+  ],
   "author": "Jaehyeong",
   "license": "MIT",
   "packageManager": "pnpm@9.15.0",

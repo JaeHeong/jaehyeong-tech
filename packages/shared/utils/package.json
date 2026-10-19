@@ -1,7 +1,7 @@
 {
   "name": "@shared/utils",
   "version": "1.0.0",
-  "description": "Shared utility functions for MSA",
+  "description": "Shared utilities and optional cache access",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -30,11 +30,6 @@
       "require": "./dist/validation.js",
       "import": "./dist/validation.js"
     },
-    "./tenant-db": {
-      "types": "./dist/tenant-db.d.ts",
-      "require": "./dist/tenant-db.js",
-      "import": "./dist/tenant-db.js"
-    },
     "./redis": {
       "types": "./dist/redis.d.ts",
       "require": "./dist/redis.js",
@@ -44,19 +39,26 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "node --test test/*.test.cjs"
   },
-  "keywords": ["msa", "utils", "shared"],
+  "keywords": [
+    "msa",
+    "utils",
+    "shared"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@shared/types": "workspace:*",
-    "crypto": "^1.0.1",
     "redis": "^4.7.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }
