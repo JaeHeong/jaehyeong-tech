@@ -35,9 +35,9 @@ router.post('/sync', authenticate, requireAdmin, syncFilesWithBucket);
 router.get('/:id', optionalAuthenticate, getFile);
 
 // 파일 삭제 (인증 필수)
-router.delete('/:id', requireAuth, deleteFile);
+router.delete('/:id', authenticate, requireAuth, deleteFile);
 
 // 파일 삭제 by URL (인증 필수)
-router.post('/delete-by-url', requireAuth, deleteFileByUrl);
+router.post('/delete-by-url', authenticate, requireAuth, deleteFileByUrl);
 
 export default router;

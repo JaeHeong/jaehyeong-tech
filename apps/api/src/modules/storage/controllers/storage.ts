@@ -349,9 +349,8 @@ export async function deleteFile(req: Request, res: Response, next: NextFunction
 }
 
 /**
- * URL로 파일 삭제 (Internal API - 서비스간 통신용)
- * POST /internal/delete-by-url
- * Used by auth-service when avatar changes
+ * Delete a file by URL after authenticating its owner or an administrator.
+ * POST /api/files/delete-by-url
  */
 export async function deleteFileByUrl(req: Request, res: Response, next: NextFunction) {
   try {
@@ -376,6 +375,10 @@ export async function deleteFileByUrl(req: Request, res: Response, next: NextFun
       console.log(`File not found for URL: ${url}`);
       res.json({ message: '파일을 찾을 수 없거나 이미 삭제되었습니다.', deleted: false });
       return;
+    }
+
+    if (file.uploadedBy && file.uploadedBy !== req.user?.id && req.user?.role !== 'ADMIN') {
+      throw new AppError('파일을 삭제할 권한이 없습니다.', 403);
     }
 
     // OCI에서 삭제
