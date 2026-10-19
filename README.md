@@ -53,6 +53,7 @@ pnpm dev
 ```
 
 API 기본 포트는 3000, Vite 개발 서버는 5173이다.
+로컬 API 설정 예시는 `.env.example`을 `apps/api/.env`로 복사해 사용한다.
 API에는 `DATABASE_URL`, `TENANT_ID`, `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`를 설정한다.
 기존 사이트의 `TENANT_ID` 기본값은 `tenant-jaehyeong-tech`이다.
 이 ID와 DB의 블로그 설정 행은 이미지 경로·회원·기존 글의 호환성을 위해 유지한다.
